@@ -1,0 +1,64 @@
+[
+  {
+    "id": "CR-001",
+    "projectId": "proj-001",
+    "title": "เปลี่ยนวัสดุผนังจากยิปซั่มเป็นคอมโพสิต",
+    "reason": "ยิปซั่มไม่ทนความชื้นในพื้นที่ใกล้ห้องน้ำ",
+    "budgetImpact": 350000,
+    "scheduleImpact": 15,
+    "linkedWbs": "WBS 2.2 งานโครงสร้าง",
+    "priority": "high",
+    "status": "approved",
+    "requestedBy": "วิภา ข.",
+    "requestedAt": "2026-05-15",
+    "approvedBy": "สมชาย ก.",
+    "approvedAt": "2026-05-20",
+    "attachments": ["หนังสือขอเปลี่ยนแปลง_CR001.pdf", "หนังสืออนุมัติ_CR001.pdf", "BOQ_ปรับปรุง_Rev4.xlsx"],
+    "workflow": [
+      { "step": "ส่งคำขอ", "user": "วิภา ข.", "date": "2026-05-15", "status": "done" },
+      { "step": "หัวหน้ากองพิจารณา", "user": "สมชาย ก.", "date": "2026-05-18", "status": "done" },
+      { "step": "ประธานอนุมัติ", "user": "สมชาย ก.", "date": "2026-05-20", "status": "done" }
+    ]
+  },
+  {
+    "id": "CR-002",
+    "projectId": "proj-001",
+    "title": "เพิ่มจอ Interactive 2 จอ สำหรับนิทรรศการดาราศาสตร์",
+    "reason": "ผู้เชี่ยวชาญด้านนิทรรศการแนะนำให้เพิ่มจอ Interactive เพื่อเพิ่มประสบการณ์ผู้เข้าชม",
+    "budgetImpact": 180000,
+    "scheduleImpact": 5,
+    "linkedWbs": "WBS 3.2 งานระบบมัลติมีเดีย",
+    "priority": "medium",
+    "status": "pending",
+    "requestedBy": "วิภา ข.",
+    "requestedAt": "2026-06-20",
+    "approvedBy": null,
+    "approvedAt": null,
+    "attachments": ["หนังสือขอเปลี่ยนแปลง_CR002.pdf", "BOQ_เพิ่มเติม_จอInteractive.xlsx", "ใบเสนอราคา_Samsung.pdf"],
+    "workflow": [
+      { "step": "ส่งคำขอ", "user": "วิภา ข.", "date": "2026-06-20", "status": "done" },
+      { "step": "หัวหน้ากองพิจารณา", "user": "สมชาย ก.", "date": null, "status": "current" },
+      { "step": "ประธานอนุมัติ", "user": "ธนา ก.", "date": null, "status": "pending" }
+    ]
+  },
+  {
+    "id": "CR-003",
+    "projectId": "proj-001",
+    "title": "ลดจำนวนไฟ Downlight จาก 60 เป็น 40 ดวง",
+    "reason": "วิศวกรไฟฟ้าประเมินว่าแสงสว่างเพียงพอ",
+    "budgetImpact": -50000,
+    "scheduleImpact": 0,
+    "linkedWbs": "WBS 2.3 งานระบบไฟฟ้า",
+    "priority": "low",
+    "status": "rejected",
+    "requestedBy": "อนุชา จ.",
+    "requestedAt": "2026-06-25",
+    "approvedBy": null,
+    "approvedAt": null,
+    "attachments": ["หนังสือขอเปลี่ยนแปลง_CR003.pdf"],
+    "workflow": [
+      { "step": "ส่งคำขอ", "user": "อนุชา จ.", "date": "2026-06-25", "status": "done" },
+      { "step": "หัวหน้ากองพิจารณา", "user": "สมชาย ก.", "date": "2026-06-28", "status": "rejected" }
+    ]
+  }
+]

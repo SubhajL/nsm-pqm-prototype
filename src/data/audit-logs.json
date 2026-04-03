@@ -1,0 +1,22 @@
+[
+  { "id": "log-001", "userId": "user-002", "userName": "วิภา", "ip": "192.168.1.50", "os": "Win 11", "module": "Task", "action": "แก้ไข % Progress งาน 2.1", "timestamp": "2026-07-15T14:30:22" },
+  { "id": "log-002", "userId": "user-003", "userName": "กิตติ", "ip": "10.0.0.15", "os": "Android", "module": "Daily Report", "action": "สร้างรายงานประจำวัน #46", "timestamp": "2026-07-15T14:25:10" },
+  { "id": "log-003", "userId": "user-002", "userName": "วิภา", "ip": "192.168.1.50", "os": "Win 11", "module": "Login", "action": "เข้าสู่ระบบ", "timestamp": "2026-07-15T10:00:05" },
+  { "id": "log-004", "userId": "user-001", "userName": "สมชาย", "ip": "172.16.2.100", "os": "Win 10", "module": "Document", "action": "อัปโหลดไฟล์แบบแปลน Rev.3", "timestamp": "2026-07-14T16:15:33" },
+  { "id": "log-005", "userId": "user-005", "userName": "อนุชา", "ip": "10.0.1.5", "os": "iOS", "module": "Risk", "action": "บันทึกความเสี่ยงใหม่ R-008", "timestamp": "2026-07-14T09:45:11" },
+  { "id": "log-006", "userId": "user-003", "userName": "กิตติ", "ip": "10.0.0.15", "os": "Android", "module": "Task", "action": "ตรวจสอบงานฐานราก", "timestamp": "2026-07-13T11:20:00" },
+  { "id": "log-007", "userId": "user-002", "userName": "วิภา", "ip": "192.168.1.50", "os": "Win 11", "module": "Quality", "action": "บันทึกผลตรวจ ITP #3", "timestamp": "2026-07-13T09:30:00" },
+  { "id": "log-008", "userId": "user-001", "userName": "สมชาย", "ip": "172.16.2.100", "os": "Win 10", "module": "Approval", "action": "อนุมัติ Change Request CR-001", "timestamp": "2026-07-12T15:00:00" },
+  { "id": "log-009", "userId": "user-004", "userName": "พิมพ์ลดา", "ip": "192.168.1.55", "os": "macOS", "module": "Document", "action": "สร้างโฟลเดอร์ Shop Drawings", "timestamp": "2026-07-12T10:30:00" },
+  { "id": "log-010", "userId": "user-006", "userName": "สมศรี", "ip": "192.168.2.10", "os": "Win 11", "module": "Login", "action": "เข้าสู่ระบบ", "timestamp": "2026-07-12T08:45:00" },
+  { "id": "log-011", "userId": "user-002", "userName": "วิภา", "ip": "192.168.1.50", "os": "Win 11", "module": "Issue", "action": "เปิดเคส ISS-009", "timestamp": "2026-07-11T16:00:00" },
+  { "id": "log-012", "userId": "user-003", "userName": "กิตติ", "ip": "10.0.0.15", "os": "Android", "module": "Daily Report", "action": "สร้างรายงานประจำวัน #45", "timestamp": "2026-07-11T15:30:00" },
+  { "id": "log-013", "userId": "user-001", "userName": "สมชาย", "ip": "172.16.2.100", "os": "Win 10", "module": "Team", "action": "เปลี่ยนบทบาท อนุชา → Suspended", "timestamp": "2026-07-10T14:00:00" },
+  { "id": "log-014", "userId": "user-002", "userName": "วิภา", "ip": "192.168.1.50", "os": "Win 11", "module": "Risk", "action": "อัปเดตสถานะ R-005 → กำลังจัดการ", "timestamp": "2026-07-10T11:00:00" },
+  { "id": "log-015", "userId": "user-005", "userName": "อนุชา", "ip": "10.0.1.5", "os": "iOS", "module": "Task", "action": "อัปเดต Progress งานไฟฟ้า", "timestamp": "2026-07-09T16:30:00" },
+  { "id": "log-016", "userId": "user-004", "userName": "พิมพ์ลดา", "ip": "192.168.1.55", "os": "macOS", "module": "Document", "action": "อัปโหลดรายงานประชุม #5", "timestamp": "2026-07-09T10:00:00" },
+  { "id": "log-017", "userId": "user-001", "userName": "สมชาย", "ip": "172.16.2.100", "os": "Win 10", "module": "Approval", "action": "อนุมัติแผนงานโครงการ", "timestamp": "2026-07-08T15:00:00" },
+  { "id": "log-018", "userId": "user-002", "userName": "วิภา", "ip": "192.168.1.50", "os": "Win 11", "module": "Login", "action": "เข้าสู่ระบบ", "timestamp": "2026-07-08T08:30:00" },
+  { "id": "log-019", "userId": "user-003", "userName": "กิตติ", "ip": "10.0.0.15", "os": "Android", "module": "Quality", "action": "บันทึกผลตรวจ ITP #2", "timestamp": "2026-07-07T14:00:00" },
+  { "id": "log-020", "userId": "user-006", "userName": "สมศรี", "ip": "192.168.2.10", "os": "Win 11", "module": "Login", "action": "ออกจากระบบ", "timestamp": "2026-07-07T17:00:00" }
+]

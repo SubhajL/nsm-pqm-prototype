@@ -1,0 +1,38 @@
+{
+  "folders": [
+    { "id": "folder-root", "name": "โครงการปรับปรุงนิทรรศการดาราศาสตร์", "parentId": null },
+    { "id": "folder-1", "name": "สัญญาและ TOR", "parentId": "folder-root", "fileCount": 3 },
+    { "id": "folder-2", "name": "แบบก่อสร้าง", "parentId": "folder-root", "fileCount": 5 },
+    { "id": "folder-2-1", "name": "Architectural", "parentId": "folder-2", "fileCount": 2 },
+    { "id": "folder-2-2", "name": "Structural", "parentId": "folder-2", "fileCount": 2 },
+    { "id": "folder-2-3", "name": "Electrical", "parentId": "folder-2", "fileCount": 1 },
+    { "id": "folder-3", "name": "BOQ & ราคากลาง", "parentId": "folder-root", "fileCount": 5 },
+    { "id": "folder-4", "name": "รายงานประจำวัน", "parentId": "folder-root", "fileCount": 45 },
+    { "id": "folder-5", "name": "เอกสารตรวจรับ", "parentId": "folder-root", "fileCount": 2 },
+    { "id": "folder-6", "name": "QA/QC Documents", "parentId": "folder-root", "fileCount": 8 },
+    { "id": "folder-7", "name": "Shop Drawings", "parentId": "folder-root", "fileCount": 12, "pendingCount": 3 },
+    { "id": "folder-8", "name": "Minutes of Meeting", "parentId": "folder-root", "fileCount": 6 }
+  ],
+  "files": [
+    { "id": "file-1", "folderId": "folder-2", "name": "แบบสถาปัตย์_Rev3.pdf", "type": "Shop Drawing", "version": 3, "size": "15.2 MB", "uploadedBy": "วิภา ข.", "uploadedAt": "2026-06-10", "status": "approved", "workflow": ["submitted", "reviewed", "approved"] },
+    { "id": "file-2", "folderId": "folder-2", "name": "แบบโครงสร้าง_Rev2.pdf", "type": "Shop Drawing", "version": 2, "size": "8.5 MB", "uploadedBy": "กิตติ ค.", "uploadedAt": "2026-06-05", "status": "approved", "workflow": ["submitted", "reviewed", "approved"] },
+    { "id": "file-3", "folderId": "folder-2", "name": "แบบไฟฟ้า_Rev1.pdf", "type": "Shop Drawing", "version": 1, "size": "6.3 MB", "uploadedBy": "อนุชา จ.", "uploadedAt": "2026-06-01", "status": "under_review", "workflow": ["submitted", "under_review", "pending"] },
+    { "id": "file-4", "folderId": "folder-2", "name": "แบบปรับปรุง_CR002.pdf", "type": "As-Built", "version": 1, "size": "12.1 MB", "uploadedBy": "วิภา ข.", "uploadedAt": "2026-06-20", "status": "draft", "workflow": ["submitted", "pending", "pending"] },
+    { "id": "file-5", "folderId": "folder-2", "name": "Spec_วัสดุตกแต่ง.pdf", "type": "Specification", "version": 2, "size": "3.2 MB", "uploadedBy": "สมชาย ก.", "uploadedAt": "2026-05-15", "status": "approved", "workflow": ["submitted", "reviewed", "approved"] },
+    { "id": "file-6", "folderId": "folder-1", "name": "สัญญาจ้าง_PJ2569.pdf", "type": "Contract", "version": 1, "size": "2.1 MB", "uploadedBy": "สมชาย ก.", "uploadedAt": "2026-03-15", "status": "approved", "workflow": ["submitted", "reviewed", "approved"] },
+    { "id": "file-7", "folderId": "folder-1", "name": "TOR_PQM_System.pdf", "type": "TOR", "version": 1, "size": "1.8 MB", "uploadedBy": "สมชาย ก.", "uploadedAt": "2026-03-01", "status": "approved", "workflow": ["submitted", "reviewed", "approved"] }
+  ],
+  "versionHistory": {
+    "file-1": [
+      { "version": 3, "date": "2026-06-10", "author": "วิภา ข.", "note": "แก้ไขตาม CR-001" },
+      { "version": 2, "date": "2026-05-20", "author": "วิภา ข.", "note": "ปรับแบบโซน B" },
+      { "version": 1, "date": "2026-05-01", "author": "กิตติ ค.", "note": "แบบเริ่มต้น" }
+    ]
+  },
+  "permissions": [
+    { "role": "ผจก.โครงการ (PM)", "upload": true, "download": true, "edit": true, "delete": true, "manageFolder": true },
+    { "role": "วิศวกร (Engineer)", "upload": true, "download": true, "edit": true, "delete": false, "manageFolder": false },
+    { "role": "ผู้รับเหมา (Contractor)", "upload": true, "download": true, "edit": false, "delete": false, "manageFolder": false },
+    { "role": "ผู้สังเกตการณ์ (Viewer)", "upload": false, "download": true, "edit": false, "delete": false, "manageFolder": false }
+  ]
+}

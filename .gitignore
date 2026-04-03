@@ -1,0 +1,11 @@
+.next
+node_modules
+*.tsbuildinfo
+next-env.d.ts
+playwright-report
+test-results
+.env.local
+.vercel
+public/mock-uploads
+.DS_Store
+.codex/

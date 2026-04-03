@@ -1,0 +1,20 @@
+[
+  { "id": "gate-0", "projectId": "proj-001", "number": 0, "name": "Concept", "nameEn": "Concept", "status": "passed", "date": "2026-01-15" },
+  { "id": "gate-1", "projectId": "proj-001", "number": 1, "name": "Schematic", "nameEn": "Schematic", "status": "passed", "date": "2026-02-28" },
+  { "id": "gate-2", "projectId": "proj-001", "number": 2, "name": "Design Dev", "nameEn": "Design Development", "status": "passed", "date": "2026-03-20" },
+  { "id": "gate-3", "projectId": "proj-001", "number": 3, "name": "Tender", "nameEn": "Tender", "status": "passed", "date": "2026-04-05" },
+  {
+    "id": "gate-4", "projectId": "proj-001", "number": 4, "name": "Pre-Constr.", "nameEn": "Pre-Construction", "status": "conditional", "date": "2026-04-20",
+    "checklist": [
+      { "item": "แบบก่อสร้างอนุมัติแล้ว", "status": "passed" },
+      { "item": "BOQ ตรวจสอบแล้ว", "status": "passed" },
+      { "item": "สัญญาผู้รับเหมาลงนาม", "status": "passed" },
+      { "item": "ใบอนุญาตก่อสร้าง", "status": "warning" },
+      { "item": "ITP อนุมัติแล้ว", "status": "passed" },
+      { "item": "Safety Plan อนุมัติ", "status": "passed" }
+    ]
+  },
+  { "id": "gate-5", "projectId": "proj-001", "number": 5, "name": "Construction", "nameEn": "Construction Milestones", "status": "pending", "date": null },
+  { "id": "gate-6", "projectId": "proj-001", "number": 6, "name": "Completion", "nameEn": "Substantial Completion", "status": "pending", "date": null },
+  { "id": "gate-7", "projectId": "proj-001", "number": 7, "name": "Handover", "nameEn": "Final Handover", "status": "pending", "date": null }
+]

@@ -1,0 +1,14 @@
+[
+  { "projectId": "proj-001", "userId": "user-002", "assignmentRole": "manager" },
+  { "projectId": "proj-001", "userId": "user-003", "assignmentRole": "engineer" },
+  { "projectId": "proj-001", "userId": "user-004", "assignmentRole": "coordinator" },
+  { "projectId": "proj-001", "userId": "user-009", "assignmentRole": "consultant" },
+  { "projectId": "proj-002", "userId": "user-006", "assignmentRole": "manager" },
+  { "projectId": "proj-002", "userId": "user-003", "assignmentRole": "engineer" },
+  { "projectId": "proj-003", "userId": "user-001", "assignmentRole": "manager" },
+  { "projectId": "proj-003", "userId": "user-004", "assignmentRole": "coordinator" },
+  { "projectId": "proj-004", "userId": "user-002", "assignmentRole": "manager" },
+  { "projectId": "proj-004", "userId": "user-008", "assignmentRole": "coordinator" },
+  { "projectId": "proj-005", "userId": "user-001", "assignmentRole": "manager" },
+  { "projectId": "proj-005", "userId": "user-010", "assignmentRole": "team_member" }
+]

@@ -1,0 +1,12 @@
+[
+  { "id": "dept-root", "name": "อพวช.", "nameEn": "NSM", "parentId": null, "userCount": 10 },
+  { "id": "dept-001", "name": "สำนักผู้อำนวยการ", "nameEn": "Director Office", "parentId": "dept-root", "userCount": 1 },
+  { "id": "dept-001-1", "name": "กองบริหาร", "nameEn": "Administration", "parentId": "dept-001", "userCount": 0 },
+  { "id": "dept-001-2", "name": "กองทรัพยากรบุคคล", "nameEn": "HR", "parentId": "dept-001", "userCount": 0 },
+  { "id": "dept-002", "name": "สำนักพัฒนาธุรกิจ", "nameEn": "Business Development", "parentId": "dept-root", "userCount": 6 },
+  { "id": "dept-002-1", "name": "กองพัฒนาโครงการ", "nameEn": "Project Development", "parentId": "dept-002", "userCount": 6 },
+  { "id": "dept-003", "name": "กองเทคโนโลยีสารสนเทศ", "nameEn": "IT", "parentId": "dept-002", "userCount": 1 },
+  { "id": "dept-004", "name": "สำนักวิชาการ", "nameEn": "Academic Affairs", "parentId": "dept-root", "userCount": 2 },
+  { "id": "dept-004-1", "name": "กองวิทยาศาสตร์", "nameEn": "Science", "parentId": "dept-004", "userCount": 1 },
+  { "id": "dept-004-2", "name": "กองธรรมชาติวิทยา", "nameEn": "Natural History", "parentId": "dept-004", "userCount": 1 }
+]

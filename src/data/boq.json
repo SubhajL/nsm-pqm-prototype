@@ -1,0 +1,173 @@
+[
+  {
+    "id": "boq-001",
+    "wbsId": "wbs-2-1",
+    "description": "รื้อผนังยิปซั่ม",
+    "quantity": 120,
+    "unit": "ตร.ม.",
+    "unitPrice": 250,
+    "total": 30000
+  },
+  {
+    "id": "boq-002",
+    "wbsId": "wbs-2-1",
+    "description": "รื้อพื้นกระเบื้อง",
+    "quantity": 200,
+    "unit": "ตร.ม.",
+    "unitPrice": 180,
+    "total": 36000
+  },
+  {
+    "id": "boq-003",
+    "wbsId": "wbs-2-1",
+    "description": "รื้อฝ้าเพดาน",
+    "quantity": 200,
+    "unit": "ตร.ม.",
+    "unitPrice": 200,
+    "total": 40000
+  },
+  {
+    "id": "boq-004",
+    "wbsId": "wbs-2-1",
+    "description": "ขนย้ายเศษวัสดุ",
+    "quantity": 15,
+    "unit": "เที่ยว",
+    "unitPrice": 3500,
+    "total": 52500
+  },
+  {
+    "id": "boq-005",
+    "wbsId": "wbs-2-2",
+    "description": "เทคอนกรีต C25/30",
+    "quantity": 45,
+    "unit": "ลบ.ม.",
+    "unitPrice": 4200,
+    "total": 189000
+  },
+  {
+    "id": "boq-006",
+    "wbsId": "wbs-2-2",
+    "description": "เหล็กเสริม SD40",
+    "quantity": 3500,
+    "unit": "กก.",
+    "unitPrice": 28,
+    "total": 98000
+  },
+  {
+    "id": "boq-007",
+    "wbsId": "wbs-2-2",
+    "description": "แบบหล่อ",
+    "quantity": 180,
+    "unit": "ตร.ม.",
+    "unitPrice": 450,
+    "total": 81000
+  },
+  {
+    "id": "boq-008",
+    "wbsId": "wbs-2-3",
+    "description": "สายไฟฟ้าและรางเดินสายสำหรับนิทรรศการ",
+    "quantity": 850,
+    "unit": "ม.",
+    "unitPrice": 145,
+    "total": 123250
+  },
+  {
+    "id": "boq-009",
+    "wbsId": "wbs-2-3",
+    "description": "ตู้ควบคุมไฟฟ้าย่อยและเบรกเกอร์",
+    "quantity": 4,
+    "unit": "ชุด",
+    "unitPrice": 28500,
+    "total": 114000
+  },
+  {
+    "id": "boq-010",
+    "wbsId": "wbs-2-3",
+    "description": "โคมไฟส่องนิทรรศการแบบ Track Light",
+    "quantity": 36,
+    "unit": "ชุด",
+    "unitPrice": 4200,
+    "total": 151200
+  },
+  {
+    "id": "boq-011",
+    "wbsId": "wbs-3-1",
+    "description": "ตู้จัดแสดงดาวเคราะห์และฐานรอง",
+    "quantity": 8,
+    "unit": "ตู้",
+    "unitPrice": 32500,
+    "total": 260000
+  },
+  {
+    "id": "boq-012",
+    "wbsId": "wbs-3-1",
+    "description": "งานกรุผนังและกราฟิกนิทรรศการ",
+    "quantity": 180,
+    "unit": "ตร.ม.",
+    "unitPrice": 1850,
+    "total": 333000
+  },
+  {
+    "id": "boq-013",
+    "wbsId": "wbs-3-2",
+    "description": "เครื่องฉายภาพ Full Dome และเลนส์",
+    "quantity": 2,
+    "unit": "ชุด",
+    "unitPrice": 420000,
+    "total": 840000
+  },
+  {
+    "id": "boq-014",
+    "wbsId": "wbs-3-2",
+    "description": "Media Server และชุดควบคุมการแสดงผล",
+    "quantity": 2,
+    "unit": "ชุด",
+    "unitPrice": 185000,
+    "total": 370000
+  },
+  {
+    "id": "boq-015",
+    "wbsId": "wbs-3-2",
+    "description": "ลำโพงและระบบเสียงรอบทิศทาง",
+    "quantity": 1,
+    "unit": "ระบบ",
+    "unitPrice": 295000,
+    "total": 295000
+  },
+  {
+    "id": "boq-016",
+    "wbsId": "wbs-2-2",
+    "description": "เสริมโครงสร้างรองรับระบบโดมและอุปกรณ์แขวน",
+    "quantity": 1,
+    "unit": "งาน",
+    "unitPrice": 437050,
+    "total": 437050
+  },
+  {
+    "id": "boq-017",
+    "wbsId": "wbs-2-3",
+    "description": "ระบบไฟฟ้าหลัก ตู้ MDB และระบบควบคุมแสงนิทรรศการ",
+    "quantity": 1,
+    "unit": "งาน",
+    "unitPrice": 1950000,
+    "total": 1950000
+  },
+  {
+    "id": "boq-018",
+    "wbsId": "wbs-3-1",
+    "description": "งานตกแต่งพื้นที่นิทรรศการและกราฟิกพิเศษ",
+    "quantity": 1,
+    "unit": "งาน",
+    "unitPrice": 2850000,
+    "total": 2850000
+  },
+  {
+    "id": "boq-019",
+    "wbsId": "wbs-3-2",
+    "description": "ระบบคอนเทนต์มัลติมีเดีย อินเตอร์แอคทีฟ และซอฟต์แวร์ควบคุม",
+    "quantity": 1,
+    "unit": "งาน",
+    "unitPrice": 4250000,
+    "total": 4250000
+  }
+]

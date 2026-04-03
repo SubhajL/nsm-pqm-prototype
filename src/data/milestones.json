@@ -1,0 +1,46 @@
+[
+  {
+    "id": "ms-001",
+    "projectId": "proj-001",
+    "number": 1,
+    "name": "งวดที่ 1 (15%)",
+    "dueDate": "2026-02-03",
+    "amount": 1875000,
+    "percentage": 15,
+    "deliverables": "แผนงาน, BOQ",
+    "status": "in_progress"
+  },
+  {
+    "id": "ms-002",
+    "projectId": "proj-001",
+    "number": 2,
+    "name": "งวดที่ 2 (35%)",
+    "dueDate": "2026-04-15",
+    "amount": 4375000,
+    "percentage": 35,
+    "deliverables": "งานโครงสร้าง",
+    "status": "in_progress"
+  },
+  {
+    "id": "ms-003",
+    "projectId": "proj-001",
+    "number": 3,
+    "name": "งวดที่ 3 (35%)",
+    "dueDate": "2026-05-31",
+    "amount": 4375000,
+    "percentage": 35,
+    "deliverables": "งานระบบ, ตกแต่ง",
+    "status": "pending"
+  },
+  {
+    "id": "ms-004",
+    "projectId": "proj-001",
+    "number": 4,
+    "name": "งวดที่ 4 (15%)",
+    "dueDate": "2026-06-30",
+    "amount": 1875000,
+    "percentage": 15,
+    "deliverables": "ตรวจรับ, ส่งมอบ",
+    "status": "pending"
+  }
+]

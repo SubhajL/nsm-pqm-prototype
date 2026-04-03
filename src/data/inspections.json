@@ -1,0 +1,33 @@
+{
+  "itpItems": [
+    { "id": "itp-1", "projectId": "proj-001", "sequence": 1, "item": "ตรวจเหล็กเสริม", "standard": "มอก.24", "inspectionType": "H", "inspector": "วิศวกร + ที่ปรึกษา", "status": "passed" },
+    { "id": "itp-2", "projectId": "proj-001", "sequence": 2, "item": "ทดสอบ Slump Test", "standard": "ASTM C143", "inspectionType": "W", "inspector": "ที่ปรึกษา", "status": "passed" },
+    { "id": "itp-3", "projectId": "proj-001", "sequence": 3, "item": "เทคอนกรีต", "standard": "วสท.1008", "inspectionType": "H", "inspector": "วิศวกร + ที่ปรึกษา", "status": "pending" },
+    { "id": "itp-4", "projectId": "proj-001", "sequence": 4, "item": "ทดสอบกำลังอัด (7/28 วัน)", "standard": "มอก.213", "inspectionType": "RS", "inspector": "ห้อง Lab", "status": "awaiting" },
+    { "id": "itp-5", "projectId": "proj-001", "sequence": 5, "item": "ถอดแบบหล่อ", "standard": "วสท.1008", "inspectionType": "W", "inspector": "วิศวกร", "status": "pending" }
+  ],
+  "inspectionRecords": [
+    {
+      "id": "insp-001",
+      "projectId": "proj-001",
+      "itpId": "itp-3",
+      "title": "ITP #3 — เทคอนกรีต ฐานราก F3-F6",
+      "date": "2026-07-15",
+      "time": "09:30",
+      "inspectors": ["วิภา ข. (วิศวกร)", "นายประสิทธิ์ (ที่ปรึกษา)"],
+      "wbsLink": "WBS 2.2.1 เทคอนกรีต C25/30",
+      "standards": ["วสท.1008", "มอก.213"],
+      "checklist": [
+        { "id": "cl-1", "item": "ตรวจแบบหล่อ", "criteria": "ตาม Shop Drawing Rev.3", "result": "pass", "note": "ตรงแบบ" },
+        { "id": "cl-2", "item": "ตรวจเหล็กเสริม", "criteria": "DB25 @200 ทั้งสองทิศทาง", "result": "pass", "note": "ระยะห่างถูกต้อง" },
+        { "id": "cl-3", "item": "ค่า Slump", "criteria": "10±2 ซม. (ASTM C143)", "result": "pass", "note": "Slump = 11 ซม." },
+        { "id": "cl-4", "item": "อุณหภูมิคอนกรีต", "criteria": "ไม่เกิน 35°C", "result": "fail", "note": "วัดได้ 37°C" },
+        { "id": "cl-5", "item": "Cube Test Sample", "criteria": "เก็บตัวอย่าง 6 ก้อน", "result": "pass", "note": "เก็บแล้ว" }
+      ],
+      "overallResult": "conditional",
+      "failReason": "อุณหภูมิคอนกรีตเกินเกณฑ์ ต้องรอให้เย็นลงก่อนเท",
+      "autoNCR": true,
+      "workflowStatus": "draft"
+    }
+  ]
+}

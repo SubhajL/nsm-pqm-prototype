@@ -1,0 +1,97 @@
+[
+  {
+    "id": "dr-044",
+    "projectId": "proj-001",
+    "reportNumber": 44,
+    "date": "2026-07-13",
+    "weather": "มีเมฆบางส่วน (Partly Cloudy)",
+    "temperature": 32,
+    "linkedWbs": ["wbs-2-1"],
+    "personnel": [
+      { "type": "ช่างไม้ (Carpenter)", "count": 4 },
+      { "type": "ช่างปูน (Mason)", "count": 7 },
+      { "type": "ช่างเหล็ก (Steel Worker)", "count": 3 },
+      { "type": "วิศวกร (Engineer)", "count": 2 },
+      { "type": "คนงานทั่วไป (General)", "count": 8 }
+    ],
+    "totalPersonnel": 24,
+    "activities": [
+      { "wbsId": "wbs-2-1", "task": "รื้อถอนผนังโซน A", "quantity": 28, "unit": "ตร.ม.", "cumulativeProgress": 0.55 },
+      { "task": "เตรียมแบบหล่อฐานราก F1-F2", "quantity": 6, "unit": "ชุด", "cumulativeProgress": 0.20 }
+    ],
+    "photos": [
+      { "id": "ph-a1", "filename": "zone_a_wall_removal.jpg", "gpsLat": 14.0784, "gpsLng": 100.6014, "timestamp": "2026-07-13T09:15:00" },
+      { "id": "ph-a2", "filename": "formwork_f1.jpg", "gpsLat": 14.0785, "gpsLng": 100.6016, "timestamp": "2026-07-13T11:30:00" },
+      { "id": "ph-a3", "filename": "site_overview_0713.jpg", "gpsLat": 14.0783, "gpsLng": 100.6012, "timestamp": "2026-07-13T15:00:00" }
+    ],
+    "issues": "ไม่พบปัญหา",
+    "signatures": {
+      "reporter": { "name": "กิตติ ค.", "signed": true, "timestamp": "2026-07-13T16:30:00" },
+      "inspector": { "name": "", "signed": false, "timestamp": null }
+    },
+    "status": "submitted"
+  },
+  {
+    "id": "dr-045",
+    "projectId": "proj-001",
+    "reportNumber": 45,
+    "date": "2026-07-14",
+    "weather": "แดดจัด (Sunny)",
+    "temperature": 34,
+    "linkedWbs": ["wbs-2-1", "wbs-2-2"],
+    "personnel": [
+      { "type": "ช่างไม้ (Carpenter)", "count": 5 },
+      { "type": "ช่างปูน (Mason)", "count": 8 },
+      { "type": "ช่างเหล็ก (Steel Worker)", "count": 4 },
+      { "type": "วิศวกร (Engineer)", "count": 2 },
+      { "type": "คนงานทั่วไป (General)", "count": 10 }
+    ],
+    "totalPersonnel": 29,
+    "activities": [
+      { "wbsId": "wbs-2-1", "task": "รื้อถอนผนังโซน A", "quantity": 35, "unit": "ตร.ม.", "cumulativeProgress": 0.60 },
+      { "task": "เทคอนกรีต F1-F2", "quantity": 10, "unit": "ลบ.ม.", "cumulativeProgress": 0.25 }
+    ],
+    "photos": [
+      { "id": "ph-1", "filename": "demolition_zone_a.jpg", "gpsLat": 14.0784, "gpsLng": 100.6014, "timestamp": "2026-07-14T09:30:00" },
+      { "id": "ph-2", "filename": "concrete_f1.jpg", "gpsLat": 14.0785, "gpsLng": 100.6015, "timestamp": "2026-07-14T11:00:00" },
+      { "id": "ph-3", "filename": "rebar_check.jpg", "gpsLat": 14.0784, "gpsLng": 100.6013, "timestamp": "2026-07-14T14:00:00" }
+    ],
+    "issues": "ไม่พบปัญหา",
+    "signatures": {
+      "reporter": { "name": "กิตติ ค.", "signed": true, "timestamp": "2026-07-14T16:30:00" },
+      "inspector": { "name": "", "signed": false, "timestamp": null }
+    },
+    "status": "submitted"
+  },
+  {
+    "id": "dr-046",
+    "projectId": "proj-001",
+    "reportNumber": 46,
+    "date": "2026-07-15",
+    "weather": "แดดจัด (Sunny)",
+    "temperature": 34,
+    "linkedWbs": ["wbs-2-1", "wbs-2-2"],
+    "personnel": [
+      { "type": "ช่างไม้ (Carpenter)", "count": 5 },
+      { "type": "ช่างปูน (Mason)", "count": 8 },
+      { "type": "ช่างเหล็ก (Steel Worker)", "count": 4 },
+      { "type": "วิศวกร (Engineer)", "count": 2 },
+      { "type": "คนงานทั่วไป (General)", "count": 10 }
+    ],
+    "totalPersonnel": 29,
+    "activities": [
+      { "task": "รื้อถอนผนังโซน A", "quantity": 40, "unit": "ตร.ม.", "cumulativeProgress": 0.65 },
+      { "task": "เทคอนกรีต F3-F6", "quantity": 12, "unit": "ลบ.ม.", "cumulativeProgress": 0.30 }
+    ],
+    "photos": [
+      { "id": "ph-4", "filename": "wall_demo_progress.jpg", "gpsLat": 14.0784, "gpsLng": 100.6014, "timestamp": "2026-07-15T10:00:00" },
+      { "id": "ph-5", "filename": "concrete_pour.jpg", "gpsLat": 14.0785, "gpsLng": 100.6015, "timestamp": "2026-07-15T13:30:00" }
+    ],
+    "issues": "พบท่อประปาเก่าใต้พื้นโซน B ต้องรอวิศวกรตรวจสอบ",
+    "signatures": {
+      "reporter": { "name": "กิตติ ค.", "signed": false, "timestamp": null },
+      "inspector": { "name": "", "signed": false, "timestamp": null }
+    },
+    "status": "draft"
+  }
+]
