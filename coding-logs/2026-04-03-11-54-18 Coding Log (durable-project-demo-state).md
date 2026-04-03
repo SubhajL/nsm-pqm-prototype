@@ -441,3 +441,53 @@ LOW
 ### Rollout Notes
 - Mutation routes now fail if the durable snapshot write fails; that is intentional to avoid claiming persistence when the save did not complete.
 - Local Playwright runs use an isolated `PROJECT_DEMO_STATE_FILE` so repeated test invocations do not leak state across runs.
+
+## Implementation Summary (2026-04-03 12:10:52 +0700)
+
+### Goal
+Make project-scoped demo mutations durable across local restarts and Vercel instance churn, then verify the hosted app can create and read back a new project through the new persistence path.
+
+### What Changed
+- `src/lib/project-demo-state.ts`
+  Added a shared durable snapshot layer for project-scoped state. It hydrates the existing stores in place, writes the live snapshot to Blob on Vercel or a local `.data` file in dev, and serializes writes per instance.
+- `src/app/api/...`
+  Wired `ensureProjectDemoStateHydrated()` into project/auth read paths and `persistProjectDemoState()` into project-scoped mutation handlers so create/edit flows now save durably after success.
+- `tests/e2e/project-demo-state-persistence.spec.ts`
+  Added a regression proving project creation writes the durable snapshot and includes bootstrap artifacts for the new project.
+- `playwright.config.ts`
+  Isolated Playwright state into `.data/playwright-project-demo-state.json` so repeated e2e runs do not leak durable state across invocations.
+- `.gitignore`
+  Ignored `.data/` because it now holds local durable demo-state files.
+
+### TDD Evidence
+- RED command: `npx playwright test tests/e2e/project-demo-state-persistence.spec.ts`
+- RED failure reason: the new test timed out waiting for the durable state file because the old implementation only mutated in-memory stores.
+- GREEN command: `npx playwright test tests/e2e/project-demo-state-persistence.spec.ts`
+- GREEN result: the test passed once the snapshot file was written and contained the created project plus bootstrap data.
+
+### Additional Validation
+- `npm run typecheck` ✅
+- `npm run lint` ✅
+- `npm run build` ✅
+- `npx playwright test tests/e2e/project-create-and-shell.spec.ts` ✅
+- Production deploy: `vercel --prod --yes` ✅
+- Production probe: login -> `POST /api/projects` -> fresh login -> `GET /api/projects/:id` and `/api/projects?search=...` ✅
+
+### Wiring Verification Evidence
+- Entry-point wiring: project/auth API routes import and await `ensureProjectDemoStateHydrated()` before using project access or store state.
+- Mutation wiring: project-scoped write routes await `persistProjectDemoState()` after successful mutations and related side effects such as notifications or audit logs.
+- Storage wiring: local dev writes to `.data/project-demo-state.json`; hosted deploy writes to Blob pathname `demo-state/project-demo-state.json`.
+
+### Behavior Changes And Risks
+- Project creation, team edits, WBS/BOQ, Gantt, daily reports, quality records, documents, EVM, change requests, notifications, and audit-log-backed project flows now persist instead of disappearing on cold start.
+- Blob storage uses public access because the connected store is public; this is acceptable here because the repo already treats all data as mock/demo-only.
+- Concurrency remains last-write-wins. That is a deliberate demo-level tradeoff, not a production-grade conflict strategy.
+
+### Follow-ups / Known Gaps
+- If you want stronger confidentiality or fresher cache control for the snapshot, the next step is a separate private store or a real database/KV layer.
+- Admin-only datasets outside the project-scoped flow were not moved onto the new durable path in this change.
+
+### Git / Deploy
+- Branch: main
+- Commits: `827dbc5` `fix: persist project demo state`; `c37efb5` `fix: use public blob access for demo state`
+- Production URL: `https://nsm-pqm-prototype.vercel.app`
