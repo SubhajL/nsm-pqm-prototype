@@ -1,4 +1,5 @@
 import { requiresProjectDuty } from '@/lib/auth';
+import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { getProjectStore } from '@/lib/project-store';
 import { getUserStore } from '@/lib/user-store';
@@ -10,6 +11,7 @@ export interface LoginCandidate extends User {
 
 export async function GET() {
   await new Promise((resolve) => setTimeout(resolve, 120));
+  await ensureProjectDemoStateHydrated();
 
   const projects = getProjectStore();
   const activeUsers = getUserStore()

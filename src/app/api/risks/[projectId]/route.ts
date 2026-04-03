@@ -1,4 +1,5 @@
 import { requireProjectAccess } from '@/lib/project-api-access';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getIssueStore } from '@/lib/issue-store';
 import { getRiskStore } from '@/lib/risk-store';
 import { synchronizeMitigatingRiskIssues } from '@/lib/risk-issue-consistency';
@@ -12,6 +13,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -32,6 +34,7 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -70,6 +73,7 @@ export async function POST(
 
   store.push(newRisk);
   synchronizeMitigatingRiskIssues(issueStore, [newRisk]);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: newRisk }, { status: 201 });
 }

@@ -7,5 +7,6 @@ test-results
 .env.local
 .vercel
 public/mock-uploads
+.data/
 .DS_Store
 .codex/

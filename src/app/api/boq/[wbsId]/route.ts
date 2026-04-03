@@ -4,6 +4,7 @@ import { getProjectStore } from '@/lib/project-store';
 import { getWbsStore } from '@/lib/wbs-store';
 import { canAccessAdmin } from '@/lib/auth';
 import { getCurrentApiUser } from '@/lib/project-api-access';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { isOutsourcedProject } from '@/types/project';
 
 interface BOQItem {
@@ -25,6 +26,7 @@ export async function GET(
   { params }: { params: { wbsId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const wbsNode = wbsStore.find((node) => node.id === params.wbsId);
 
   if (!wbsNode) {
@@ -50,6 +52,7 @@ export async function POST(
   { params }: { params: { wbsId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const wbsNode = wbsStore.find((node) => node.id === params.wbsId);
 
@@ -136,6 +139,7 @@ export async function POST(
   };
 
   store.push(newItem);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: newItem }, { status: 201 });
 }

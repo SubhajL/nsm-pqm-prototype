@@ -1,8 +1,10 @@
 import { getAuditLogStore } from '@/lib/audit-log-store';
+import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import type { AuditLog } from '@/types/admin';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const store: AuditLog[] = [...getAuditLogStore()];
 
   const { searchParams } = new URL(request.url);

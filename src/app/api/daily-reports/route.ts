@@ -3,6 +3,7 @@ import { getDailyReportStore } from '@/lib/daily-report-store';
 import type { DailyReport } from '@/types/daily-report';
 import { getCurrentApiUser } from '@/lib/project-api-access';
 import { persistMockUpload } from '@/lib/mock-upload-storage';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 
 const store = getDailyReportStore();
 
@@ -16,6 +17,7 @@ interface DailyReportCreateMetadata extends Partial<DailyReport> {
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -40,6 +42,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const contentType = request.headers.get('content-type') ?? '';
   const isMultipart = contentType.includes('multipart/form-data');
@@ -196,6 +199,7 @@ export async function POST(request: Request) {
   };
 
   store.push(newReport);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: newReport }, { status: 201 });
 }

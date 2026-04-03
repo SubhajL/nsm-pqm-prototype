@@ -2,12 +2,14 @@ import { getChangeRequestStore } from '@/lib/change-request-store';
 import { appendAuditLog } from '@/lib/audit-log-store';
 import { addChangeRequest, updateChangeRequest } from '@/lib/change-request-store';
 import { getCurrentApiUser, getVisibleProjectIdsForCurrentUser, requireProjectAccess } from '@/lib/project-api-access';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import type { ChangeRequest } from '@/types/document';
 
 const store: ChangeRequest[] = getChangeRequestStore();
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -29,6 +31,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const currentUser = getCurrentApiUser();
   if (!currentUser) {
@@ -75,12 +78,14 @@ export async function POST(request: Request) {
 
   addChangeRequest(nextChangeRequest);
   appendAuditLog(currentUser, 'Approval', `สร้าง Change Request ${nextChangeRequest.id}`);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: nextChangeRequest }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const currentUser = getCurrentApiUser();
   if (!currentUser) {
@@ -151,6 +156,7 @@ export async function PATCH(request: Request) {
     'Approval',
     `${body.action === 'approve' ? 'อนุมัติ' : 'ส่งกลับ/ไม่อนุมัติ'} Change Request ${changeRequest.id}`,
   );
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: updatedChangeRequest });
 }

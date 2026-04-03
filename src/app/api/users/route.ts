@@ -1,4 +1,5 @@
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
+import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getProjectStore } from '@/lib/project-store';
 import { appendAuditLog } from '@/lib/audit-log-store';
 import { getCurrentApiUser } from '@/lib/project-api-access';
@@ -7,6 +8,7 @@ import type { User } from '@/types/admin';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const { searchParams } = new URL(request.url);
   const department = searchParams.get('department');

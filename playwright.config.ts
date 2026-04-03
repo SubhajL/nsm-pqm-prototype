@@ -1,4 +1,11 @@
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+
+const projectDemoStateFile =
+  process.env.PROJECT_DEMO_STATE_FILE ??
+  path.join(process.cwd(), '.data', 'playwright-project-demo-state.json');
+
+process.env.PROJECT_DEMO_STATE_FILE = projectDemoStateFile;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -13,7 +20,10 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run dev -- --hostname 127.0.0.1 --port 3101',
+    command:
+      `rm -f "${projectDemoStateFile}" && ` +
+      `PROJECT_DEMO_STATE_FILE="${projectDemoStateFile}" ` +
+      'npm run dev -- --hostname 127.0.0.1 --port 3101',
     url: 'http://127.0.0.1:3101/login',
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

@@ -7,6 +7,7 @@ import {
   getVisibleProjectsForUser,
 } from '@/lib/project-access';
 import { bootstrapProjectData, type NewProjectMilestoneInput } from '@/lib/project-bootstrap';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { getProjectMembershipStore } from '@/lib/project-membership-store';
 import { getProjectStore } from '@/lib/project-store';
@@ -14,6 +15,7 @@ import type { Project } from '@/types/project';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const store = getProjectStore();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
@@ -47,6 +49,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const store = getProjectStore();
   const membershipStore = getProjectMembershipStore();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
@@ -131,6 +134,7 @@ export async function POST(request: Request) {
     project: newProject,
     milestones,
   });
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: newProject }, { status: 201 });
 }

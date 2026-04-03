@@ -8,6 +8,7 @@ import {
   uploadDocumentVersion,
 } from '@/lib/document-store';
 import { getCurrentApiUser, requireProjectAccess } from '@/lib/project-api-access';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import type { DocumentFile, Folder, VersionEntry } from '@/types/document';
 
 export async function GET(
@@ -15,6 +16,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -26,6 +28,7 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -45,6 +48,7 @@ export async function POST(
 
     addDocumentFolder(params.projectId, folder);
     appendAuditLog(currentUser, 'Document', `สร้างโฟลเดอร์ ${folder.name}`);
+    await persistProjectDemoState();
     return Response.json({ status: 'success', data: folder }, { status: 201 });
   }
 
@@ -64,6 +68,7 @@ export async function POST(
 
     addDocumentFile(params.projectId, file);
     appendAuditLog(currentUser, 'Document', `อัปโหลดไฟล์ ${file.name}`);
+    await persistProjectDemoState();
     return Response.json({ status: 'success', data: file }, { status: 201 });
   }
 
@@ -86,6 +91,7 @@ export async function POST(
 
   const updatedFile = uploadDocumentVersion(params.projectId, body.fileId, nextVersion);
   appendAuditLog(currentUser, 'Document', `อัปโหลดเวอร์ชันใหม่ ${currentFile.name}`);
+  await persistProjectDemoState();
   return Response.json({ status: 'success', data: updatedFile });
 }
 
@@ -94,6 +100,7 @@ export async function DELETE(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -113,6 +120,7 @@ export async function DELETE(
     }
 
     appendAuditLog(currentUser, 'Document', `ลบโฟลเดอร์ ${deletedFolder.name}`);
+    await persistProjectDemoState();
     return Response.json({ status: 'success', data: deletedFolder });
   }
 
@@ -126,5 +134,6 @@ export async function DELETE(
   }
 
   appendAuditLog(currentUser, 'Document', `ลบไฟล์ ${deletedFile.name}`);
+  await persistProjectDemoState();
   return Response.json({ status: 'success', data: deletedFile });
 }

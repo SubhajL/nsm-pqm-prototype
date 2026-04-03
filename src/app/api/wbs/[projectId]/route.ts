@@ -3,6 +3,7 @@ import { requireProjectAccess } from '@/lib/project-api-access';
 import { getActiveUser } from '@/lib/project-access';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getWbsStore } from '@/lib/wbs-store';
 
 interface WBSNode {
@@ -52,6 +53,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -65,6 +67,7 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -136,6 +139,7 @@ export async function POST(
   };
 
   store.push(newNode);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: newNode }, { status: 201 });
 }

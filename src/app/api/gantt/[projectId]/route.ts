@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { canManageGantt } from '@/lib/auth';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getGanttDataForProject, getNextGanttTaskId } from '@/lib/gantt-store';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { getCurrentApiUser, requireProjectAccess } from '@/lib/project-api-access';
@@ -216,6 +217,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -229,6 +231,7 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -269,6 +272,7 @@ export async function POST(
   store.data.push(newTask);
   replaceIncomingLinks(store, newTask.id, parsed.value.predecessors);
   syncProjectExecutionState(params.projectId, { updatedTask: newTask });
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: newTask }, { status: 201 });
 }
@@ -278,6 +282,7 @@ export async function PATCH(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -334,6 +339,7 @@ export async function PATCH(
   });
   replaceIncomingLinks(store, task.id, parsed.value.predecessors);
   syncProjectExecutionState(params.projectId, { updatedTask: task });
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: task });
 }
@@ -343,6 +349,7 @@ export async function DELETE(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -375,6 +382,7 @@ export async function DELETE(
     (link) => !idsToDelete.has(link.source) && !idsToDelete.has(link.target),
   );
   syncProjectExecutionState(params.projectId, { deletedTask });
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: { id: task.id } });
 }

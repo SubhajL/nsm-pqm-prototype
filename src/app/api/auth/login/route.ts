@@ -5,11 +5,13 @@ import {
   AUTH_COOKIE_USER_ID,
   requiresProjectDuty,
 } from '@/lib/auth';
+import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { getProjectStore } from '@/lib/project-store';
 import { getUserStore } from '@/lib/user-store';
 
 export async function POST(request: Request) {
+  await ensureProjectDemoStateHydrated();
   const body = (await request.json()) as { userId?: string };
   const store = getUserStore();
   const selectedUser = store.find((user) => user.id === body.userId && user.status === 'active');

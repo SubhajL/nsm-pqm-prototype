@@ -1,6 +1,7 @@
 import { canAccessAdmin } from '@/lib/auth';
 import { getVisibleProjectIdsForCurrentUser, requireProjectAccess } from '@/lib/project-api-access';
 import { getCurrentApiUser } from '@/lib/project-api-access';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getIssueStore } from '@/lib/issue-store';
 import {
   removeAutoNcrIssuesForInspection,
@@ -18,6 +19,7 @@ function canManageQuality(role: string | null | undefined) {
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -47,6 +49,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const currentUser = getCurrentApiUser();
 
@@ -161,6 +164,7 @@ export async function POST(request: Request) {
   store.inspectionRecords.push(newRecord);
   synchronizeItpStatuses(store);
   synchronizeAutoNcrIssues(issueStore, [newRecord]);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: newRecord }, { status: 201 });
 }
@@ -172,6 +176,7 @@ const VALID_TRANSITIONS: Record<string, string> = {
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const currentUser = getCurrentApiUser();
 
@@ -247,6 +252,7 @@ export async function PATCH(request: Request) {
     }
 
     synchronizeItpStatuses(store);
+    await persistProjectDemoState();
 
     return Response.json({ status: 'success', data: record });
   }
@@ -296,12 +302,14 @@ export async function PATCH(request: Request) {
   }
 
   record.workflowStatus = body.workflowStatus as 'draft' | 'confirmed' | 'signed';
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: record });
 }
 
 export async function DELETE(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const currentUser = getCurrentApiUser();
 
@@ -350,6 +358,7 @@ export async function DELETE(request: Request) {
   removeAutoNcrIssuesForInspection(issueStore, record.id);
 
   synchronizeItpStatuses(store);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: { id: record.id } });
 }

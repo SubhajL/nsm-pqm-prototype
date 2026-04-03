@@ -1,3 +1,4 @@
+import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getQualityGateStore } from '@/lib/quality-gate-store';
 import { requireProjectAccess } from '@/lib/project-api-access';
 import type { QualityGate } from '@/types/quality';
@@ -9,6 +10,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 

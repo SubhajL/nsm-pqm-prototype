@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID, canCreateProject as canCreateProjectForRole } from '@/lib/auth';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { canUserAccessProject, getActiveUser } from '@/lib/project-access';
 import { getProjectStore } from '@/lib/project-store';
@@ -10,6 +11,7 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const store = getProjectStore();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
@@ -51,6 +53,7 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const store = getProjectStore();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
@@ -103,6 +106,7 @@ export async function PATCH(
   }
 
   project.status = body.status;
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: project });
 }

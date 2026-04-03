@@ -1,5 +1,6 @@
 import { canCreateProject } from '@/lib/auth';
 import { requireProjectAccess, getCurrentApiUser } from '@/lib/project-api-access';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getEvmStore } from '@/lib/evm-store';
 import { getProjectStore } from '@/lib/project-store';
 import type { EVMDataPoint } from '@/types/evm';
@@ -21,6 +22,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -35,6 +37,7 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -131,6 +134,7 @@ export async function POST(
 
   store.push(newPoint);
   store.sort((a, b) => a.month.localeCompare(b.month));
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: newPoint }, { status: 201 });
 }
@@ -140,6 +144,7 @@ export async function DELETE(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -182,6 +187,7 @@ export async function DELETE(
   }
 
   const [deleted] = store.splice(index, 1);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: { id: deleted.id } });
 }

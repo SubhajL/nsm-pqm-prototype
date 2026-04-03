@@ -3,6 +3,7 @@ import { getCurrentApiUser } from '@/lib/project-api-access';
 import { getDailyReportStore } from '@/lib/daily-report-store';
 import { canReviewDailyReport } from '@/lib/auth';
 import { pushNotification } from '@/lib/notification-store';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import type { DailyReportStatus } from '@/types/daily-report';
 import type { Notification } from '@/types/notification';
 
@@ -18,6 +19,7 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const report = store.find((r) => r.id === params.id);
 
@@ -42,6 +44,7 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const report = store.find((entry) => entry.id === params.id);
 
@@ -191,6 +194,7 @@ export async function PATCH(
   if (notification) {
     pushNotification(notification);
   }
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: report });
 }

@@ -13,6 +13,7 @@ import {
   getAssignedProjectCountForUser,
   getAssignmentRoleForUserRole,
 } from '@/lib/project-access';
+import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getProjectStore } from '@/lib/project-store';
 import { getUserStore } from '@/lib/user-store';
 import type { ProjectTeamMember } from '@/types/team';
@@ -75,6 +76,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const denied = requireProjectAccess(params.projectId);
   if (denied) {
@@ -120,6 +122,7 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const denied = requireProjectAccess(params.projectId);
   if (denied) {
@@ -156,6 +159,7 @@ export async function POST(
     userId: user.id,
     assignmentRole: getAssignmentRoleForUserRole(user.role),
   });
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: { userId: user.id } });
 }
@@ -165,6 +169,7 @@ export async function DELETE(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const denied = requireProjectAccess(params.projectId);
   if (denied) {
@@ -197,6 +202,7 @@ export async function DELETE(
   if (!removed) {
     return badRequestResponse('TEAM_MEMBER_NOT_FOUND', 'ผู้ใช้นี้ไม่ได้อยู่ในทีมโครงการ');
   }
+  await persistProjectDemoState();
 
   return Response.json({
     status: 'success',
