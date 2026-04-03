@@ -24,7 +24,7 @@ test.describe('Scenario 1: create construction project via demo fill', () => {
     await expect(page.locator('table tbody tr')).toHaveCount(4);
 
     // Verify milestone amounts appear in spinbuttons
-    await expect(page.getByRole('spinbutton').filter({ hasValue: '2,775,000' }).first()).toBeVisible();
+    await expect(page.locator('input[value="2,775,000"]').first()).toBeVisible();
   });
 
   test('demo fill project can be created and redirects to project shell', async ({ page }) => {

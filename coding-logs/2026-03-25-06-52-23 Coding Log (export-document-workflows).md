@@ -488,3 +488,118 @@ LOW
 - Assumed “deploy on Vercel free tier” means today’s Hobby plan as documented on 2026-02-24 to 2026-02-27 pages.
 - Assumed this is a client-facing or bid-related demo rather than a purely personal experiment; if that assumption is wrong, the Hobby policy risk may be lower.
 - Assumed uploads and mutation flows are part of the demo value; if the hosted demo is read-only, the feasibility improves substantially.
+
+## Review (2026-04-03 11:05:27 +07) - system
+
+### Reviewed
+- Repo: /Users/subhajlimanond/dev/nsm-pqm-prototype
+- Branch: main
+- Scope: entire system
+- Commands Run: curl HEAD/GET against production URLs; authenticated API login/project list/project create/search checks; multipart upload POST to /api/daily-reports; Playwright login/page visibility smoke check; Vercel runtime logs; local file inspection for project creation and upload storage code
+- Sources: AGENTS.md, CLAUDE.md, src/lib/project-store.ts, src/app/api/projects/route.ts, src/lib/mock-upload-storage.ts, src/app/api/daily-reports/route.ts, src/app/api/auth/login/route.ts, src/app/(dashboard)/projects/new/page.tsx, production deployment https://nsm-pqm-prototype.vercel.app, Vercel runtime logs for deployment dpl_6p5G5q1CmdPs8rNvkHRrH1Qx69ez
+
+### High-Level Assessment
+- The production deployment is up and serving correctly: `/` redirects to `/login`, login works, dashboard renders, and the new-project page loads.
+- Authenticated read flows are functioning in production.
+- Project creation is functioning in production right now via the deployed API and newly created projects were visible immediately and still visible in a fresh session 20 seconds later.
+- Daily-report uploads are broken in production. Multipart POSTs to `/api/daily-reports` return HTTP 500.
+- Vercel runtime logs show the failure is server-side filesystem persistence: the handler attempts `mkdir('/var/task/public/mock-uploads/...')` and crashes with `ENOENT`.
+- Mutable project state remains architecturally volatile because it is stored in process memory; live testing showed inconsistent long-lived visibility across separate create/search checks, which matches the non-durable design.
+
+### Strengths
+- Production deployment completed successfully on Vercel and the stable alias is active.
+- Cookie-based login/session flow works against the deployed site.
+- Dashboard and project-creation UI are usable in a real browser session.
+- Authenticated project reads and project creation both return successful production responses.
+
+### Key Risks / Gaps (severity ordered)
+HIGH
+- Daily-report file upload is broken in production. A live multipart POST to `/api/daily-reports` returned HTTP 500, and Vercel runtime logs showed `ENOENT: no such file or directory, mkdir '/var/task/public/mock-uploads/daily-reports/proj-001'`. The code path is the local filesystem writer in `src/lib/mock-upload-storage.ts` used by `src/app/api/daily-reports/route.ts`. Observable symptom: uploads fail outright on the hosted app.
+- Mutable demo state is still not truly durable. Project state is backed by in-process global memory initialized from JSON seed data (`src/lib/project-store.ts`) and mutated in `src/app/api/projects/route.ts`. In live testing, create/read worked, but state visibility was inconsistent across separate checks over time, which is expected on serverless infrastructure that can recycle or fan out instances.
+
+MEDIUM
+- Hosted create flows are “working for now”, but reliability is opportunistic rather than guaranteed. One controlled test created a project successfully and it remained visible to a fresh session 20 seconds later; a separate previously created investigation project was no longer found in a later search. Impact: demos may appear stable during a short session but still lose data unpredictably.
+- Read-only functionality is much healthier than mutation-heavy flows. This makes the deployment suitable for navigation/showcase demos but not dependable for workflows that need persistent edits/uploads.
+
+LOW
+- The browser smoke check validated visibility for login, dashboard, and the new-project page, but did not exhaustively test every project subpage in production.
+
+### Nit-Picks / Nitty Gritty
+- The production behavior lines up exactly with the implementation split: read paths from seeded JSON + in-memory globals are fine until an instance changes; filesystem-backed uploads fail immediately because `/var/task/public/...` is not a durable writable location for this deployment shape.
+- Because the app already returns 201 for project creation on Vercel, the deployment can look “fully working” during a brief demo even though persistence guarantees are weak.
+
+### Tactical Improvements (1–3 days)
+1. Replace `src/lib/mock-upload-storage.ts` with Vercel Blob or another external object store so daily-report uploads stop crashing.
+2. If this hosted demo must remain stable, disable upload controls until storage is fixed.
+3. Add a visible “demo data may reset” notice for create/edit flows if you keep in-memory storage.
+4. Add a production smoke test that exercises login, project creation, and at least one upload path against the deployed URL.
+
+### Strategic Improvements (1–6 weeks)
+1. Move mutable demo state from in-memory globals to durable storage (Blob/KV/Postgres/Supabase/Neon) while keeping the current route contracts.
+2. Introduce an explicit deployment mode for “hosted demo” so unsupported local-only persistence patterns are not enabled in production.
+3. Separate read-only seeded showcases from mutation-capable demo workflows if you want predictable customer-facing demos on Vercel.
+
+### Big Architectural Changes (only if justified)
+- Proposal: Replace all mutable mock stores with a small durable demo backend and keep JSON files only for initial seeding/reset.
+  - Pros: consistent create/edit behavior across requests and sessions, uploads work, hosted demo becomes trustworthy.
+  - Cons: extra infrastructure and environment setup.
+  - Migration Plan: fix uploads first, then move projects/gantt/daily reports to durable storage one route family at a time.
+  - Tests/Rollout: run production smoke checks after each route family is migrated.
+
+### Open Questions / Assumptions
+- Assumed the priority is whether the currently deployed public Vercel site is safe for live demos today.
+- Did not exhaustively test all mutation routes beyond project creation and daily-report upload.
+
+## Implementation (2026-04-03 11:17:20 +07) - vercel-blob-daily-report-uploads
+
+### Goal
+- Replace the production-broken daily report file upload path with Vercel Blob storage while preserving local demo behavior.
+
+### What Changed
+- `src/lib/mock-upload-storage.ts`
+  - Added a storage split: use `@vercel/blob` server uploads when `BLOB_READ_WRITE_TOKEN` is present, keep the existing `public/mock-uploads` filesystem writer for local development, and fail explicitly in hosted environments if blob storage is not configured.
+- `tests/e2e/batch4-daily-report-file-uploads.spec.ts`
+  - Relaxed persisted upload URL assertions so they accept either local `/mock-uploads/...` paths or Blob URLs under `.blob.vercel-storage.com`.
+- `tests/e2e/project-create-demo-scenario1.spec.ts`
+  - Replaced the invalid Playwright `hasValue` locator filter with a valid selector so `npm run typecheck` is green again.
+- `package.json`
+  - Added `@vercel/blob` runtime dependency.
+- `package-lock.json`
+  - Recorded the resolved Blob SDK dependency tree.
+
+### TDD Evidence
+- RED:
+  - Command: live multipart upload probe against production
+  - `curl -i -s -X POST 'https://nsm-pqm-prototype.vercel.app/api/daily-reports' ...`
+  - Failure reason before the fix: `HTTP/2 500` with Vercel runtime log `ENOENT: no such file or directory, mkdir '/var/task/public/mock-uploads/daily-reports/proj-001'`.
+- GREEN:
+  - Command: `npx playwright test tests/e2e/batch4-daily-report-file-uploads.spec.ts`
+  - Result: passed locally using filesystem fallback.
+- GREEN:
+  - Command: same live multipart upload probe against production after redeploy
+  - Result: `HTTP/2 201` with Blob-backed `photos[0].url` and `attachments[0].url`.
+- GREEN:
+  - Command: follow-up HEAD verification of returned Blob URLs
+  - Result: both returned `200` with `text/plain`.
+
+### Tests Run
+- `npm run typecheck` -> passed
+- `npm run lint` -> passed
+- `npm run build` -> passed
+- `npx playwright test tests/e2e/batch4-daily-report-file-uploads.spec.ts` -> passed
+- production multipart upload probe via `curl` -> passed after redeploy
+- production blob URL HEAD verification via Node `fetch(..., { method: 'HEAD' })` -> passed
+
+### Wiring Verification
+- `src/app/api/daily-reports/route.ts` still calls `persistMockUpload(...)` for `photoFiles` and `attachmentFiles`, so the new Blob-backed path is active at runtime without changing the route contract.
+- Vercel project `nsm-pqm-prototype` now has `BLOB_READ_WRITE_TOKEN` configured for Production, Preview, and Development via the linked Blob store `nsm-pqm-prototype-uploads`.
+- Production deployment `nsm-pqm-prototype-qfteifj62-subhajs-projects.vercel.app` was aliased to `https://nsm-pqm-prototype.vercel.app` and verified live.
+
+### Behavior Changes And Risks
+- Hosted daily report uploads now persist to public Blob URLs instead of local `/mock-uploads/...` files.
+- Local development still uses filesystem storage unless a Blob token is present.
+- Public Blob storage is suitable for the current demo behavior, but uploaded files are now publicly reachable by URL.
+
+### Follow-Ups / Known Gaps
+- Other mutable demo state such as created projects is still in-memory and remains non-durable across serverless instance changes.
+- If public file access is not acceptable, switch the Blob store to private delivery and proxy reads through an authenticated route.

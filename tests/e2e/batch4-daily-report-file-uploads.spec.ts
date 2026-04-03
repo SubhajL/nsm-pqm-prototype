@@ -7,6 +7,16 @@ async function loginAs(page: import('@playwright/test').Page, userId: string) {
   await page.waitForURL('**/dashboard');
 }
 
+function expectUploadUrl(url: string | undefined) {
+  expect(url).toBeTruthy();
+  expect(
+    url?.includes('/mock-uploads/daily-reports/') ||
+      (url?.includes('/daily-reports/') &&
+        url?.includes('.blob.vercel-storage.com')) ||
+      false,
+  ).toBe(true);
+}
+
 test.describe('batch 4 daily report real file uploads', () => {
   test('daily report creation uploads real photos and attachments with persisted links', async ({
     page,
@@ -63,7 +73,7 @@ test.describe('batch 4 daily report real file uploads', () => {
       return payload.data.find((entry: { issues: string }) => entry.issues === currentIssueText);
     }, issueText);
 
-    expect(createdReport?.photos?.[0]?.url).toContain('/mock-uploads/daily-reports/');
-    expect(createdReport?.attachments?.[0]?.url).toContain('/mock-uploads/daily-reports/');
+    expectUploadUrl(createdReport?.photos?.[0]?.url);
+    expectUploadUrl(createdReport?.attachments?.[0]?.url);
   });
 });
