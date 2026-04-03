@@ -23,6 +23,7 @@ import type { GanttData } from '@/types/gantt';
 import type { InspectionsData } from '@/types/quality';
 
 const PROJECT_DEMO_STATE_BLOB_PATH = 'demo-state/project-demo-state.json';
+const PROJECT_DEMO_STATE_BLOB_ACCESS = 'public' as const;
 
 declare global {
   // eslint-disable-next-line no-var
@@ -231,8 +232,7 @@ async function readPersistedProjectDemoState() {
   try {
     if (shouldUseBlobProjectDemoState()) {
       const result = await get(PROJECT_DEMO_STATE_BLOB_PATH, {
-        access: 'private',
-        useCache: false,
+        access: PROJECT_DEMO_STATE_BLOB_ACCESS,
       });
 
       if (!result || result.statusCode !== 200 || !result.stream) {
@@ -264,7 +264,7 @@ async function writePersistedProjectDemoState(snapshot: ProjectDemoStateSnapshot
 
   if (shouldUseBlobProjectDemoState()) {
     await put(PROJECT_DEMO_STATE_BLOB_PATH, contents, {
-      access: 'private',
+      access: PROJECT_DEMO_STATE_BLOB_ACCESS,
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: 'application/json; charset=utf-8',
