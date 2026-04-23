@@ -1,0 +1,8 @@
+.env*
+.next
+playwright-report
+test-results
+.data
+public/mock-uploads
+.DS_Store
+*.tsbuildinfo
