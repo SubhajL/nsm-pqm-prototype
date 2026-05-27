@@ -12,11 +12,13 @@ import { getGanttStore } from '@/lib/gantt-store';
 import { getIssueStore } from '@/lib/issue-store';
 import { getMilestoneStore } from '@/lib/milestone-store';
 import { getNotificationStore } from '@/lib/notification-store';
+import { getOrgStructureStore } from '@/lib/org-structure-store';
 import { getProjectMembershipStore } from '@/lib/project-membership-store';
 import { getProjectStore } from '@/lib/project-store';
 import { getQualityGateStore } from '@/lib/quality-gate-store';
 import { getQualityStore } from '@/lib/quality-store';
 import { getRiskStore } from '@/lib/risk-store';
+import { getUserStore } from '@/lib/user-store';
 import { getWbsStore } from '@/lib/wbs-store';
 import type { DocumentData } from '@/types/document';
 import type { GanttData } from '@/types/gantt';
@@ -52,6 +54,8 @@ export interface ProjectDemoStateSnapshot {
   changeRequests: ReturnType<typeof getChangeRequestStore>;
   notifications: ReturnType<typeof getNotificationStore>;
   auditLogs: ReturnType<typeof getAuditLogStore>;
+  users: ReturnType<typeof getUserStore>;
+  orgStructure: ReturnType<typeof getOrgStructureStore>;
 }
 
 function cloneValue<T>(value: T): T {
@@ -92,6 +96,8 @@ function seedProjectDemoStateStores() {
   getChangeRequestStore();
   getNotificationStore();
   getAuditLogStore();
+  getUserStore();
+  getOrgStructureStore();
 }
 
 function replaceArrayContents<T>(target: T[], source: T[]) {
@@ -203,6 +209,8 @@ export function captureProjectDemoStateSnapshot(): ProjectDemoStateSnapshot {
     changeRequests: cloneValue(getChangeRequestStore()),
     notifications: cloneValue(getNotificationStore()),
     auditLogs: cloneValue(getAuditLogStore()),
+    users: cloneValue(getUserStore()),
+    orgStructure: cloneValue(getOrgStructureStore()),
   };
 }
 
@@ -226,6 +234,14 @@ export function applyProjectDemoStateSnapshot(snapshot: ProjectDemoStateSnapshot
   replaceArrayContents(getChangeRequestStore(), snapshot.changeRequests);
   replaceArrayContents(getNotificationStore(), snapshot.notifications);
   replaceArrayContents(getAuditLogStore(), snapshot.auditLogs);
+  // Back-compat: snapshots written before PR-07 may not include these fields.
+  // When absent, leave the seeded store contents in place.
+  if (snapshot.users) {
+    replaceArrayContents(getUserStore(), snapshot.users);
+  }
+  if (snapshot.orgStructure) {
+    replaceArrayContents(getOrgStructureStore(), snapshot.orgStructure);
+  }
 }
 
 async function readPersistedProjectDemoState() {
