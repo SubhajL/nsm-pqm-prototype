@@ -1,3 +1,4 @@
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -132,6 +133,17 @@ export async function POST(
   store.sort((a, b) => a.month.localeCompare(b.month));
   await persistProjectDemoState();
 
+  await recordAuditEvent(request, {
+    action: 'edit_evm',
+    resourceType: 'evm_data_point',
+    resourceId: newPoint.id,
+    projectId: params.projectId,
+    before: null,
+    after: newPoint,
+    decisionReason: `create month ${newPoint.month}`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_evm',
+  });
+
   return Response.json({ status: 'success', data: newPoint }, { status: 201 });
 }
 
@@ -171,6 +183,17 @@ export async function DELETE(
 
   const [deleted] = store.splice(index, 1);
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_evm',
+    resourceType: 'evm_data_point',
+    resourceId: deleted.id,
+    projectId: params.projectId,
+    before: deleted,
+    after: null,
+    decisionReason: `delete month ${deleted.month}`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_evm',
+  });
 
   return Response.json({ status: 'success', data: { id: deleted.id } });
 }

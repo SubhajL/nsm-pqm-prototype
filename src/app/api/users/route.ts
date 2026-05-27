@@ -1,11 +1,7 @@
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
-import {
-  ensureProjectDemoStateHydrated,
-  persistProjectDemoState,
-} from '@/lib/project-demo-state';
+import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getProjectStore } from '@/lib/project-store';
-import { appendAuditLog } from '@/lib/audit-log-store';
-import { getCurrentApiUser } from '@/lib/project-api-access';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import { addUser, getUserStore, updateUser } from '@/lib/user-store';
 import { parseRequestBody } from '@/lib/validation';
 import type { User } from '@/types/admin';
@@ -49,8 +45,16 @@ export async function POST(request: Request) {
   };
 
   addUser(nextUser);
-  appendAuditLog(getCurrentApiUser(), 'Admin', `เพิ่มผู้ใช้งาน ${nextUser.name}`);
-  await persistProjectDemoState();
+  await recordAuditEvent(request, {
+    action: 'edit_user',
+    resourceType: 'user',
+    resourceId: nextUser.id,
+    projectId: null,
+    before: null,
+    after: nextUser,
+    decisionReason: `create user ${nextUser.name}`,
+    authorityBasis: 'ADMIN:edit_user',
+  });
 
   return Response.json({ status: 'success', data: nextUser }, { status: 201 });
 }
@@ -63,6 +67,7 @@ export async function PATCH(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
+  const beforeUser = getUserStore().find((entry) => entry.id === body.id);
   const updatedUser = updateUser(body.id, body.updates);
 
   if (!updatedUser) {
@@ -72,14 +77,18 @@ export async function PATCH(request: Request) {
     );
   }
 
-  appendAuditLog(
-    getCurrentApiUser(),
-    'Admin',
-    body.updates.status
-      ? `${body.updates.status === 'active' ? 'เปิดใช้งาน' : 'ระงับการใช้งาน'} ${updatedUser.name}`
-      : `แก้ไขข้อมูลผู้ใช้งาน ${updatedUser.name}`,
-  );
-  await persistProjectDemoState();
+  await recordAuditEvent(request, {
+    action: 'edit_user',
+    resourceType: 'user',
+    resourceId: updatedUser.id,
+    projectId: null,
+    before: beforeUser ?? null,
+    after: updatedUser,
+    decisionReason: body.updates.status
+      ? `status → ${body.updates.status}`
+      : 'update user fields',
+    authorityBasis: 'ADMIN:edit_user',
+  });
 
   return Response.json({ status: 'success', data: updatedUser });
 }

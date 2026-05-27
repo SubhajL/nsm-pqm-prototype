@@ -5,6 +5,7 @@ import {
   AUTH_COOKIE_USER_ID,
   requiresProjectDuty,
 } from '@/lib/auth';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { getProjectStore } from '@/lib/project-store';
@@ -63,6 +64,18 @@ export async function POST(request: Request) {
     sameSite: 'lax',
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE,
+  });
+
+  await recordAuditEvent(request, {
+    action: 'login',
+    resourceType: 'session',
+    resourceId: selectedUser.id,
+    projectId: null,
+    before: null,
+    after: { userId: selectedUser.id, role: selectedUser.role },
+    decisionReason: 'mock single-click login',
+    authorityBasis: 'AUTH:login',
+    actor: selectedUser,
   });
 
   return response;

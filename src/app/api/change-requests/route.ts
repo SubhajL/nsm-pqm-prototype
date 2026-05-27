@@ -1,5 +1,5 @@
 import { getChangeRequestStore } from '@/lib/change-request-store';
-import { appendAuditLog } from '@/lib/audit-log-store';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import { addChangeRequest, updateChangeRequest } from '@/lib/change-request-store';
 import {
   canPerformProjectAction,
@@ -86,8 +86,19 @@ export async function POST(request: Request) {
   };
 
   addChangeRequest(nextChangeRequest);
-  appendAuditLog(currentUser, 'Approval', `สร้าง Change Request ${nextChangeRequest.id}`);
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'submit_change_request',
+    resourceType: 'change_request',
+    resourceId: nextChangeRequest.id,
+    projectId: nextChangeRequest.projectId,
+    before: null,
+    after: nextChangeRequest,
+    decisionReason: `submit (priority=${nextChangeRequest.priority})`,
+    authorityBasis: 'AUTHZ_MATRIX:submit_change_request',
+    actor: currentUser,
+  });
 
   return Response.json({ status: 'success', data: nextChangeRequest }, { status: 201 });
 }
@@ -160,19 +171,26 @@ export async function PATCH(request: Request) {
     };
   });
 
+  const beforeChangeRequest = structuredClone(changeRequest);
   const updatedChangeRequest = updateChangeRequest(body.id, {
     status: nextStatus,
     approvedBy: body.action === 'approve' ? currentUser.name : null,
     approvedAt: body.action === 'approve' ? new Date().toISOString() : null,
     workflow: updatedWorkflow,
   });
-
-  appendAuditLog(
-    currentUser,
-    'Approval',
-    `${body.action === 'approve' ? 'อนุมัติ' : 'ส่งกลับ/ไม่อนุมัติ'} Change Request ${changeRequest.id}`,
-  );
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'approve_change_request',
+    resourceType: 'change_request',
+    resourceId: changeRequest.id,
+    projectId: changeRequest.projectId,
+    before: beforeChangeRequest,
+    after: updatedChangeRequest,
+    decisionReason: body.action === 'approve' ? 'approved' : 'rejected',
+    authorityBasis: 'AUTHZ_MATRIX:approve_change_request',
+    actor: currentUser,
+  });
 
   return Response.json({ status: 'success', data: updatedChangeRequest });
 }

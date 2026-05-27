@@ -1,4 +1,4 @@
-import { appendAuditLog } from '@/lib/audit-log-store';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   addDocumentFile,
   addDocumentFolder,
@@ -63,8 +63,18 @@ export async function POST(
     };
 
     addDocumentFolder(params.projectId, folder);
-    appendAuditLog(currentUser, 'Document', `สร้างโฟลเดอร์ ${folder.name}`);
     await persistProjectDemoState();
+    await recordAuditEvent(request, {
+      action: 'upload_document',
+      resourceType: 'document_folder',
+      resourceId: folder.id,
+      projectId: params.projectId,
+      before: null,
+      after: folder,
+      decisionReason: `create folder ${folder.name}`,
+      authorityBasis: 'AUTHZ_MATRIX:upload_document',
+      actor: currentUser,
+    });
     return Response.json({ status: 'success', data: folder }, { status: 201 });
   }
 
@@ -83,8 +93,18 @@ export async function POST(
     };
 
     addDocumentFile(params.projectId, file);
-    appendAuditLog(currentUser, 'Document', `อัปโหลดไฟล์ ${file.name}`);
     await persistProjectDemoState();
+    await recordAuditEvent(request, {
+      action: 'upload_document',
+      resourceType: 'document_file',
+      resourceId: file.id,
+      projectId: params.projectId,
+      before: null,
+      after: file,
+      decisionReason: `upload file ${file.name}`,
+      authorityBasis: 'AUTHZ_MATRIX:upload_document',
+      actor: currentUser,
+    });
     return Response.json({ status: 'success', data: file }, { status: 201 });
   }
 
@@ -98,6 +118,7 @@ export async function POST(
     );
   }
 
+  const beforeFile = structuredClone(currentFile);
   const nextVersion: VersionEntry = {
     version: currentFile.version + 1,
     date: new Date().toISOString(),
@@ -106,8 +127,18 @@ export async function POST(
   };
 
   const updatedFile = uploadDocumentVersion(params.projectId, body.fileId, nextVersion);
-  appendAuditLog(currentUser, 'Document', `อัปโหลดเวอร์ชันใหม่ ${currentFile.name}`);
   await persistProjectDemoState();
+  await recordAuditEvent(request, {
+    action: 'upload_document',
+    resourceType: 'document_file',
+    resourceId: currentFile.id,
+    projectId: params.projectId,
+    before: beforeFile,
+    after: updatedFile,
+    decisionReason: `upload new version v${nextVersion.version} of ${currentFile.name}`,
+    authorityBasis: 'AUTHZ_MATRIX:upload_document',
+    actor: currentUser,
+  });
   return Response.json({ status: 'success', data: updatedFile });
 }
 
@@ -142,8 +173,18 @@ export async function DELETE(
       );
     }
 
-    appendAuditLog(currentUser, 'Document', `ลบโฟลเดอร์ ${deletedFolder.name}`);
     await persistProjectDemoState();
+    await recordAuditEvent(request, {
+      action: 'upload_document',
+      resourceType: 'document_folder',
+      resourceId: deletedFolder.id,
+      projectId: params.projectId,
+      before: deletedFolder,
+      after: null,
+      decisionReason: `delete folder ${deletedFolder.name}`,
+      authorityBasis: 'AUTHZ_MATRIX:upload_document',
+      actor: currentUser,
+    });
     return Response.json({ status: 'success', data: deletedFolder });
   }
 
@@ -156,7 +197,17 @@ export async function DELETE(
     );
   }
 
-  appendAuditLog(currentUser, 'Document', `ลบไฟล์ ${deletedFile.name}`);
   await persistProjectDemoState();
+  await recordAuditEvent(request, {
+    action: 'upload_document',
+    resourceType: 'document_file',
+    resourceId: deletedFile.id,
+    projectId: params.projectId,
+    before: deletedFile,
+    after: null,
+    decisionReason: `delete file ${deletedFile.name}`,
+    authorityBasis: 'AUTHZ_MATRIX:upload_document',
+    actor: currentUser,
+  });
   return Response.json({ status: 'success', data: deletedFile });
 }

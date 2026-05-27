@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import { canPerformProjectAction, forbiddenResponse } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
@@ -73,8 +74,21 @@ export async function PATCH(
     );
   }
 
+  const beforeSnapshot = { ...project };
   project.status = parsed.data.status;
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_basic',
+    resourceType: 'project',
+    resourceId: project.id,
+    projectId: project.id,
+    before: beforeSnapshot,
+    after: project,
+    decisionReason: `status → ${parsed.data.status}`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+    actor: currentUser,
+  });
 
   return Response.json({ status: 'success', data: project });
 }
