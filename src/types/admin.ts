@@ -20,13 +20,22 @@ export interface User {
   phone: string;
 }
 
-export interface OrgUnit {
-  id: string;
-  name: string;
-  nameEn: string;
-  parentId: string | null;
-  userCount: number;
-}
+/**
+ * Admin's org-unit type is the canonical RID multi-tier org unit from
+ * `@/types/rid/vocabulary` (PR-13). PR-17 replaced the legacy flat
+ * `{ id, name, nameEn, parentId, userCount }` shape with the discriminated
+ * `RidOrgUnit` union so that bureau / regional_office / construction_office /
+ * provincial_office / om_project / basin tiers are first-class.
+ */
+export type { RidOrgUnit as OrgUnit } from '@/types/rid/vocabulary';
+
+/**
+ * API-response shape: canonical OrgUnit augmented with a derived `userCount`
+ * (number of users whose `departmentId` references this unit). The count is
+ * computed per request from the user store, not persisted on the org unit.
+ */
+import type { RidOrgUnit } from '@/types/rid/vocabulary';
+export type OrgUnitWithUserCount = RidOrgUnit & { userCount: number };
 
 export interface AuditLog {
   id: string;

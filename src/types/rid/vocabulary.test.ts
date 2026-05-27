@@ -230,6 +230,7 @@ describe('RidOrgUnit — discriminator', () => {
       name: 'สำนักงานก่อสร้าง 1',
       nameEn: 'Construction Office 1',
       parentId: 'ro-1',
+      costCenter: null,
       constructionTier: 'large',
     };
     expect(unit.kind).toBe('construction_office');
@@ -246,6 +247,7 @@ describe('RidOrgUnit — discriminator', () => {
       name: 'สำนักงานก่อสร้าง 2',
       nameEn: null,
       parentId: 'ro-1',
+      costCenter: null,
       constructionTier: null,
     };
     expect(unit.kind).toBe('construction_office');
@@ -265,6 +267,7 @@ describe('RidOrgUnit — discriminator', () => {
         name: 'กรม',
         nameEn: 'Department',
         parentId: null,
+        costCenter: null,
       },
       {
         id: 'ko',
@@ -272,6 +275,7 @@ describe('RidOrgUnit — discriminator', () => {
         name: 'สำนักงานก่อสร้าง',
         nameEn: null,
         parentId: 'ro',
+        costCenter: null,
         constructionTier: 'medium',
       },
     ];
@@ -297,6 +301,7 @@ describe('RidOrgUnit — discriminator', () => {
       name: 'กรมชลประทาน',
       nameEn: 'Royal Irrigation Department',
       parentId: null,
+      costCenter: null,
     };
     expect(dept.kind).toBe('department');
     expect(dept.parentId).toBeNull();
