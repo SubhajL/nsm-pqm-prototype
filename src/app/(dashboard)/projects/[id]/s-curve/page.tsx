@@ -55,7 +55,7 @@ import {
   getSpiTone,
 } from '@/lib/evm-metrics';
 import type { EVMDataPoint } from '@/types/evm';
-import { getProjectExecutionModel, PROJECT_EXECUTION_MODEL_LABELS } from '@/types/project';
+import { DELIVERY_METHOD_LABELS, getProjectDeliveryMethod } from '@/types/project';
 
 const { Title, Text } = Typography;
 
@@ -91,9 +91,9 @@ export default function SCurvePage() {
   const deleteEvmPoint = useDeleteEVMPoint(projectId);
   const currentUser = useAuthStore((s) => s.currentUser);
   const canManageEvm = canCreateProject(currentUser?.role);
-  const executionModel = getProjectExecutionModel(project);
-  const executionModelLabel = PROJECT_EXECUTION_MODEL_LABELS[executionModel];
-  const isOutsourced = executionModel === 'outsourced';
+  const deliveryMethod = getProjectDeliveryMethod(project);
+  const deliveryMethodLabel = DELIVERY_METHOD_LABELS[deliveryMethod];
+  const isOutsourced = deliveryMethod === 'outsourced';
   const bac = project?.budget ?? 0;
   const hasSnapshots = (evmData?.length ?? 0) > 0;
 
@@ -298,7 +298,7 @@ export default function SCurvePage() {
         EVM Dashboard &mdash; {project?.name ?? 'รายละเอียดโครงการ'}
       </Title>
       <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-        {latestSnapshotLabel} · {executionModelLabel.th}
+        {latestSnapshotLabel} · {deliveryMethodLabel.th}
       </Text>
 
       {/* Section 2: KPI Cards */}

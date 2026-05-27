@@ -36,7 +36,7 @@ import {
 import { COLORS } from '@/theme/antd-theme';
 import { formatBahtShort } from '@/lib/date-utils';
 import { deriveEvmMetrics, getPaymentGapTone, getSpiTone } from '@/lib/evm-metrics';
-import { getProjectExecutionModel } from '@/types/project';
+import { getProjectDeliveryMethod } from '@/types/project';
 
 const { Title, Text } = Typography;
 
@@ -70,7 +70,7 @@ export default function ProgressUpdatePage() {
     () => getAveragePhysicalProgress(physicalRows),
     [physicalRows],
   );
-  const executionModel = getProjectExecutionModel(project);
+  const deliveryMethod = getProjectDeliveryMethod(project);
   const evmSummary = useMemo(() => deriveEvmMetrics(project, evmData), [evmData, project]);
   const spiTone = getSpiTone(evmSummary?.spi ?? 0);
   const paymentGapTone = evmSummary?.mode === 'outsourced' ? getPaymentGapTone(evmSummary.paymentGap) : null;
@@ -80,7 +80,7 @@ export default function ProgressUpdatePage() {
       const bac = project?.budget ?? 0;
 
       if (!evmSummary) {
-        return executionModel === 'outsourced'
+        return deliveryMethod === 'outsourced'
           ? [
               { key: 'bac', label: 'BAC', value: formatBahtShort(bac), color: COLORS.info },
               { key: 'pv', label: 'PV', value: '-', color: COLORS.info },
@@ -158,7 +158,7 @@ export default function ProgressUpdatePage() {
         { key: 'tcpi', label: 'TCPI', value: evmSummary.tcpi.toFixed(2), color: COLORS.success },
       ];
     },
-    [evmSummary, executionModel, paymentGapTone?.color, paymentGapTone?.summaryTh, project?.budget, spiTone.color],
+    [evmSummary, deliveryMethod, paymentGapTone?.color, paymentGapTone?.summaryTh, project?.budget, spiTone.color],
   );
 
   if (loadingProject || loadingWbs || loadingEvm) {
@@ -226,7 +226,7 @@ export default function ProgressUpdatePage() {
             <EVMCard
               metrics={evmMetrics}
               evmPercent={evmSummary?.evPercent ?? 0}
-              executionModel={executionModel}
+              deliveryMethod={deliveryMethod}
             />
           </Col>
         )}
@@ -396,15 +396,15 @@ function PhysicalProgressCard({
 function EVMCard({
   metrics,
   evmPercent,
-  executionModel,
+  deliveryMethod,
 }: {
   metrics: EVMMetric[];
   evmPercent: number;
-  executionModel: ReturnType<typeof getProjectExecutionModel>;
+  deliveryMethod: ReturnType<typeof getProjectDeliveryMethod>;
 }) {
   return (
     <Card
-      title={executionModel === 'outsourced' ? 'Contract Progress & Payment' : 'Earned Value Management (EVM)'}
+      title={deliveryMethod === 'outsourced' ? 'Contract Progress & Payment' : 'Earned Value Management (EVM)'}
       styles={{ body: { padding: '16px' } }}
       style={{ height: '100%' }}
     >
@@ -448,7 +448,7 @@ function EVMCard({
 
       <div style={{ marginTop: 16 }}>
         <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: 'block' }}>
-          {executionModel === 'outsourced' ? 'EV/BAC Progress' : 'EV/BAC Progress'}
+          {deliveryMethod === 'outsourced' ? 'EV/BAC Progress' : 'EV/BAC Progress'}
         </Text>
         <Progress
           percent={Number(evmPercent.toFixed(1))}

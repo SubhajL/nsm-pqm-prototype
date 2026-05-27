@@ -18,13 +18,13 @@ async function selectOptionByFormLabel(
 }
 
 async function createProject(page: import('@playwright/test').Page, projectName: string) {
-  return createProjectWithExecutionModel(page, projectName, 'ดำเนินการเอง');
+  return createProjectWithDeliveryMethod(page, projectName, 'ดำเนินการเอง');
 }
 
-async function createProjectWithExecutionModel(
+async function createProjectWithDeliveryMethod(
   page: import('@playwright/test').Page,
   projectName: string,
-  executionModelLabel: string,
+  deliveryMethodLabel: string,
 ) {
   await page.getByRole('button', { name: /สร้างโครงการใหม่/i }).click();
   await page.waitForURL('**/projects/new');
@@ -37,8 +37,8 @@ async function createProjectWithExecutionModel(
   );
   await selectOptionByFormLabel(
     page,
-    'รูปแบบการดำเนินโครงการ (Execution Model)',
-    executionModelLabel,
+    'รูปแบบการดำเนินโครงการ (Delivery Method)',
+    deliveryMethodLabel,
   );
   await page.getByPlaceholder('ระบุวัตถุประสงค์ของโครงการ').fill('Bootstrap validation objective');
   await page.getByPlaceholder('ระบุรายละเอียดเพิ่มเติม (ถ้ามี)').fill('Bootstrap test');
@@ -126,7 +126,7 @@ test.describe('new-project bootstrap state', () => {
     const projectName = `Bootstrap Outsourced ${Date.now()}`;
 
     await loginAs(page, 'user-002');
-    const projectId = await createProjectWithExecutionModel(
+    const projectId = await createProjectWithDeliveryMethod(
       page,
       projectName,
       'จ้างเหมา',

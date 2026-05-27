@@ -35,8 +35,9 @@ import { formatBaht } from '@/lib/date-utils';
 import { COLORS, PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { canCreateProject as canCreateProjectForRole } from '@/lib/auth';
-import type { Project, ProjectExecutionModel, ProjectType } from '@/types/project';
-import { PROJECT_EXECUTION_MODEL_LABELS, PROJECT_TYPE_LABELS } from '@/types/project';
+import type { Project, ProjectType } from '@/types/project';
+import { DELIVERY_METHOD_LABELS, PROJECT_TYPE_LABELS } from '@/types/project';
+import type { DeliveryMethod } from '@/types/rid/vocabulary';
 
 const { Text, Title } = Typography;
 
@@ -275,19 +276,19 @@ export default function PortfolioDashboardPage() {
       },
     },
     {
-      title: 'รูปแบบดำเนินงาน (Execution)',
-      dataIndex: 'executionModel',
-      key: 'executionModel',
+      title: 'รูปแบบดำเนินงาน (Delivery Method)',
+      dataIndex: 'deliveryMethod',
+      key: 'deliveryMethod',
       width: 170,
-      render: (executionModel: ProjectExecutionModel) => {
-        const label = PROJECT_EXECUTION_MODEL_LABELS[executionModel];
-        if (!label) return executionModel;
+      render: (deliveryMethod: DeliveryMethod) => {
+        const label = DELIVERY_METHOD_LABELS[deliveryMethod];
+        if (!label) return deliveryMethod;
 
         return (
           <BilingualTagCell
             th={label.th}
             en={label.en}
-            color={executionModel === 'outsourced' ? 'gold' : 'cyan'}
+            color={deliveryMethod === 'outsourced' ? 'gold' : 'cyan'}
           />
         );
       },

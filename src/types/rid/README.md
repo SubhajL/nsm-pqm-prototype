@@ -42,8 +42,9 @@ because RID also runs first-class research and maintenance projects.
 **Source:** stakeholder confirmation 2026-05-28. This is a RENAME of the
 legacy `ProjectExecutionModel = 'internal' | 'outsourced'`. The
 `'internal'` value migrated to `'in_house'` in seed data and TS callers.
-`ProjectExecutionModel` is retained for one release as a `@deprecated`
-alias for back-compat — see `src/types/project.ts`.
+The PR-13 transitional `@deprecated ProjectExecutionModel` alias on
+`src/types/project.ts` was removed in PR-15; downstream code now imports
+`DeliveryMethod` directly from this module.
 
 ---
 

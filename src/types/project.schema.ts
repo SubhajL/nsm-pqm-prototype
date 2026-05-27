@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { DELIVERY_METHODS, PROJECT_SIZE_TIERS, RID_LIFECYCLE_STAGES } from '@/types/rid/vocabulary';
+import {
+  CONTRACTING_MODELS,
+  DELIVERY_METHODS,
+  PROJECT_SIZE_TIERS,
+  RID_LIFECYCLE_STAGES,
+} from '@/types/rid/vocabulary';
 
 /**
  * Zod schemas for the `project` domain.
@@ -33,7 +38,8 @@ export const projectScheduleHealthSchema = z.enum([
   'delayed',
 ]);
 
-export const projectExecutionModelSchema = z.enum(DELIVERY_METHODS);
+export const deliveryMethodSchema = z.enum(DELIVERY_METHODS);
+export const contractingModelSchema = z.enum(CONTRACTING_MODELS);
 
 /**
  * Project size tier — coarse budget bucket used for approval-authority routing.
@@ -94,7 +100,8 @@ export const createProjectRequestSchema = z
     name: z.string().min(1, 'name is required'),
     nameEn: z.string().optional(),
     type: projectTypeSchema,
-    executionModel: projectExecutionModelSchema.optional(),
+    deliveryMethod: deliveryMethodSchema.optional(),
+    contractingModel: contractingModelSchema.nullable().optional(),
     sizeTier: projectSizeTierSchema.optional().default('medium'),
     status: projectStatusSchema.optional(),
     budget: z.number().nonnegative(),
@@ -122,23 +129,32 @@ export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>;
 /**
  * Full Project entity schema — mirrors `Project` in `./project.ts` for runtime
  * validation at hydration boundaries (e.g. seed-shape regression tests, future
- * persistence adapters). `sizeTier` is REQUIRED here even though the create
- * request schema defaults it; by the time a Project is materialised every row
- * must carry an explicit tier so downstream consumers (authority routing,
- * reporting rollups) never see `undefined`.
+ * persistence adapters).
+ *
+ * Composition rules (PR-14 + PR-15 + PR-16):
+ * - `deliveryMethod` is required (no fallback; PR-15 dropped the
+ *   pre-PR-13 `executionModel` alias).
+ * - `contractingModel` is nullable but always present on the entity.
+ * - `sizeTier` is REQUIRED here even though the create request schema
+ *   defaults it; by the time a Project is materialised every row must carry
+ *   an explicit tier so downstream consumers (authority routing, reporting
+ *   rollups) never see `undefined`.
+ * - `currentLifecycleStage` + `lifecycleStageHistory` come from PR-16; the
+ *   history is always non-empty (seed migration ensures a `planning` entry).
  */
-export const fullProjectSchema = z
+export const projectEntitySchema = z
   .object({
     id: z.string().min(1),
     code: z.string().min(1),
     name: z.string().min(1),
     nameEn: z.string(),
     type: projectTypeSchema,
-    executionModel: projectExecutionModelSchema,
+    deliveryMethod: deliveryMethodSchema,
+    contractingModel: contractingModelSchema.nullable(),
     sizeTier: projectSizeTierSchema,
     status: projectStatusSchema,
     budget: z.number().nonnegative(),
-    progress: z.number().min(0).max(1),
+    progress: z.number(),
     scheduleHealth: projectScheduleHealthSchema.optional(),
     startDate: z.string().min(1),
     endDate: z.string().min(1),
@@ -153,8 +169,18 @@ export const fullProjectSchema = z
     highRisks: z.number().int().nonnegative(),
     currentMilestone: z.number().int().nonnegative(),
     totalMilestones: z.number().int().nonnegative(),
+    currentLifecycleStage: ridLifecycleStageSchema,
+    lifecycleStageHistory: z.array(lifecycleStageHistoryEntrySchema),
   })
-  .passthrough();
+  .strict();
+
+/**
+ * Back-compat alias retained so call sites introduced in PR-14
+ * (e.g. `src/lib/rid/approval-authority.test.ts`) continue to type-check.
+ * `fullProjectSchema` and `projectEntitySchema` refer to the same canonical
+ * schema; new code should prefer `projectEntitySchema`.
+ */
+export const fullProjectSchema = projectEntitySchema;
 
 /**
  * Only `draft`, `on_hold`, and `cancelled` can be set manually on a project.

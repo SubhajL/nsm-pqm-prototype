@@ -1,5 +1,5 @@
 import type { EVMDataPoint } from '@/types/evm';
-import { getProjectExecutionModel, type Project } from '@/types/project';
+import { getProjectDeliveryMethod, type Project } from '@/types/project';
 
 interface BaseDerivedMetrics {
   latest: EVMDataPoint;
@@ -49,7 +49,7 @@ export function getPaidToDate(snapshot: EVMDataPoint) {
 }
 
 export function deriveEvmMetrics(
-  project: Pick<Project, 'budget' | 'executionModel'> | undefined,
+  project: Pick<Project, 'budget' | 'deliveryMethod'> | undefined,
   evmData: EVMDataPoint[] | undefined,
 ): DerivedEvmMetrics | null {
   const bac = project?.budget ?? 0;
@@ -64,16 +64,22 @@ export function deriveEvmMetrics(
   const sv = ev - pv;
   const svPercent = pv > 0 ? (sv / pv) * 100 : 0;
   const evPercent = bac > 0 ? (ev / bac) * 100 : 0;
-  const mode = getProjectExecutionModel(project);
+  const deliveryMethod = getProjectDeliveryMethod(project);
+  // `consultant_supervised` is treated as `outsourced` for EVM math purposes
+  // in MVP: a consultant-supervised project is still billed by an external
+  // contractor on a contract-payment cadence. Flagged for RID rule
+  // confirmation — see MVP plan PR-15.
+  const isContractPayment =
+    deliveryMethod === 'outsourced' || deliveryMethod === 'consultant_supervised';
 
-  if (mode === 'outsourced') {
+  if (isContractPayment) {
     const paidToDate = getPaidToDate(latest);
     const paymentGap = ev - paidToDate;
     const paidPercent = bac > 0 ? (paidToDate / bac) * 100 : 0;
     const remainingPayable = Math.max(bac - paidToDate, 0);
 
     return {
-      mode,
+      mode: 'outsourced',
       latest,
       bac,
       pv,
@@ -98,9 +104,6 @@ export function deriveEvmMetrics(
   const tcpi = bac - ac !== 0 ? (bac - ev) / (bac - ac) : 0;
   const cvPercent = ac > 0 ? (cv / ac) * 100 : 0;
 
-  // PR-13 note: `consultant_supervised` falls through to the in-house EVM
-  // shape until PR-15 wires its own pricing semantics. Preserving the
-  // pre-rename two-branch behavior keeps EVM math regressions at zero.
   return {
     mode: 'in_house',
     latest,

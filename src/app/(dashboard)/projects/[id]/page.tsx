@@ -55,8 +55,9 @@ import {
 import { deriveEvmMetrics } from '@/lib/evm-metrics';
 import { COLORS } from '@/theme/antd-theme';
 import {
-  getProjectExecutionModel,
-  PROJECT_EXECUTION_MODEL_LABELS,
+  CONTRACTING_MODEL_LABELS,
+  DELIVERY_METHOD_LABELS,
+  getProjectDeliveryMethod,
   PROJECT_TYPE_LABELS,
   type ProjectStatus,
 } from '@/types/project';
@@ -237,7 +238,8 @@ export default function ProjectOverviewPage() {
   const projectName = project?.name ?? 'รายละเอียดโครงการ';
   const projectCode = project?.code ?? '-';
   const projectType = project?.type ?? 'construction';
-  const executionModel = getProjectExecutionModel(project);
+  const deliveryMethod = getProjectDeliveryMethod(project);
+  const contractingModel = project?.contractingModel ?? null;
   const projectProgress = derivedProjectProgress;
   const budget = project?.budget ?? 12_500_000;
   const spi = evmMetrics?.spi ?? project?.spiValue ?? 0.92;
@@ -262,7 +264,7 @@ export default function ProjectOverviewPage() {
         ? evmMetrics.ac
         : budget * projectProgress;
   const budgetSpentLabel =
-    executionModel === 'outsourced'
+    deliveryMethod === 'outsourced'
       ? 'จ่ายแล้วสะสม (Paid to Date)'
       : 'ใช้ไปแล้ว (Actual Cost)';
 
@@ -285,9 +287,15 @@ export default function ProjectOverviewPage() {
                 {projectCode}
               </Text>
               <Tag color="blue">{PROJECT_TYPE_LABELS[projectType].th}</Tag>
-              <Tag color={executionModel === 'outsourced' ? 'gold' : 'cyan'}>
-                {PROJECT_EXECUTION_MODEL_LABELS[executionModel].th}
+              <Tag color={deliveryMethod === 'outsourced' ? 'gold' : 'cyan'}>
+                {DELIVERY_METHOD_LABELS[deliveryMethod].th}
               </Tag>
+              {contractingModel ? (
+                <Tag color="geekblue">
+                  {CONTRACTING_MODEL_LABELS[contractingModel].th} (
+                  {CONTRACTING_MODEL_LABELS[contractingModel].en})
+                </Tag>
+              ) : null}
               <StatusBadge status={projectStatus} type="project" />
               {projectStatus === 'in_progress' ? (
                 <StatusBadge status={projectScheduleHealth} type="project" />
@@ -339,9 +347,9 @@ export default function ProjectOverviewPage() {
         </Col>
         <Col xs={12} md={8} xl={4}>
           <KPICard
-            title={executionModel === 'outsourced' ? 'จ่ายแล้ว' : 'CPI'}
+            title={deliveryMethod === 'outsourced' ? 'จ่ายแล้ว' : 'CPI'}
             value={
-              executionModel === 'outsourced'
+              deliveryMethod === 'outsourced'
                 ? formatBahtShort(budgetSpent)
                 : evmMetrics?.mode === 'in_house'
                   ? evmMetrics.cpi.toFixed(2)
@@ -350,7 +358,7 @@ export default function ProjectOverviewPage() {
             icon={<CheckCircleOutlined />}
             color={COLORS.success}
             subtitle={
-              executionModel === 'outsourced'
+              deliveryMethod === 'outsourced'
                 ? 'Paid to Date'
                 : 'Cost Performance Index'
             }
