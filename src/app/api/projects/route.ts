@@ -8,7 +8,7 @@ import {
   getAssignmentRoleForUserRole,
   getVisibleProjectsForUser,
 } from '@/lib/project-access';
-import { bootstrapProjectData } from '@/lib/project-bootstrap';
+import { bootstrapProjectData, inferProjectSizeTier } from '@/lib/project-bootstrap';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { getProjectMembershipStore } from '@/lib/project-membership-store';
@@ -58,6 +58,14 @@ export async function POST(request: Request) {
   const parsed = parseRequestBody(createProjectRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
   const { milestones = [], ...projectFields } = parsed.data;
+  // Detect whether the caller explicitly supplied `sizeTier`; the schema
+  // defaults to 'medium' when omitted, so without this check we cannot tell
+  // an admin override apart from "use the default" and would always overwrite
+  // with the budget-derived tier.
+  const sizeTierExplicitlySet =
+    typeof rawBody === 'object' &&
+    rawBody !== null &&
+    'sizeTier' in (rawBody as Record<string, unknown>);
 
   const store = getProjectStore();
   const membershipStore = getProjectMembershipStore();
@@ -78,6 +86,13 @@ export async function POST(request: Request) {
     nameEn: projectFields.nameEn ?? projectFields.name,
     type: projectFields.type,
     executionModel: projectFields.executionModel ?? 'in_house',
+    // sizeTier: when the caller did not explicitly supply it, infer from
+    // budget via PR-13's classifier so the tier reflects the project's actual
+    // scale. An explicit caller-supplied value (admin override path) is
+    // always respected, even if it disagrees with the budget classification.
+    sizeTier: sizeTierExplicitlySet
+      ? projectFields.sizeTier
+      : inferProjectSizeTier(projectFields.budget),
     status: projectFields.status ?? 'planning',
     budget: projectFields.budget,
     progress: projectFields.progress ?? 0,

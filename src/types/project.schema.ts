@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { DELIVERY_METHODS } from '@/types/rid/vocabulary';
+import { DELIVERY_METHODS, PROJECT_SIZE_TIERS } from '@/types/rid/vocabulary';
 
 /**
  * Zod schemas for the `project` domain.
@@ -35,6 +35,14 @@ export const projectScheduleHealthSchema = z.enum([
 
 export const projectExecutionModelSchema = z.enum(DELIVERY_METHODS);
 
+/**
+ * Project size tier — coarse budget bucket used for approval-authority routing.
+ * On create requests the field is optional and defaults to `'medium'`; the
+ * server may overwrite it by inferring from `budget` via `classifyProjectSize`.
+ * On the full Project entity the field is required.
+ */
+export const projectSizeTierSchema = z.enum(PROJECT_SIZE_TIERS);
+
 const milestoneInputSchema = z.object({
   milestone: z.number(),
   amount: z.number().nonnegative(),
@@ -48,6 +56,7 @@ export const createProjectRequestSchema = z
     nameEn: z.string().optional(),
     type: projectTypeSchema,
     executionModel: projectExecutionModelSchema.optional(),
+    sizeTier: projectSizeTierSchema.optional().default('medium'),
     status: projectStatusSchema.optional(),
     budget: z.number().nonnegative(),
     progress: z.number().min(0).max(1).optional(),
@@ -70,6 +79,43 @@ export const createProjectRequestSchema = z
   .strict();
 
 export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>;
+
+/**
+ * Full Project entity schema — mirrors `Project` in `./project.ts` for runtime
+ * validation at hydration boundaries (e.g. seed-shape regression tests, future
+ * persistence adapters). `sizeTier` is REQUIRED here even though the create
+ * request schema defaults it; by the time a Project is materialised every row
+ * must carry an explicit tier so downstream consumers (authority routing,
+ * reporting rollups) never see `undefined`.
+ */
+export const fullProjectSchema = z
+  .object({
+    id: z.string().min(1),
+    code: z.string().min(1),
+    name: z.string().min(1),
+    nameEn: z.string(),
+    type: projectTypeSchema,
+    executionModel: projectExecutionModelSchema,
+    sizeTier: projectSizeTierSchema,
+    status: projectStatusSchema,
+    budget: z.number().nonnegative(),
+    progress: z.number().min(0).max(1),
+    scheduleHealth: projectScheduleHealthSchema.optional(),
+    startDate: z.string().min(1),
+    endDate: z.string().min(1),
+    duration: z.number().int().nonnegative(),
+    spiValue: z.number(),
+    cpiValue: z.number(),
+    managerId: z.string().min(1),
+    managerName: z.string().min(1),
+    departmentId: z.string().min(1),
+    departmentName: z.string().min(1),
+    openIssues: z.number().int().nonnegative(),
+    highRisks: z.number().int().nonnegative(),
+    currentMilestone: z.number().int().nonnegative(),
+    totalMilestones: z.number().int().nonnegative(),
+  })
+  .passthrough();
 
 /**
  * Only `draft`, `on_hold`, and `cancelled` can be set manually on a project.
