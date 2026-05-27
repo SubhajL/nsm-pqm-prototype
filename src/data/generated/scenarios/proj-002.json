@@ -1,0 +1,517 @@
+{
+  "phases": [
+    {
+      "code": "1.0",
+      "name": "วิเคราะห์ความต้องการ",
+      "weight": 20,
+      "progress": 100,
+      "durationDays": 35,
+      "children": [
+        {
+          "code": "1.1",
+          "name": "เก็บความต้องการผู้ใช้",
+          "weight": 50,
+          "progress": 100,
+          "owner": "น.ส.สมศรี วรรณดี"
+        },
+        {
+          "code": "1.2",
+          "name": "ออกแบบ UX/UI และ Prototype",
+          "weight": 50,
+          "progress": 85,
+          "owner": "นายกิตติ คงเจริญ"
+        }
+      ]
+    },
+    {
+      "code": "2.0",
+      "name": "พัฒนาระบบหลัก",
+      "weight": 40,
+      "progress": 55,
+      "durationDays": 70,
+      "children": [
+        {
+          "code": "2.1",
+          "name": "พัฒนา Booking API และฐานข้อมูล",
+          "weight": 55,
+          "progress": 60,
+          "owner": "นายกิตติ คงเจริญ",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "ค่าพัฒนา Backend Module",
+              "quantity": 1,
+              "unit": "งาน",
+              "unitPrice": 850000
+            },
+            {
+              "description": "ค่าบริการ Cloud Sandbox",
+              "quantity": 6,
+              "unit": "เดือน",
+              "unitPrice": 18000
+            }
+          ]
+        },
+        {
+          "code": "2.2",
+          "name": "พัฒนา Frontend และ Dashboard",
+          "weight": 45,
+          "progress": 50,
+          "owner": "นายกิตติ คงเจริญ",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "ค่าพัฒนา Frontend Module",
+              "quantity": 1,
+              "unit": "งาน",
+              "unitPrice": 620000
+            },
+            {
+              "description": "ค่าทดสอบ UX และแก้ไขตามผลทดสอบ",
+              "quantity": 1,
+              "unit": "งาน",
+              "unitPrice": 160000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3.0",
+      "name": "เชื่อมต่อระบบภายนอก",
+      "weight": 25,
+      "progress": 20,
+      "durationDays": 45,
+      "children": [
+        {
+          "code": "3.1",
+          "name": "เชื่อมต่อ Single Sign-On",
+          "weight": 60,
+          "progress": 25,
+          "owner": "นายกิตติ คงเจริญ",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "ค่าพัฒนา SSO Connector และ Mapping สิทธิ์",
+              "quantity": 1,
+              "unit": "งาน",
+              "unitPrice": 240000
+            },
+            {
+              "description": "ค่าทดสอบ Security/UAT กับ IdP กลาง",
+              "quantity": 1,
+              "unit": "งาน",
+              "unitPrice": 95000
+            }
+          ]
+        },
+        {
+          "code": "3.2",
+          "name": "เชื่อมต่อการชำระเงินออนไลน์",
+          "weight": 40,
+          "progress": 10,
+          "owner": "นายกิตติ คงเจริญ",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "ค่า onboarding payment gateway และ webhook",
+              "quantity": 1,
+              "unit": "งาน",
+              "unitPrice": 180000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4.0",
+      "name": "ทดสอบและเตรียมใช้งาน",
+      "weight": 15,
+      "progress": 0,
+      "durationDays": 34,
+      "children": [
+        {
+          "code": "4.1",
+          "name": "UAT กับเจ้าหน้าที่กิจกรรม",
+          "weight": 60,
+          "progress": 0,
+          "owner": "น.ส.สมศรี วรรณดี"
+        },
+        {
+          "code": "4.2",
+          "name": "อบรมและเตรียม Go-live",
+          "weight": 40,
+          "progress": 0,
+          "owner": "น.ส.สมศรี วรรณดี"
+        }
+      ]
+    }
+  ],
+  "milestones": [
+    {
+      "number": 1,
+      "name": "Sign-off Requirements",
+      "dueDate": "2026-02-05",
+      "percentage": 20,
+      "deliverables": "Requirement baseline",
+      "status": "in_progress"
+    },
+    {
+      "number": 2,
+      "name": "Core Modules Ready",
+      "dueDate": "2026-04-17",
+      "percentage": 35,
+      "deliverables": "Booking API + Frontend alpha",
+      "status": "in_progress"
+    },
+    {
+      "number": 3,
+      "name": "Integration & UAT",
+      "dueDate": "2026-06-02",
+      "percentage": 25,
+      "deliverables": "SSO/Payment integration",
+      "status": "in_progress"
+    },
+    {
+      "number": 4,
+      "name": "Go-live",
+      "dueDate": "2026-07-07",
+      "percentage": 20,
+      "deliverables": "Production launch + handover",
+      "status": "pending"
+    }
+  ],
+  "reports": [
+    {
+      "reportNumber": 21,
+      "date": "2026-07-08",
+      "weather": "ฝนเล็กน้อย (Light Rain)",
+      "temperature": 30,
+      "linkedWbsCodes": [
+        "2.1",
+        "2.2"
+      ],
+      "activities": [
+        {
+          "wbsCode": "2.1",
+          "task": "ทดสอบ API จองกิจกรรมกับฐานข้อมูลจริง",
+          "quantity": 8,
+          "unit": "ชั่วโมง",
+          "cumulativeProgress": 0.55
+        },
+        {
+          "wbsCode": "2.2",
+          "task": "ปรับ UI หน้าสมัครสมาชิก",
+          "quantity": 5,
+          "unit": "หน้าจอ",
+          "cumulativeProgress": 0.48
+        }
+      ],
+      "issues": "พบ response time สูงกว่าที่กำหนดในชั่วโมงเร่งด่วน",
+      "status": "submitted"
+    },
+    {
+      "reportNumber": 22,
+      "date": "2026-07-14",
+      "weather": "แดดจัด (Sunny)",
+      "temperature": 31,
+      "linkedWbsCodes": [
+        "3.1"
+      ],
+      "activities": [
+        {
+          "wbsCode": "3.1",
+          "task": "ทดสอบการเชื่อมต่อ SSO รอบที่ 2",
+          "quantity": 6,
+          "unit": "กรณีทดสอบ",
+          "cumulativeProgress": 0.25
+        }
+      ],
+      "issues": "Token refresh จากระบบ SSO หมดอายุเร็วเกินกำหนด",
+      "status": "draft"
+    }
+  ],
+  "issues": [
+    {
+      "title": "เวลาโหลดหน้าเลือกกิจกรรมเกิน 3 วินาที",
+      "severity": "high",
+      "status": "in_progress",
+      "linkedWbs": "WBS 2.2",
+      "slaHours": 24,
+      "createdAt": "2026-07-08",
+      "progress": 60
+    },
+    {
+      "title": "การยืนยันตัวตน SSO คืนค่า role ไม่ครบ",
+      "severity": "medium",
+      "status": "open",
+      "linkedWbs": "WBS 3.1",
+      "slaHours": 48,
+      "createdAt": "2026-07-14"
+    },
+    {
+      "title": "อีเมลแจ้งเตือนสมัครกิจกรรมส่งซ้ำ",
+      "severity": "low",
+      "status": "review",
+      "linkedWbs": "WBS 2.1",
+      "slaHours": 72,
+      "createdAt": "2026-07-05",
+      "resolution": "ปรับ queue worker แล้ว รอทดสอบซ้ำ"
+    }
+  ],
+  "risks": [
+    {
+      "title": "ผู้ให้บริการ SSO เปลี่ยน endpoint ช่วงใกล้ go-live",
+      "description": "หาก endpoint เปลี่ยนจะกระทบการเชื่อมต่อระบบสมาชิก",
+      "likelihood": 3,
+      "impact": 4,
+      "status": "mitigating",
+      "dateIdentified": "2026-06-20",
+      "mitigation": "ล็อก API contract และเตรียม fallback login"
+    },
+    {
+      "title": "การทดสอบ UAT ล่าช้าเพราะผู้ใช้ไม่พร้อม",
+      "description": "เจ้าหน้าที่กิจกรรมมีภารกิจจัดงานช่วงปลายเดือน",
+      "likelihood": 4,
+      "impact": 3,
+      "status": "open",
+      "dateIdentified": "2026-07-01",
+      "mitigation": "จอง slot UAT ล่วงหน้าและจัดรอบทดสอบย่อย"
+    },
+    {
+      "title": "ข้อมูลกิจกรรมเดิมไม่สมบูรณ์สำหรับ migration",
+      "description": "บางกิจกรรมไม่มีรหัสหน่วยงานและจำนวนรับที่นั่ง",
+      "likelihood": 2,
+      "impact": 3,
+      "status": "accepted",
+      "dateIdentified": "2026-05-25",
+      "mitigation": "ยอมรับความเสี่ยงและให้แก้ข้อมูลบางส่วนด้วยมือ"
+    }
+  ],
+  "gates": [
+    {
+      "number": 0,
+      "name": "Discovery",
+      "nameEn": "Discovery",
+      "status": "passed",
+      "date": "2026-03-10"
+    },
+    {
+      "number": 1,
+      "name": "Design Review",
+      "nameEn": "Design Review",
+      "status": "passed",
+      "date": "2026-04-12"
+    },
+    {
+      "number": 2,
+      "name": "Security Review",
+      "nameEn": "Security Review",
+      "status": "conditional",
+      "date": "2026-07-01",
+      "checklist": [
+        {
+          "item": "ทำ Threat Model",
+          "status": "passed"
+        },
+        {
+          "item": "ปิดช่องโหว่ session fixation",
+          "status": "warning"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "name": "Go-live Readiness",
+      "nameEn": "Go-live Readiness",
+      "status": "pending",
+      "date": null
+    }
+  ],
+  "itpItems": [
+    {
+      "sequence": 1,
+      "item": "Code Review Backend",
+      "standard": "NSM Secure Coding",
+      "inspectionType": "RS",
+      "inspector": "Tech Lead",
+      "status": "passed"
+    },
+    {
+      "sequence": 2,
+      "item": "API Load Test",
+      "standard": "P95 < 3s",
+      "inspectionType": "W",
+      "inspector": "QA Engineer",
+      "status": "pending"
+    },
+    {
+      "sequence": 3,
+      "item": "UAT Scenario Sign-off",
+      "standard": "UAT Checklist v2",
+      "inspectionType": "H",
+      "inspector": "Product Owner",
+      "status": "pending"
+    }
+  ],
+  "inspections": [
+    {
+      "title": "Security Review รอบกลางโครงการ",
+      "itpSequence": 2,
+      "date": "2026-07-01",
+      "time": "14:00",
+      "wbsCode": "WBS 3.1 เชื่อมต่อ Single Sign-On",
+      "standards": [
+        "OWASP ASVS",
+        "NSM Secure Coding"
+      ],
+      "overallResult": "conditional",
+      "failReason": "ต้องแก้การจัดการ session timeout ก่อน go-live",
+      "checklist": [
+        {
+          "id": "cl-2001",
+          "item": "ตรวจ session timeout",
+          "criteria": "หมดอายุเกิน 30 นาทีไม่ได้",
+          "result": "fail",
+          "note": "ยัง timeout 45 นาที"
+        },
+        {
+          "id": "cl-2002",
+          "item": "ตรวจ audit log",
+          "criteria": "ต้องมี log สำคัญครบ",
+          "result": "pass",
+          "note": "ผ่าน"
+        }
+      ]
+    }
+  ],
+  "documents": {
+    "folders": [
+      "Requirements",
+      "Design",
+      "Sprint Demos",
+      "UAT"
+    ],
+    "files": [
+      {
+        "folder": "Requirements",
+        "name": "Requirement_Baseline_v2.docx",
+        "type": "Requirements",
+        "version": 2,
+        "size": "1.2 MB",
+        "uploadedAt": "2026-04-15",
+        "status": "approved",
+        "workflow": [
+          "submitted",
+          "reviewed",
+          "approved"
+        ]
+      },
+      {
+        "folder": "Design",
+        "name": "Booking_System_Architecture.pdf",
+        "type": "Architecture",
+        "version": 1,
+        "size": "3.4 MB",
+        "uploadedAt": "2026-05-02",
+        "status": "approved",
+        "workflow": [
+          "submitted",
+          "reviewed",
+          "approved"
+        ]
+      },
+      {
+        "folder": "Sprint Demos",
+        "name": "Sprint5_Demo_Notes.pdf",
+        "type": "Meeting Note",
+        "version": 1,
+        "size": "0.9 MB",
+        "uploadedAt": "2026-07-09",
+        "status": "under_review",
+        "workflow": [
+          "submitted",
+          "under_review",
+          "pending"
+        ]
+      },
+      {
+        "folder": "UAT",
+        "name": "UAT_Scenario_Checklist.xlsx",
+        "type": "Checklist",
+        "version": 1,
+        "size": "0.6 MB",
+        "uploadedAt": "2026-07-12",
+        "status": "draft",
+        "workflow": [
+          "submitted",
+          "pending",
+          "pending"
+        ]
+      }
+    ]
+  },
+  "changeRequests": [
+    {
+      "id": "CR-201",
+      "title": "เพิ่มขั้นตอน OTP ก่อนยืนยันการจอง",
+      "reason": "ลดการจองซ้ำและยืนยันตัวตนผู้ใช้งาน",
+      "budgetImpact": 120000,
+      "scheduleImpact": 7,
+      "linkedWbs": "WBS 3.1 เชื่อมต่อ Single Sign-On",
+      "priority": "medium",
+      "status": "pending",
+      "requestedAt": "2026-07-10",
+      "attachments": [
+        "CR-201_OTP_Request.pdf",
+        "Impact_Assessment_CR201.xlsx"
+      ],
+      "workflow": [
+        {
+          "step": "ส่งคำขอ",
+          "user": "น.ส.สมศรี วรรณดี",
+          "date": "2026-07-10",
+          "status": "done"
+        },
+        {
+          "step": "หัวหน้ากองพิจารณา",
+          "user": "นายสมชาย กิตติพงษ์",
+          "date": null,
+          "status": "current"
+        },
+        {
+          "step": "รอง ผอ. อนุมัติ",
+          "user": "นายธนา กมลรัตน์",
+          "date": null,
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "evm": [
+    {
+      "month": "2026-03",
+      "pv": 450000,
+      "ev": 420000,
+      "ac": 430000
+    },
+    {
+      "month": "2026-04",
+      "pv": 1100000,
+      "ev": 1020000,
+      "ac": 1040000
+    },
+    {
+      "month": "2026-05",
+      "pv": 1800000,
+      "ev": 1620000,
+      "ac": 1655000
+    },
+    {
+      "month": "2026-06",
+      "pv": 2400000,
+      "ev": 2280000,
+      "ac": 2325000
+    }
+  ]
+}
