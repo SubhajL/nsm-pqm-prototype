@@ -1,4 +1,5 @@
 import { recordAuditEvent } from '@/lib/audit-helpers';
+import { getSignedDocumentUrl } from '@/lib/mock-upload-storage';
 import {
   addDocumentFile,
   addDocumentFolder,
@@ -90,6 +91,13 @@ export async function POST(
       uploadedAt: new Date().toISOString(),
       status: 'draft',
       workflow: ['submitted', 'pending', 'pending'],
+      sha256: body.sha256,
+      sizeBytes: body.sizeBytes,
+      mimeType: body.mimeType,
+      virusScanStatus: body.sha256 ? 'clean' : 'pending',
+      virusScanCheckedAt: body.sha256 ? new Date().toISOString() : null,
+      retentionPolicy: body.retentionPolicy ?? { retainUntil: null, reason: null },
+      accessPolicy: body.accessPolicy,
     };
 
     addDocumentFile(params.projectId, file);
@@ -105,7 +113,18 @@ export async function POST(
       authorityBasis: 'AUTHZ_MATRIX:upload_document',
       actor: currentUser,
     });
-    return Response.json({ status: 'success', data: file }, { status: 201 });
+
+    // For files persisted to Vercel Blob with `access:'private'`, the
+    // raw URL would be inaccessible. The server-issued `signedUrl`
+    // grants the client a 5-min window through `/api/documents/_blob/signed`.
+    const signedUrl = body.sha256
+      ? getSignedDocumentUrl(`documents/${params.projectId}/${file.id}`)
+      : null;
+
+    return Response.json(
+      { status: 'success', data: { ...file, signedUrl } },
+      { status: 201 },
+    );
   }
 
   const currentData = getDocumentDataForProject(params.projectId);
@@ -118,15 +137,49 @@ export async function POST(
     );
   }
 
+  // PR-06: Version lock. If the current file is approved (or the head
+  // VersionEntry is explicitly locked), refuse to overwrite it.
+  const versionEntries = currentData.versionHistory[currentFile.id] ?? [];
+  const headVersion = versionEntries[0];
+  const isLocked =
+    headVersion?.versionLocked === true ||
+    (headVersion === undefined && currentFile.status === 'approved') ||
+    (headVersion?.version === currentFile.version && currentFile.status === 'approved');
+
+  if (isLocked) {
+    return Response.json(
+      {
+        status: 'error',
+        error: {
+          code: 'VERSION_LOCKED',
+          message:
+            'Cannot upload new version: current approved version is locked. Create a new file or request unlock.',
+        },
+      },
+      { status: 409 },
+    );
+  }
+
   const beforeFile = structuredClone(currentFile);
   const nextVersion: VersionEntry = {
     version: currentFile.version + 1,
     date: new Date().toISOString(),
     author: currentUser?.name ?? 'System',
     note: body.note,
+    sha256: body.sha256,
+    versionLocked: false,
   };
 
   const updatedFile = uploadDocumentVersion(params.projectId, body.fileId, nextVersion);
+  if (updatedFile) {
+    updatedFile.sha256 = body.sha256 ?? updatedFile.sha256;
+    updatedFile.sizeBytes = body.sizeBytes ?? updatedFile.sizeBytes;
+    updatedFile.mimeType = body.mimeType ?? updatedFile.mimeType;
+    updatedFile.virusScanStatus = body.sha256 ? 'clean' : updatedFile.virusScanStatus;
+    updatedFile.virusScanCheckedAt = body.sha256
+      ? new Date().toISOString()
+      : updatedFile.virusScanCheckedAt ?? null;
+  }
   await persistProjectDemoState();
   await recordAuditEvent(request, {
     action: 'upload_document',
@@ -139,7 +192,12 @@ export async function POST(
     authorityBasis: 'AUTHZ_MATRIX:upload_document',
     actor: currentUser,
   });
-  return Response.json({ status: 'success', data: updatedFile });
+
+  const signedUrl = body.sha256
+    ? getSignedDocumentUrl(`documents/${params.projectId}/${currentFile.id}`)
+    : null;
+
+  return Response.json({ status: 'success', data: { ...updatedFile, signedUrl } });
 }
 
 export async function DELETE(

@@ -25,6 +25,7 @@ export type Action =
   | 'approve_change_request'
   | 'upload_document'
   | 'approve_document'
+  | 'view_document'
   | 'edit_quality_inspection'
   | 'edit_risk'
   | 'edit_issue'
@@ -52,6 +53,7 @@ export const ALL_ACTIONS: readonly Action[] = [
   'approve_change_request',
   'upload_document',
   'approve_document',
+  'view_document',
   'edit_quality_inspection',
   'edit_risk',
   'edit_issue',
@@ -115,6 +117,7 @@ export const AUTHZ_MATRIX: Record<UserRole, Set<Action>> = {
     'approve_change_request',
     'upload_document',
     'approve_document',
+    'view_document',
     'edit_quality_inspection',
     'edit_risk',
     'edit_issue',
@@ -138,6 +141,7 @@ export const AUTHZ_MATRIX: Record<UserRole, Set<Action>> = {
     'approve_change_request',
     'upload_document',
     'approve_document',
+    'view_document',
     'edit_quality_inspection',
     'edit_risk',
     'edit_issue',
@@ -153,6 +157,7 @@ export const AUTHZ_MATRIX: Record<UserRole, Set<Action>> = {
     'edit_schedule',
     'submit_change_request',
     'upload_document',
+    'view_document',
     'edit_quality_inspection',
     'edit_risk',
     'edit_issue',
@@ -166,6 +171,7 @@ export const AUTHZ_MATRIX: Record<UserRole, Set<Action>> = {
     'approve_milestone',
     'submit_change_request',
     'upload_document',
+    'view_document',
     'edit_risk',
     'edit_issue',
     'submit_daily_report',
@@ -173,12 +179,14 @@ export const AUTHZ_MATRIX: Record<UserRole, Set<Action>> = {
   ]),
   'Team Member': new Set<Action>([
     'view',
+    'view_document',
     'edit_issue',
     'submit_daily_report',
   ]),
-  Executive: new Set<Action>(['view']),
+  Executive: new Set<Action>(['view', 'view_document']),
   Consultant: new Set<Action>([
     'view',
+    'view_document',
     'edit_quality_inspection',
     'upload_document',
     'approve_document',

@@ -9,6 +9,31 @@ import { z } from 'zod';
  * `change-requests` has POST (create) and PATCH (decision).
  */
 
+const userRoleSchema = z.enum([
+  'System Admin',
+  'Project Manager',
+  'Engineer',
+  'Coordinator',
+  'Team Member',
+  'Executive',
+  'Consultant',
+]);
+
+const documentRetentionPolicySchema = z
+  .object({
+    retainUntil: z.string().nullable(),
+    reason: z.string().nullable(),
+  })
+  .strict();
+
+const documentAccessPolicySchema = z
+  .object({
+    read: z.array(userRoleSchema),
+    write: z.array(userRoleSchema),
+    approve: z.array(userRoleSchema),
+  })
+  .strict();
+
 export const createDocumentFolderRequestSchema = z
   .object({
     kind: z.literal('folder'),
@@ -24,6 +49,12 @@ export const createDocumentFileRequestSchema = z
     name: z.string().min(1, 'name is required'),
     type: z.string().min(1, 'type is required'),
     size: z.string().min(1, 'size is required'),
+    /** Optional security metadata (server fills in defaults when absent). */
+    sha256: z.string().optional(),
+    sizeBytes: z.number().int().nonnegative().optional(),
+    mimeType: z.string().optional(),
+    retentionPolicy: documentRetentionPolicySchema.optional(),
+    accessPolicy: documentAccessPolicySchema.optional(),
   })
   .strict();
 
@@ -32,6 +63,10 @@ export const uploadDocumentVersionRequestSchema = z
     kind: z.literal('version'),
     fileId: z.string().min(1, 'fileId is required'),
     note: z.string(),
+    /** Optional security metadata for the new version (server fills defaults). */
+    sha256: z.string().optional(),
+    sizeBytes: z.number().int().nonnegative().optional(),
+    mimeType: z.string().optional(),
   })
   .strict();
 
