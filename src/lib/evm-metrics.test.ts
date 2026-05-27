@@ -34,12 +34,12 @@ function makeSnapshot(overrides: Partial<EVMDataPoint> = {}): EVMDataPoint {
   };
 }
 
-function makeProject(overrides: Partial<Project> = {}): Pick<Project, 'budget' | 'executionModel'> {
+function makeProject(overrides: Partial<Project> = {}): Pick<Project, 'budget' | 'deliveryMethod'> {
   return {
     budget: 1_000_000,
-    executionModel: 'in_house',
+    deliveryMethod: 'in_house',
     ...overrides,
-  } as Pick<Project, 'budget' | 'executionModel'>;
+  } as Pick<Project, 'budget' | 'deliveryMethod'>;
 }
 
 describe('deriveEvmMetrics — guard clauses', () => {
@@ -66,7 +66,7 @@ describe('deriveEvmMetrics — guard clauses', () => {
 
 describe('deriveEvmMetrics — in-house execution mode', () => {
   it('derives full SPI, CPI, EAC, ETC, VAC, TCPI for a typical snapshot', () => {
-    const project = makeProject({ budget: 1_000_000, executionModel: 'in_house' });
+    const project = makeProject({ budget: 1_000_000, deliveryMethod: 'in_house' });
     const snapshot = makeSnapshot({ pv: 500_000, ev: 460_000, ac: 440_000 });
 
     const result = deriveEvmMetrics(project, [snapshot]) as DerivedInternalEvmMetrics;
@@ -91,9 +91,9 @@ describe('deriveEvmMetrics — in-house execution mode', () => {
     expect(result.latest).toBe(snapshot);
   });
 
-  it('defaults missing executionModel to in_house', () => {
+  it('defaults missing deliveryMethod to in_house', () => {
     const result = deriveEvmMetrics(
-      { budget: 1_000_000 } as Pick<Project, 'budget' | 'executionModel'>,
+      { budget: 1_000_000 } as Pick<Project, 'budget' | 'deliveryMethod'>,
       [makeSnapshot()],
     );
     expect(result?.mode).toBe('in_house');
@@ -146,7 +146,7 @@ describe('deriveEvmMetrics — in-house execution mode', () => {
 
 describe('deriveEvmMetrics — outsourced execution mode', () => {
   it('derives paidToDate, paymentGap, paidPercent, remainingPayable', () => {
-    const project = makeProject({ budget: 1_000_000, executionModel: 'outsourced' });
+    const project = makeProject({ budget: 1_000_000, deliveryMethod: 'outsourced' });
     const snapshot = makeSnapshot({
       pv: 500_000,
       ev: 460_000,
@@ -171,14 +171,14 @@ describe('deriveEvmMetrics — outsourced execution mode', () => {
   });
 
   it('falls back to ac when paidToDate is missing', () => {
-    const project = makeProject({ budget: 1_000_000, executionModel: 'outsourced' });
+    const project = makeProject({ budget: 1_000_000, deliveryMethod: 'outsourced' });
     const snapshot = makeSnapshot({ ac: 250_000, paidToDate: undefined });
     const result = deriveEvmMetrics(project, [snapshot]) as DerivedOutsourcedContractMetrics;
     expect(result.paidToDate).toBe(250_000);
   });
 
   it('clamps remainingPayable at zero when paidToDate exceeds bac', () => {
-    const project = makeProject({ budget: 100_000, executionModel: 'outsourced' });
+    const project = makeProject({ budget: 100_000, deliveryMethod: 'outsourced' });
     const snapshot = makeSnapshot({ pv: 100_000, ev: 100_000, paidToDate: 150_000 });
     const result = deriveEvmMetrics(project, [snapshot]) as DerivedOutsourcedContractMetrics;
     expect(result.remainingPayable).toBe(0);
@@ -284,5 +284,57 @@ describe('getPaymentGapTone', () => {
 
   it('returns success when paymentGap == 0 (aligned)', () => {
     expect(getPaymentGapTone(0).color).toBe('success');
+  });
+});
+
+describe('deriveEvmMetrics — PR-15 deliveryMethod mode-switch smoke', () => {
+  it('in_house path produces in-house metric shape (CPI/EAC/ETC/VAC/TCPI)', () => {
+    const project = makeProject({ budget: 1_000_000, deliveryMethod: 'in_house' });
+    const snapshot = makeSnapshot({ pv: 500_000, ev: 460_000, ac: 440_000 });
+
+    const result = deriveEvmMetrics(project, [snapshot]) as DerivedInternalEvmMetrics;
+
+    expect(result.mode).toBe('in_house');
+    expect(result.spi).toBeCloseTo(0.92, 5);
+    expect(result.cpi).toBeCloseTo(1.0454545454545454, 5);
+    expect(result).toHaveProperty('eac');
+    expect(result).toHaveProperty('tcpi');
+  });
+
+  it('outsourced path produces contract-payment metric shape (paidToDate/paymentGap)', () => {
+    const project = makeProject({ budget: 1_000_000, deliveryMethod: 'outsourced' });
+    const snapshot = makeSnapshot({
+      pv: 500_000,
+      ev: 460_000,
+      ac: 440_000,
+      paidToDate: 400_000,
+    });
+
+    const result = deriveEvmMetrics(project, [snapshot]) as DerivedOutsourcedContractMetrics;
+
+    expect(result.mode).toBe('outsourced');
+    expect(result.spi).toBeCloseTo(0.92, 5);
+    expect(result.paidToDate).toBe(400_000);
+    expect(result.paymentGap).toBe(60_000);
+    expect(result).not.toHaveProperty('cpi');
+  });
+
+  it('consultant_supervised path is treated as outsourced for MVP (mode: outsourced)', () => {
+    // MVP rule: consultant_supervised behaves like outsourced for EVM math —
+    // see deriveEvmMetrics comment and MVP plan PR-15.
+    const project = makeProject({ budget: 1_000_000, deliveryMethod: 'consultant_supervised' });
+    const snapshot = makeSnapshot({
+      pv: 500_000,
+      ev: 460_000,
+      ac: 440_000,
+      paidToDate: 300_000,
+    });
+
+    const result = deriveEvmMetrics(project, [snapshot]) as DerivedOutsourcedContractMetrics;
+
+    expect(result.mode).toBe('outsourced');
+    expect(result.spi).toBeCloseTo(0.92, 5);
+    expect(result.paidToDate).toBe(300_000);
+    expect(result).not.toHaveProperty('cpi');
   });
 });

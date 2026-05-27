@@ -1,19 +1,13 @@
-import type { DeliveryMethod, ProjectSizeTier, RidLifecycleStage } from '@/types/rid/vocabulary';
+import type {
+  ContractingModel,
+  DeliveryMethod,
+  ProjectSizeTier,
+  RidLifecycleStage,
+} from '@/types/rid/vocabulary';
 
 export type ProjectType = 'construction' | 'it' | 'equipment' | 'academic' | 'renovation';
 export type ProjectStatus = 'draft' | 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
 export type ProjectScheduleHealth = 'on_schedule' | 'watch' | 'delayed';
-
-/**
- * Project execution model.
- *
- * @deprecated Renamed to `DeliveryMethod` in `@/types/rid/vocabulary`. The
- * legacy `'internal' | 'outsourced'` union has been replaced by
- * `'in_house' | 'outsourced' | 'consultant_supervised'` (PR-13, MVP plan).
- * This alias is retained for one release for back-compat — migrate new
- * callers to `DeliveryMethod` directly.
- */
-export type ProjectExecutionModel = DeliveryMethod;
 
 /**
  * Single entry in a project's RID lifecycle history. Appended every time a
@@ -41,7 +35,20 @@ export interface Project {
   name: string;
   nameEn: string;
   type: ProjectType;
-  executionModel: ProjectExecutionModel;
+  /**
+   * Who actually executes the contracted work.
+   *
+   * Canonical name as of PR-15 (was `executionModel` pre-PR-15; PR-13
+   * already renamed the value set from `'internal' | 'outsourced'` to
+   * `'in_house' | 'outsourced' | 'consultant_supervised'`).
+   */
+  deliveryMethod: DeliveryMethod;
+  /**
+   * Pricing structure of the awarded contract. `null` indicates the project
+   * has not yet been awarded a contract (e.g. in-house work, planning phase,
+   * or legacy demo rows without a recorded contracting model).
+   */
+  contractingModel: ContractingModel | null;
   /**
    * Coarse budget bucket used for approval-authority routing and reporting
    * rollups. Inferred from `budget` via `classifyProjectSize()` at creation
@@ -104,22 +111,29 @@ export const PROJECT_TYPE_LABELS: Record<ProjectType, { th: string; en: string }
   renovation: { th: 'ตกแต่งพื้นที่จัดแสดง', en: 'Renovation' },
 };
 
-export const PROJECT_EXECUTION_MODEL_LABELS: Record<ProjectExecutionModel, { th: string; en: string }> = {
+export const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, { th: string; en: string }> = {
   in_house: { th: 'ดำเนินการเอง', en: 'In-House Project' },
   outsourced: { th: 'จ้างเหมา', en: 'Outsourced Project' },
   consultant_supervised: { th: 'ที่ปรึกษากำกับ', en: 'Consultant Supervised' },
 };
 
-export function getProjectExecutionModel(
-  project: Pick<Project, 'executionModel'> | undefined,
-): ProjectExecutionModel {
-  return project?.executionModel ?? 'in_house';
+export const CONTRACTING_MODEL_LABELS: Record<ContractingModel, { th: string; en: string }> = {
+  lump_sum: { th: 'เหมารวม', en: 'Lump Sum' },
+  unit_price: { th: 'รายการต่อหน่วย', en: 'Unit Price' },
+  cost_plus: { th: 'ต้นทุนบวกค่าตอบแทน', en: 'Cost Plus' },
+  design_build: { th: 'Design-Build', en: 'Design-Build' },
+};
+
+export function getProjectDeliveryMethod(
+  project: Pick<Project, 'deliveryMethod'> | undefined,
+): DeliveryMethod {
+  return project?.deliveryMethod ?? 'in_house';
 }
 
 export function isOutsourcedProject(
-  project: Pick<Project, 'executionModel'> | undefined,
+  project: Pick<Project, 'deliveryMethod'> | undefined,
 ) {
-  return getProjectExecutionModel(project) === 'outsourced';
+  return getProjectDeliveryMethod(project) === 'outsourced';
 }
 
 import { COLORS } from '@/theme/antd-theme';

@@ -32,8 +32,9 @@ import {
   SaveOutlined,
   SendOutlined,
 } from '@ant-design/icons';
-import { PROJECT_EXECUTION_MODEL_LABELS, PROJECT_TYPE_LABELS } from '@/types/project';
-import type { Project, ProjectExecutionModel, ProjectType } from '@/types/project';
+import { CONTRACTING_MODEL_LABELS, DELIVERY_METHOD_LABELS, PROJECT_TYPE_LABELS } from '@/types/project';
+import type { Project, ProjectType } from '@/types/project';
+import type { ContractingModel, DeliveryMethod } from '@/types/rid/vocabulary';
 import { useCreateProject } from '@/hooks/useProjects';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -64,7 +65,8 @@ interface DraftFormValues {
   code?: string;
   name?: string;
   type?: ProjectType;
-  executionModel?: ProjectExecutionModel;
+  deliveryMethod?: DeliveryMethod;
+  contractingModel?: ContractingModel | null;
   objectives?: string;
   description?: string;
   startDate?: string;
@@ -84,7 +86,8 @@ interface SubmittedFormValues {
   code?: string;
   name: string;
   type: ProjectType;
-  executionModel: ProjectExecutionModel;
+  deliveryMethod: DeliveryMethod;
+  contractingModel?: ContractingModel | null;
   objectives: string;
   description?: string;
   startDate: Dayjs;
@@ -110,9 +113,14 @@ const projectTypeOptions = (Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]).m
   label: `${PROJECT_TYPE_LABELS[key].th} (${PROJECT_TYPE_LABELS[key].en})`,
 }));
 
-const projectExecutionModelOptions = (Object.keys(PROJECT_EXECUTION_MODEL_LABELS) as ProjectExecutionModel[]).map((key) => ({
+const deliveryMethodOptions = (Object.keys(DELIVERY_METHOD_LABELS) as DeliveryMethod[]).map((key) => ({
   value: key,
-  label: `${PROJECT_EXECUTION_MODEL_LABELS[key].th} (${PROJECT_EXECUTION_MODEL_LABELS[key].en})`,
+  label: `${DELIVERY_METHOD_LABELS[key].th} (${DELIVERY_METHOD_LABELS[key].en})`,
+}));
+
+const contractingModelOptions = (Object.keys(CONTRACTING_MODEL_LABELS) as ContractingModel[]).map((key) => ({
+  value: key,
+  label: `${CONTRACTING_MODEL_LABELS[key].th} (${CONTRACTING_MODEL_LABELS[key].en})`,
 }));
 
 const PROGRESS_METHOD_OPTIONS: ProgressMethodInfo[] = [
@@ -346,7 +354,8 @@ export default function NewProjectPage() {
         name: values.name,
         nameEn: values.name,
         type: values.type,
-        executionModel: values.executionModel,
+        deliveryMethod: values.deliveryMethod,
+        contractingModel: values.contractingModel ?? null,
         status: 'planning',
         budget: values.budget,
         progress: 0,
@@ -507,7 +516,8 @@ export default function NewProjectPage() {
     form.setFieldsValue({
       name: 'โครงการปรับปรุงอาคารนิทรรศการ อาคาร C',
       type: 'construction' as ProjectType,
-      executionModel: 'outsourced' as ProjectExecutionModel,
+      deliveryMethod: 'outsourced' as DeliveryMethod,
+      contractingModel: 'lump_sum' as ContractingModel,
       objectives:
         'ปรับปรุงอาคารนิทรรศการ อาคาร C เพื่อรองรับนิทรรศการเทคโนโลยีอวกาศและดาราศาสตร์ รวมถึงงานโครงสร้าง ระบบ M&E งานตกแต่งภายใน และระบบมัลติมีเดีย',
       description:
@@ -581,7 +591,8 @@ export default function NewProjectPage() {
           requiredMark="optional"
           initialValues={{
             budget: TOTAL_BUDGET,
-            executionModel: 'in_house',
+            deliveryMethod: 'in_house',
+            contractingModel: null,
           }}
         >
           {/* ===== Section 1: Basic Info ===== */}
@@ -623,13 +634,29 @@ export default function NewProjectPage() {
             </Col>
             <Col xs={24} md={12}>
               <Form.Item
-                label="รูปแบบการดำเนินโครงการ (Execution Model)"
-                name="executionModel"
+                label="รูปแบบการดำเนินโครงการ (Delivery Method)"
+                name="deliveryMethod"
                 rules={[{ required: true, message: 'กรุณาเลือกรูปแบบการดำเนินโครงการ' }]}
               >
                 <Select
                   placeholder="เลือกรูปแบบการดำเนินโครงการ"
-                  options={projectExecutionModelOptions}
+                  options={deliveryMethodOptions}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={24}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="รูปแบบสัญญา (Contracting Model)"
+                name="contractingModel"
+                tooltip="เลือกได้หากกำหนดเงื่อนไขสัญญาแล้ว มิฉะนั้นเว้นว่างไว้"
+              >
+                <Select
+                  placeholder="ยังไม่ระบุ (Not Specified)"
+                  allowClear
+                  options={contractingModelOptions}
                 />
               </Form.Item>
             </Col>

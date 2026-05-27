@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import seedProjects from '@/data/projects.json';
+import { CONTRACTING_MODELS, DELIVERY_METHODS } from '@/types/rid/vocabulary';
+
 import {
   createProjectRequestSchema,
+  projectEntitySchema,
   updateProjectStatusRequestSchema,
 } from './project.schema';
 
@@ -73,6 +77,64 @@ describe('createProjectRequestSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  describe('deliveryMethod (PR-15 rename of executionModel)', () => {
+    it.each(DELIVERY_METHODS)(
+      'accepts deliveryMethod = %s',
+      (deliveryMethod) => {
+        const result = createProjectRequestSchema.safeParse({
+          ...validProject,
+          deliveryMethod,
+        });
+        expect(result.success).toBe(true);
+      },
+    );
+
+    it('rejects the pre-PR-13 legacy value `internal` (alias is gone after PR-15)', () => {
+      const result = createProjectRequestSchema.safeParse({
+        ...validProject,
+        deliveryMethod: 'internal',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects the pre-PR-15 field name `executionModel` (strict schema)', () => {
+      const result = createProjectRequestSchema.safeParse({
+        ...validProject,
+        executionModel: 'in_house',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('contractingModel (PR-15 first-class field)', () => {
+    it.each(CONTRACTING_MODELS)(
+      'accepts contractingModel = %s',
+      (contractingModel) => {
+        const result = createProjectRequestSchema.safeParse({
+          ...validProject,
+          contractingModel,
+        });
+        expect(result.success).toBe(true);
+      },
+    );
+
+    it('accepts contractingModel = null (project not yet under contract)', () => {
+      const result = createProjectRequestSchema.safeParse({
+        ...validProject,
+        contractingModel: null,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects an unknown contractingModel value', () => {
+      const result = createProjectRequestSchema.safeParse({
+        ...validProject,
+        contractingModel: 'time_and_materials',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
 });
 
 describe('updateProjectStatusRequestSchema', () => {
@@ -94,6 +156,34 @@ describe('updateProjectStatusRequestSchema', () => {
 
   it('rejects a body missing status', () => {
     const result = updateProjectStatusRequestSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('projectEntitySchema — seed-shape regression', () => {
+  it('every seed Project row has a valid deliveryMethod and contractingModel', () => {
+    for (const project of seedProjects) {
+      const result = projectEntitySchema.safeParse(project);
+      if (!result.success) {
+        throw new Error(
+          `Seed project ${(project as { id?: string }).id ?? '?'} failed entity validation: ${JSON.stringify(result.error.format(), null, 2)}`,
+        );
+      }
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it('rejects a Project entity missing contractingModel', () => {
+    const seed = { ...(seedProjects[0] as Record<string, unknown>) };
+    delete seed.contractingModel;
+    const result = projectEntitySchema.safeParse(seed);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a Project entity missing deliveryMethod', () => {
+    const seed = { ...(seedProjects[0] as Record<string, unknown>) };
+    delete seed.deliveryMethod;
+    const result = projectEntitySchema.safeParse(seed);
     expect(result.success).toBe(false);
   });
 });

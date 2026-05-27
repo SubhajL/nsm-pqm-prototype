@@ -17,7 +17,7 @@ import type { WBSNode } from '@/hooks/useWBS';
 import type { EVMDataPoint } from '@/types/evm';
 import type { GanttData } from '@/types/gantt';
 import {
-  PROJECT_EXECUTION_MODEL_LABELS,
+  DELIVERY_METHOD_LABELS,
   PROJECT_STATUS_LABELS,
   PROJECT_TYPE_LABELS,
   type Project,
@@ -119,7 +119,7 @@ export function buildWbsExportDocument(options: {
     orientation: 'landscape',
     metadata: [
       { label: 'รหัสโครงการ', value: project?.code ?? '-' },
-      { label: 'Execution', value: project ? PROJECT_EXECUTION_MODEL_LABELS[project.executionModel].en : '-' },
+      { label: 'Execution', value: project ? DELIVERY_METHOD_LABELS[project.deliveryMethod].en : '-' },
       { label: 'Selected BOQ Context', value: selectedNodeName || 'ไม่มีโหนดที่เลือก' },
     ],
     summaries: [
@@ -212,7 +212,7 @@ export function buildEvmPdfDocument(options: {
   evmData: EVMDataPoint[];
   metrics: DerivedEvmMetrics | null;
 }): ExportDocument {
-  const executionLabel = PROJECT_EXECUTION_MODEL_LABELS[options.project.executionModel];
+  const executionLabel = DELIVERY_METHOD_LABELS[options.project.deliveryMethod];
 
   return {
     title: 'EVM Dashboard Report',
@@ -246,14 +246,14 @@ export function buildEvmPdfDocument(options: {
     tables: [
       {
         title: 'EVM Snapshot Table',
-        columns: ['งวด', 'PV', 'EV', options.project.executionModel === 'outsourced' ? 'Paid' : 'AC', 'SPI', options.project.executionModel === 'outsourced' ? 'Paid/BAC' : 'CPI'],
+        columns: ['งวด', 'PV', 'EV', options.project.deliveryMethod === 'outsourced' ? 'Paid' : 'AC', 'SPI', options.project.deliveryMethod === 'outsourced' ? 'Paid/BAC' : 'CPI'],
         rows: options.evmData.map((point) => [
           point.monthThai,
           `${formatBaht(point.pv)} ฿`,
           `${formatBaht(point.ev)} ฿`,
-          `${formatBaht(options.project.executionModel === 'outsourced' ? getPaidToDate(point) : point.ac)} ฿`,
+          `${formatBaht(options.project.deliveryMethod === 'outsourced' ? getPaidToDate(point) : point.ac)} ฿`,
           point.spi.toFixed(2),
-          options.project.executionModel === 'outsourced'
+          options.project.deliveryMethod === 'outsourced'
             ? `${((getPaidToDate(point) / Math.max(options.project.budget, 1)) * 100).toFixed(1)}%`
             : point.cpi.toFixed(2),
         ]),
@@ -288,7 +288,7 @@ export function buildEvmExcelDocument(options: {
     orientation: 'landscape',
     metadata: [
       { label: 'Project Code', value: options.project.code },
-      { label: 'Execution', value: PROJECT_EXECUTION_MODEL_LABELS[options.project.executionModel].en },
+      { label: 'Execution', value: DELIVERY_METHOD_LABELS[options.project.deliveryMethod].en },
     ],
     tables: [
       {
@@ -299,14 +299,14 @@ export function buildEvmExcelDocument(options: {
       },
       {
         title: 'Time Series',
-        columns: ['Month', 'PV', 'EV', options.project.executionModel === 'outsourced' ? 'Paid' : 'AC', 'SPI', options.project.executionModel === 'outsourced' ? 'Paid/BAC' : 'CPI'],
+        columns: ['Month', 'PV', 'EV', options.project.deliveryMethod === 'outsourced' ? 'Paid' : 'AC', 'SPI', options.project.deliveryMethod === 'outsourced' ? 'Paid/BAC' : 'CPI'],
         rows: options.evmData.map((point) => [
           point.monthThai,
           String(point.pv),
           String(point.ev),
-          String(options.project.executionModel === 'outsourced' ? getPaidToDate(point) : point.ac),
+          String(options.project.deliveryMethod === 'outsourced' ? getPaidToDate(point) : point.ac),
           point.spi.toFixed(2),
-          options.project.executionModel === 'outsourced'
+          options.project.deliveryMethod === 'outsourced'
             ? ((getPaidToDate(point) / Math.max(options.project.budget, 1)) * 100).toFixed(1)
             : point.cpi.toFixed(2),
         ]),

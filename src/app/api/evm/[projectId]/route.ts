@@ -14,7 +14,7 @@ import {
   createEvmDataPointRequestSchema,
   deleteEvmDataPointRequestSchema,
 } from '@/types/evm.schema';
-import { getProjectExecutionModel } from '@/types/project';
+import { getProjectDeliveryMethod } from '@/types/project';
 
 function formatMonthThai(month: string) {
   const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -73,16 +73,19 @@ export async function POST(
     );
   }
 
-  const executionModel = getProjectExecutionModel(project);
+  const deliveryMethod = getProjectDeliveryMethod(project);
+  // `consultant_supervised` is treated as `outsourced` for EVM payment
+  // semantics in MVP — see `deriveEvmMetrics` and MVP plan PR-15.
+  const isContractPayment =
+    deliveryMethod === 'outsourced' || deliveryMethod === 'consultant_supervised';
 
   const month = body.month;
   const monthThai = body.monthThai ?? formatMonthThai(month);
   const pv = Number(body.pv);
   const ev = Number(body.ev);
-  const rawAmount =
-    executionModel === 'outsourced'
-      ? body.paidToDate ?? body.ac ?? 0
-      : body.ac;
+  const rawAmount = isContractPayment
+    ? body.paidToDate ?? body.ac ?? 0
+    : body.ac;
 
   if (rawAmount === undefined) {
     return Response.json(
@@ -90,10 +93,9 @@ export async function POST(
         status: 'error',
         error: {
           code: 'BAD_REQUEST',
-          message:
-            executionModel === 'outsourced'
-              ? 'month, pv, ev, and paidToDate are required for outsourced projects'
-              : 'month, pv, ev, and ac are required for internal projects',
+          message: isContractPayment
+            ? 'month, pv, ev, and paidToDate are required for outsourced projects'
+            : 'month, pv, ev, and ac are required for internal projects',
         },
       },
       { status: 400 },
@@ -124,7 +126,7 @@ export async function POST(
     pv,
     ev,
     ac,
-    paidToDate: executionModel === 'outsourced' ? ac : undefined,
+    paidToDate: isContractPayment ? ac : undefined,
     spi: pv > 0 ? ev / pv : 0,
     cpi: ac > 0 ? ev / ac : 0,
   };

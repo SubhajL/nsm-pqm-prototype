@@ -85,7 +85,8 @@ export async function POST(request: Request) {
     name: projectFields.name,
     nameEn: projectFields.nameEn ?? projectFields.name,
     type: projectFields.type,
-    executionModel: projectFields.executionModel ?? 'in_house',
+    deliveryMethod: projectFields.deliveryMethod ?? 'in_house',
+    contractingModel: projectFields.contractingModel ?? null,
     // sizeTier: when the caller did not explicitly supply it, infer from
     // budget via PR-13's classifier so the tier reflects the project's actual
     // scale. An explicit caller-supplied value (admin override path) is
