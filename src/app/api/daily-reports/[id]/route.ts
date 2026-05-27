@@ -1,3 +1,4 @@
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -96,6 +97,8 @@ export async function PATCH(
   if (!canPerformProjectAction(currentUser, report.projectId, requiredAction)) {
     return forbiddenResponse(requiredAction);
   }
+
+  const beforeReport = structuredClone(report);
 
   const canSubmit =
     nextStatus === 'submitted' &&
@@ -204,6 +207,20 @@ export async function PATCH(
     pushNotification(notification);
   }
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: requiredAction,
+    resourceType: 'daily_report',
+    resourceId: report.id,
+    projectId: report.projectId,
+    before: beforeReport,
+    after: report,
+    decisionReason: `${beforeReport.status} → ${nextStatus}${
+      body.note?.trim() ? `: ${body.note.trim()}` : ''
+    }`,
+    authorityBasis: `AUTHZ_MATRIX:${requiredAction}`,
+    actor: currentUser,
+  });
 
   return Response.json({ status: 'success', data: report });
 }

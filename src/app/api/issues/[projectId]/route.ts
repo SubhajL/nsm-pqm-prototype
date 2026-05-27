@@ -1,3 +1,4 @@
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -74,6 +75,17 @@ export async function POST(
   store.push(newIssue);
   await persistProjectDemoState();
 
+  await recordAuditEvent(request, {
+    action: 'edit_issue',
+    resourceType: 'issue',
+    resourceId: newIssue.id,
+    projectId: params.projectId,
+    before: null,
+    after: newIssue,
+    decisionReason: `create (severity=${newIssue.severity})`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_issue',
+  });
+
   return Response.json({ status: 'success', data: newIssue }, { status: 201 });
 }
 
@@ -108,12 +120,24 @@ export async function PATCH(
     );
   }
 
+  const beforeIssue = { ...store[index] };
   store[index] = {
     ...store[index],
     status: newStatus,
     closedAt: newStatus === 'closed' ? new Date().toISOString().split('T')[0] : store[index].closedAt,
   };
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_issue',
+    resourceType: 'issue',
+    resourceId: store[index].id,
+    projectId: params.projectId,
+    before: beforeIssue,
+    after: store[index],
+    decisionReason: `status ${beforeIssue.status} → ${newStatus}`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_issue',
+  });
 
   return Response.json({ status: 'success', data: store[index] });
 }

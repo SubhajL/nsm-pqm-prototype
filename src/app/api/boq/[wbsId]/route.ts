@@ -1,3 +1,4 @@
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -126,6 +127,17 @@ export async function POST(
 
   store.push(newItem);
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_boq',
+    resourceType: 'boq',
+    resourceId: newItem.id,
+    projectId: wbsNode.projectId,
+    before: null,
+    after: newItem,
+    decisionReason: 'create',
+    authorityBasis: 'AUTHZ_MATRIX:edit_boq',
+  });
 
   return Response.json({ status: 'success', data: newItem }, { status: 201 });
 }

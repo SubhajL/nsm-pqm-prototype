@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getGanttDataForProject, getNextGanttTaskId } from '@/lib/gantt-store';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
@@ -275,6 +276,17 @@ export async function POST(
   syncProjectExecutionState(params.projectId, { updatedTask: newTask });
   await persistProjectDemoState();
 
+  await recordAuditEvent(request, {
+    action: 'edit_schedule',
+    resourceType: 'gantt_task',
+    resourceId: String(newTask.id),
+    projectId: params.projectId,
+    before: null,
+    after: newTask,
+    decisionReason: 'create',
+    authorityBasis: 'AUTHZ_MATRIX:edit_schedule',
+  });
+
   return Response.json({ status: 'success', data: newTask }, { status: 201 });
 }
 
@@ -327,6 +339,7 @@ export async function PATCH(
   );
   if (predecessorError) return predecessorError;
 
+  const beforeTask = { ...task };
   Object.assign(task, {
     text: parsed.value.text,
     owner: parsed.value.owner,
@@ -340,6 +353,17 @@ export async function PATCH(
   replaceIncomingLinks(store, task.id, parsed.value.predecessors);
   syncProjectExecutionState(params.projectId, { updatedTask: task });
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_schedule',
+    resourceType: 'gantt_task',
+    resourceId: String(task.id),
+    projectId: params.projectId,
+    before: beforeTask,
+    after: task,
+    decisionReason: 'update',
+    authorityBasis: 'AUTHZ_MATRIX:edit_schedule',
+  });
 
   return Response.json({ status: 'success', data: task });
 }
@@ -382,6 +406,17 @@ export async function DELETE(
   );
   syncProjectExecutionState(params.projectId, { deletedTask });
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_schedule',
+    resourceType: 'gantt_task',
+    resourceId: String(deletedTask.id),
+    projectId: params.projectId,
+    before: deletedTask,
+    after: null,
+    decisionReason: 'delete',
+    authorityBasis: 'AUTHZ_MATRIX:edit_schedule',
+  });
 
   return Response.json({ status: 'success', data: { id: task.id } });
 }

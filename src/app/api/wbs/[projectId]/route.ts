@@ -1,4 +1,5 @@
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -116,6 +117,17 @@ export async function POST(
 
   store.push(newNode);
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_wbs',
+    resourceType: 'wbs',
+    resourceId: newNode.id,
+    projectId: params.projectId,
+    before: null,
+    after: newNode,
+    decisionReason: 'create',
+    authorityBasis: 'AUTHZ_MATRIX:edit_wbs',
+  });
 
   return Response.json({ status: 'success', data: newNode }, { status: 201 });
 }

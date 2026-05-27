@@ -1,4 +1,5 @@
 import { requiresProjectDuty } from '@/lib/auth';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -145,12 +146,24 @@ export async function POST(
     return badRequestResponse('DUPLICATE_TEAM_MEMBER', 'ผู้ใช้นี้อยู่ในทีมโครงการแล้ว');
   }
 
-  addProjectMembership({
+  const membership = {
     projectId: params.projectId,
     userId: user.id,
     assignmentRole: getAssignmentRoleForUserRole(user.role),
-  });
+  };
+  addProjectMembership(membership);
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'manage_team',
+    resourceType: 'project_membership',
+    resourceId: `${params.projectId}:${user.id}`,
+    projectId: params.projectId,
+    before: null,
+    after: membership,
+    decisionReason: `invite ${user.name} as ${membership.assignmentRole}`,
+    authorityBasis: 'AUTHZ_MATRIX:manage_team',
+  });
 
   return Response.json({ status: 'success', data: { userId: user.id } });
 }
@@ -191,12 +204,26 @@ export async function DELETE(
     );
   }
 
+  const beforeMembership = getProjectMembershipStore().find(
+    (membership) => membership.projectId === params.projectId && membership.userId === user.id,
+  );
   const removed = removeProjectMembership(params.projectId, user.id);
 
   if (!removed) {
     return badRequestResponse('TEAM_MEMBER_NOT_FOUND', 'ผู้ใช้นี้ไม่ได้อยู่ในทีมโครงการ');
   }
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'manage_team',
+    resourceType: 'project_membership',
+    resourceId: `${params.projectId}:${user.id}`,
+    projectId: params.projectId,
+    before: beforeMembership ?? null,
+    after: null,
+    decisionReason: `remove ${user.name}`,
+    authorityBasis: 'AUTHZ_MATRIX:manage_team',
+  });
 
   return Response.json({
     status: 'success',

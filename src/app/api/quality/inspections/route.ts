@@ -1,3 +1,4 @@
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -135,6 +136,17 @@ export async function POST(request: Request) {
   synchronizeAutoNcrIssues(issueStore, [newRecord]);
   await persistProjectDemoState();
 
+  await recordAuditEvent(request, {
+    action: 'edit_quality_inspection',
+    resourceType: 'quality_inspection',
+    resourceId: newRecord.id,
+    projectId: newRecord.projectId,
+    before: null,
+    after: newRecord,
+    decisionReason: newRecord.autoNCR ? 'auto-NCR (conditional)' : `create (${newRecord.overallResult})`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_quality_inspection',
+  });
+
   return Response.json({ status: 'success', data: newRecord }, { status: 201 });
 }
 
@@ -175,6 +187,8 @@ export async function PATCH(request: Request) {
     return forbiddenResponse('edit_quality_inspection');
   }
 
+  const beforeRecord = structuredClone(record);
+
   // --- Resolve checklist item as pass ---
   if (body.checklistItemId && body.resolveAsPass) {
     const item = record.checklist.find((c) => c.id === body.checklistItemId);
@@ -203,6 +217,18 @@ export async function PATCH(request: Request) {
 
     synchronizeItpStatuses(store);
     await persistProjectDemoState();
+
+    await recordAuditEvent(request, {
+      action: 'edit_quality_inspection',
+      resourceType: 'quality_inspection',
+      resourceId: record.id,
+      projectId: record.projectId,
+      before: beforeRecord,
+      after: record,
+      decisionReason: `resolve checklist ${body.checklistItemId} as pass`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_quality_inspection',
+      actor: currentUser,
+    });
 
     return Response.json({ status: 'success', data: record });
   }
@@ -254,6 +280,18 @@ export async function PATCH(request: Request) {
   record.workflowStatus = body.workflowStatus;
   await persistProjectDemoState();
 
+  await recordAuditEvent(request, {
+    action: 'edit_quality_inspection',
+    resourceType: 'quality_inspection',
+    resourceId: record.id,
+    projectId: record.projectId,
+    before: beforeRecord,
+    after: record,
+    decisionReason: `workflow ${currentStatus} → ${body.workflowStatus}`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_quality_inspection',
+    actor: currentUser,
+  });
+
   return Response.json({ status: 'success', data: record });
 }
 
@@ -290,11 +328,23 @@ export async function DELETE(request: Request) {
     return forbiddenResponse('edit_quality_inspection');
   }
 
+  const deletedRecord = structuredClone(record);
   store.inspectionRecords.splice(index, 1);
   removeAutoNcrIssuesForInspection(issueStore, record.id);
 
   synchronizeItpStatuses(store);
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_quality_inspection',
+    resourceType: 'quality_inspection',
+    resourceId: deletedRecord.id,
+    projectId: deletedRecord.projectId,
+    before: deletedRecord,
+    after: null,
+    decisionReason: 'delete',
+    authorityBasis: 'AUTHZ_MATRIX:edit_quality_inspection',
+  });
 
   return Response.json({ status: 'success', data: { id: record.id } });
 }

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { AUTHZ_MATRIX } from '@/lib/authz-matrix';
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import { forbiddenResponse } from '@/lib/project-api-access';
 import {
   getActiveUser,
@@ -109,6 +110,17 @@ export async function POST(request: Request) {
     milestones,
   });
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'create_project',
+    resourceType: 'project',
+    resourceId: newProject.id,
+    projectId: newProject.id,
+    before: null,
+    after: newProject,
+    authorityBasis: 'AUTHZ_MATRIX:create_project',
+    actor: currentUser,
+  });
 
   return Response.json({ status: 'success', data: newProject }, { status: 201 });
 }

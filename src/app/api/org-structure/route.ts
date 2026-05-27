@@ -1,9 +1,5 @@
-import { appendAuditLog } from '@/lib/audit-log-store';
-import {
-  ensureProjectDemoStateHydrated,
-  persistProjectDemoState,
-} from '@/lib/project-demo-state';
-import { getCurrentApiUser } from '@/lib/project-api-access';
+import { recordAuditEvent } from '@/lib/audit-helpers';
+import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { addOrgUnit, deleteOrgUnit, getOrgStructureStore, updateOrgUnit } from '@/lib/org-structure-store';
 import { getUserStore } from '@/lib/user-store';
 import { parseRequestBody } from '@/lib/validation';
@@ -41,8 +37,16 @@ export async function POST(request: Request) {
   };
 
   addOrgUnit(nextUnit);
-  appendAuditLog(getCurrentApiUser(), 'Admin', `เพิ่มหน่วยงาน ${nextUnit.name}`);
-  await persistProjectDemoState();
+  await recordAuditEvent(request, {
+    action: 'edit_org_structure',
+    resourceType: 'org_unit',
+    resourceId: nextUnit.id,
+    projectId: null,
+    before: null,
+    after: nextUnit,
+    decisionReason: `create ${nextUnit.name}`,
+    authorityBasis: 'ADMIN:edit_org_structure',
+  });
 
   return Response.json({ status: 'success', data: nextUnit }, { status: 201 });
 }
@@ -55,6 +59,7 @@ export async function PATCH(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
+  const beforeUnit = getOrgStructureStore().find((unit) => unit.id === body.id);
   const updatedUnit = updateOrgUnit(body.id, body.updates);
 
   if (!updatedUnit) {
@@ -64,8 +69,16 @@ export async function PATCH(request: Request) {
     );
   }
 
-  appendAuditLog(getCurrentApiUser(), 'Admin', `แก้ไขหน่วยงาน ${updatedUnit.name}`);
-  await persistProjectDemoState();
+  await recordAuditEvent(request, {
+    action: 'edit_org_structure',
+    resourceType: 'org_unit',
+    resourceId: updatedUnit.id,
+    projectId: null,
+    before: beforeUnit ?? null,
+    after: updatedUnit,
+    decisionReason: `update ${updatedUnit.name}`,
+    authorityBasis: 'ADMIN:edit_org_structure',
+  });
 
   return Response.json({ status: 'success', data: updatedUnit });
 }
@@ -109,8 +122,16 @@ export async function DELETE(request: Request) {
     );
   }
 
-  appendAuditLog(getCurrentApiUser(), 'Admin', `ลบหน่วยงาน ${deletedUnit.name}`);
-  await persistProjectDemoState();
+  await recordAuditEvent(request, {
+    action: 'edit_org_structure',
+    resourceType: 'org_unit',
+    resourceId: deletedUnit.id,
+    projectId: null,
+    before: deletedUnit,
+    after: null,
+    decisionReason: `delete ${deletedUnit.name}`,
+    authorityBasis: 'ADMIN:edit_org_structure',
+  });
 
   return Response.json({ status: 'success', data: deletedUnit });
 }

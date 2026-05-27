@@ -1,3 +1,4 @@
+import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -79,6 +80,17 @@ export async function POST(
   store.push(newRisk);
   synchronizeMitigatingRiskIssues(issueStore, [newRisk]);
   await persistProjectDemoState();
+
+  await recordAuditEvent(request, {
+    action: 'edit_risk',
+    resourceType: 'risk',
+    resourceId: newRisk.id,
+    projectId: params.projectId,
+    before: null,
+    after: newRisk,
+    decisionReason: `create (level=${newRisk.level}, score=${newRisk.score})`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_risk',
+  });
 
   return Response.json({ status: 'success', data: newRisk }, { status: 201 });
 }

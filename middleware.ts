@@ -9,6 +9,15 @@ import {
 import { getUserStore } from '@/lib/user-store';
 import type { User } from '@/types/admin';
 
+/**
+ * Header name used to propagate a per-request UUID end-to-end. Set on both
+ * the inbound `NextRequest.headers` (so downstream API handlers can read it
+ * via `getRequestId()` in `src/lib/audit-helpers.ts`) and the outbound
+ * `NextResponse.headers` (so clients/logs can correlate). The value flows
+ * into every `AuditEvent.requestId` emitted during the request.
+ */
+export const REQUEST_ID_HEADER = 'x-request-id';
+
 function unauthorizedApiResponse() {
   return NextResponse.json(
     {
@@ -29,7 +38,19 @@ function forbiddenApiResponse() {
   );
 }
 
+function withRequestId(response: NextResponse, requestId: string) {
+  response.headers.set(REQUEST_ID_HEADER, requestId);
+  return response;
+}
+
 export function middleware(request: NextRequest) {
+  // Generate (or honor an upstream-supplied) request id once per request and
+  // propagate it via the inbound headers — NextRequest.headers is mutable
+  // inside middleware, so downstream API handlers can read it back even
+  // though they don't see this code.
+  const requestId = request.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
+  request.headers.set(REQUEST_ID_HEADER, requestId);
+
   const { pathname, search } = request.nextUrl;
   const userId = request.cookies.get(AUTH_COOKIE_USER_ID)?.value;
   const userStore: User[] = getUserStore();
@@ -38,57 +59,81 @@ export function middleware(request: NextRequest) {
   const role = currentUser?.role ?? null;
 
   if (pathname.startsWith('/api/auth/')) {
-    return NextResponse.next();
+    return withRequestId(
+      NextResponse.next({ request: { headers: request.headers } }),
+      requestId,
+    );
   }
 
   if (pathname.startsWith('/api/')) {
     if (!currentUser) {
-      return unauthorizedApiResponse();
+      return withRequestId(unauthorizedApiResponse(), requestId);
     }
 
     if (
       (pathname === '/api/users' ||
         pathname === '/api/org-structure' ||
-        pathname === '/api/audit-logs') &&
+        pathname.startsWith('/api/audit-logs')) &&
       !canAccessAdmin(role)
     ) {
-      return forbiddenApiResponse();
+      return withRequestId(forbiddenApiResponse(), requestId);
     }
 
     if (pathname.startsWith('/api/evaluation/') && !canAccessExecutive(role)) {
-      return forbiddenApiResponse();
+      return withRequestId(forbiddenApiResponse(), requestId);
     }
 
-    return NextResponse.next();
+    return withRequestId(
+      NextResponse.next({ request: { headers: request.headers } }),
+      requestId,
+    );
   }
 
   if (pathname === '/login') {
     if (currentUser) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return withRequestId(
+        NextResponse.redirect(new URL('/dashboard', request.url)),
+        requestId,
+      );
     }
 
-    return NextResponse.next();
+    return withRequestId(
+      NextResponse.next({ request: { headers: request.headers } }),
+      requestId,
+    );
   }
 
   if (!isProtectedPath(pathname)) {
-    return NextResponse.next();
+    return withRequestId(
+      NextResponse.next({ request: { headers: request.headers } }),
+      requestId,
+    );
   }
 
   if (!currentUser) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('next', `${pathname}${search}`);
-    return NextResponse.redirect(loginUrl);
+    return withRequestId(NextResponse.redirect(loginUrl), requestId);
   }
 
   if (pathname.startsWith('/admin') && !canAccessAdmin(role)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return withRequestId(
+      NextResponse.redirect(new URL('/dashboard', request.url)),
+      requestId,
+    );
   }
 
   if (pathname.startsWith('/executive') && !canAccessExecutive(role)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return withRequestId(
+      NextResponse.redirect(new URL('/dashboard', request.url)),
+      requestId,
+    );
   }
 
-  return NextResponse.next();
+  return withRequestId(
+    NextResponse.next({ request: { headers: request.headers } }),
+    requestId,
+  );
 }
 
 export const config = {
