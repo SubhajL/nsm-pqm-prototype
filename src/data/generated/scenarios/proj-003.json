@@ -1,0 +1,498 @@
+{
+  "phases": [
+    {
+      "code": "1.0",
+      "name": "กำหนดสเปคและ TOR",
+      "weight": 20,
+      "progress": 100,
+      "durationDays": 18,
+      "children": [
+        {
+          "code": "1.1",
+          "name": "จัดทำ TOR ระบบ AV",
+          "weight": 60,
+          "progress": 100,
+          "owner": "นายสมชาย กิตติพงษ์"
+        },
+        {
+          "code": "1.2",
+          "name": "ตรวจสอบตลาดและราคาอ้างอิง",
+          "weight": 40,
+          "progress": 100,
+          "owner": "น.ส.พิมพ์ลดา งามวงศ์"
+        }
+      ]
+    },
+    {
+      "code": "2.0",
+      "name": "จัดซื้อและคัดเลือกผู้ขาย",
+      "weight": 35,
+      "progress": 100,
+      "durationDays": 20,
+      "children": [
+        {
+          "code": "2.1",
+          "name": "ประกวดราคาและประเมินข้อเสนอ",
+          "weight": 55,
+          "progress": 100,
+          "owner": "น.ส.พิมพ์ลดา งามวงศ์",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "ระบบประชุมภาพและเสียง",
+              "quantity": 1,
+              "unit": "ชุด",
+              "unitPrice": 1650000
+            },
+            {
+              "description": "จอ LED ห้องประชุม",
+              "quantity": 2,
+              "unit": "จอ",
+              "unitPrice": 320000
+            }
+          ]
+        },
+        {
+          "code": "2.2",
+          "name": "ออกใบสั่งซื้อและแผนส่งมอบ",
+          "weight": 45,
+          "progress": 100,
+          "owner": "นายสมชาย กิตติพงษ์",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "ค่าระบบบริหารจัดการสัญญาและประกันผลงาน",
+              "quantity": 1,
+              "unit": "งาน",
+              "unitPrice": 125000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3.0",
+      "name": "ติดตั้งและทดสอบระบบ",
+      "weight": 30,
+      "progress": 80,
+      "durationDays": 30,
+      "children": [
+        {
+          "code": "3.1",
+          "name": "ติดตั้งอุปกรณ์ AV และเดินสาย",
+          "weight": 65,
+          "progress": 100,
+          "owner": "น.ส.พิมพ์ลดา งามวงศ์",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "สายสัญญาณ HDMI/Network และอุปกรณ์ติดตั้ง",
+              "quantity": 1,
+              "unit": "lot",
+              "unitPrice": 185000
+            },
+            {
+              "description": "ตู้ Rack และระบบจ่ายไฟอุปกรณ์ AV",
+              "quantity": 2,
+              "unit": "ตู้",
+              "unitPrice": 78000
+            }
+          ]
+        },
+        {
+          "code": "3.2",
+          "name": "ทดสอบเสียง ภาพ และระบบควบคุม",
+          "weight": 35,
+          "progress": 80,
+          "owner": "นายสมชาย กิตติพงษ์"
+        }
+      ]
+    },
+    {
+      "code": "4.0",
+      "name": "ตรวจรับและส่งมอบ",
+      "weight": 15,
+      "progress": 0,
+      "durationDays": 20,
+      "children": [
+        {
+          "code": "4.1",
+          "name": "อบรมผู้ใช้งานห้องประชุม",
+          "weight": 50,
+          "progress": 0,
+          "owner": "น.ส.พิมพ์ลดา งามวงศ์"
+        },
+        {
+          "code": "4.2",
+          "name": "ตรวจรับ Final Acceptance Test",
+          "weight": 50,
+          "progress": 0,
+          "owner": "นายสมชาย กิตติพงษ์"
+        }
+      ]
+    }
+  ],
+  "milestones": [
+    {
+      "number": 1,
+      "name": "TOR Approved",
+      "dueDate": "2026-01-28",
+      "percentage": 20,
+      "deliverables": "TOR และราคากลาง",
+      "status": "completed"
+    },
+    {
+      "number": 2,
+      "name": "PO Issued",
+      "dueDate": "2026-02-18",
+      "percentage": 30,
+      "deliverables": "ผู้ขายได้รับ PO",
+      "status": "completed"
+    },
+    {
+      "number": 3,
+      "name": "Installation Complete",
+      "dueDate": "2026-03-21",
+      "percentage": 30,
+      "deliverables": "ติดตั้งและ SAT",
+      "status": "in_progress"
+    },
+    {
+      "number": 4,
+      "name": "Final Handover",
+      "dueDate": "2026-04-11",
+      "percentage": 20,
+      "deliverables": "FAT + training",
+      "status": "pending"
+    }
+  ],
+  "reports": [
+    {
+      "reportNumber": 12,
+      "date": "2026-07-10",
+      "weather": "แดดจัด (Sunny)",
+      "temperature": 31,
+      "linkedWbsCodes": [
+        "3.1",
+        "3.2"
+      ],
+      "activities": [
+        {
+          "wbsCode": "3.1",
+          "task": "ติดตั้งจอ LED และระบบควบคุมกลาง",
+          "quantity": 2,
+          "unit": "ชุด",
+          "cumulativeProgress": 0.78
+        },
+        {
+          "wbsCode": "3.2",
+          "task": "ทดสอบเสียงไมโครโฟนไร้สาย",
+          "quantity": 6,
+          "unit": "ชุด",
+          "cumulativeProgress": 0.62
+        }
+      ],
+      "issues": "พบสัญญาณรบกวนจากสายสัญญาณ HDMI บางจุด",
+      "status": "submitted"
+    },
+    {
+      "reportNumber": 13,
+      "date": "2026-07-15",
+      "weather": "มีเมฆบางส่วน (Partly Cloudy)",
+      "temperature": 30,
+      "linkedWbsCodes": [
+        "4.1"
+      ],
+      "activities": [
+        {
+          "wbsCode": "4.1",
+          "task": "อบรมเจ้าหน้าที่ใช้งานระบบประชุม",
+          "quantity": 18,
+          "unit": "คน",
+          "cumulativeProgress": 0.5
+        }
+      ],
+      "issues": "ผู้ใช้งานขอคู่มือฉบับภาษาไทยเพิ่มเติม",
+      "status": "draft"
+    }
+  ],
+  "issues": [
+    {
+      "title": "สาย HDMI บางจุดเกิดสัญญาณรบกวน",
+      "severity": "medium",
+      "status": "in_progress",
+      "linkedWbs": "WBS 3.1",
+      "slaHours": 48,
+      "createdAt": "2026-07-10",
+      "progress": 70
+    },
+    {
+      "title": "Firmware จอหลักยังไม่เป็นเวอร์ชันล่าสุด",
+      "severity": "low",
+      "status": "review",
+      "linkedWbs": "WBS 3.2",
+      "slaHours": 72,
+      "createdAt": "2026-07-07",
+      "resolution": "อัปเดตแล้ว รอ FAT"
+    },
+    {
+      "title": "คู่มือใช้งานภาษาไทยยังไม่ครบชุด",
+      "severity": "low",
+      "status": "open",
+      "linkedWbs": "WBS 4.1",
+      "slaHours": 96,
+      "createdAt": "2026-07-15"
+    }
+  ],
+  "risks": [
+    {
+      "title": "อุปกรณ์สำรองบางรายการยังไม่เข้าคลัง",
+      "description": "หากอุปกรณ์หลักมีปัญหาจะไม่มีอะไหล่สำรองทันที",
+      "likelihood": 2,
+      "impact": 4,
+      "status": "open",
+      "dateIdentified": "2026-06-25",
+      "mitigation": "เร่งผู้ขายส่ง spare parts ก่อน FAT"
+    },
+    {
+      "title": "ระบบควบคุมกลางอาจไม่รองรับโปรเจกเตอร์รุ่นเดิม",
+      "description": "ต้องทดสอบ compatibility ก่อนส่งมอบ",
+      "likelihood": 3,
+      "impact": 3,
+      "status": "mitigating",
+      "dateIdentified": "2026-06-10",
+      "mitigation": "จัดรอบ compatibility test เพิ่ม"
+    },
+    {
+      "title": "ผู้ใช้งานจริงไม่พร้อมในวันอบรม",
+      "description": "อาจต้องเลื่อนการอบรมและส่งผลต่อ handover",
+      "likelihood": 2,
+      "impact": 2,
+      "status": "accepted",
+      "dateIdentified": "2026-07-05",
+      "mitigation": "ยอมรับความเสี่ยงและเตรียมวิดีโออบรมสำรอง"
+    }
+  ],
+  "gates": [
+    {
+      "number": 0,
+      "name": "TOR Review",
+      "nameEn": "TOR Review",
+      "status": "passed",
+      "date": "2026-01-20"
+    },
+    {
+      "number": 1,
+      "name": "Factory Acceptance",
+      "nameEn": "Factory Acceptance",
+      "status": "passed",
+      "date": "2026-05-15"
+    },
+    {
+      "number": 2,
+      "name": "Site Acceptance",
+      "nameEn": "Site Acceptance",
+      "status": "conditional",
+      "date": "2026-07-12",
+      "checklist": [
+        {
+          "item": "เสียงไมโครโฟน",
+          "status": "warning"
+        },
+        {
+          "item": "ภาพจอหลัก",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "name": "Final Handover",
+      "nameEn": "Final Handover",
+      "status": "pending",
+      "date": null
+    }
+  ],
+  "itpItems": [
+    {
+      "sequence": 1,
+      "item": "ตรวจสอบการติดตั้งสายสัญญาณ",
+      "standard": "AV Wiring Spec Rev.2",
+      "inspectionType": "W",
+      "inspector": "Coordinator",
+      "status": "passed"
+    },
+    {
+      "sequence": 2,
+      "item": "ทดสอบระบบควบคุมกลาง",
+      "standard": "Control System SAT",
+      "inspectionType": "H",
+      "inspector": "PM + Vendor",
+      "status": "pending"
+    },
+    {
+      "sequence": 3,
+      "item": "Final Acceptance Test",
+      "standard": "FAT/SAT Checklist",
+      "inspectionType": "H",
+      "inspector": "PM + User",
+      "status": "pending"
+    }
+  ],
+  "inspections": [
+    {
+      "title": "Site Acceptance Test ห้องประชุม",
+      "itpSequence": 2,
+      "date": "2026-07-12",
+      "time": "13:30",
+      "wbsCode": "WBS 3.2 ทดสอบเสียง ภาพ และระบบควบคุม",
+      "standards": [
+        "SAT Checklist Rev.1"
+      ],
+      "overallResult": "conditional",
+      "failReason": "ไมโครโฟนไร้สาย 2 ตัวมี noise level สูง",
+      "checklist": [
+        {
+          "id": "cl-3001",
+          "item": "ทดสอบภาพจอหลัก",
+          "criteria": "ภาพชัดครบ 4K",
+          "result": "pass",
+          "note": "ผ่าน"
+        },
+        {
+          "id": "cl-3002",
+          "item": "ทดสอบเสียงไมโครโฟน",
+          "criteria": "ไม่มี noise ชัดเจน",
+          "result": "fail",
+          "note": "พบ noise 2 ช่องสัญญาณ"
+        }
+      ]
+    }
+  ],
+  "documents": {
+    "folders": [
+      "TOR",
+      "Procurement",
+      "Installation",
+      "Acceptance"
+    ],
+    "files": [
+      {
+        "folder": "TOR",
+        "name": "TOR_AV_System_Final.pdf",
+        "type": "TOR",
+        "version": 1,
+        "size": "2.1 MB",
+        "uploadedAt": "2026-01-18",
+        "status": "approved",
+        "workflow": [
+          "submitted",
+          "reviewed",
+          "approved"
+        ]
+      },
+      {
+        "folder": "Procurement",
+        "name": "PO_AV_Supplier.pdf",
+        "type": "Purchase Order",
+        "version": 1,
+        "size": "1.4 MB",
+        "uploadedAt": "2026-04-01",
+        "status": "approved",
+        "workflow": [
+          "submitted",
+          "reviewed",
+          "approved"
+        ]
+      },
+      {
+        "folder": "Installation",
+        "name": "Cable_AsBuilt_Rev1.pdf",
+        "type": "As-Built",
+        "version": 1,
+        "size": "4.2 MB",
+        "uploadedAt": "2026-07-09",
+        "status": "under_review",
+        "workflow": [
+          "submitted",
+          "under_review",
+          "pending"
+        ]
+      },
+      {
+        "folder": "Acceptance",
+        "name": "FAT_SAT_Checklist.xlsx",
+        "type": "Checklist",
+        "version": 2,
+        "size": "0.7 MB",
+        "uploadedAt": "2026-07-12",
+        "status": "draft",
+        "workflow": [
+          "submitted",
+          "pending",
+          "pending"
+        ]
+      }
+    ]
+  },
+  "changeRequests": [
+    {
+      "id": "CR-301",
+      "title": "เพิ่มไมโครโฟนไร้สายสำรอง 2 ชุด",
+      "reason": "รองรับกิจกรรมที่มีวิทยากรหลายท่าน",
+      "budgetImpact": 95000,
+      "scheduleImpact": 3,
+      "linkedWbs": "WBS 2.1 ประกวดราคาและประเมินข้อเสนอ",
+      "priority": "low",
+      "status": "approved",
+      "requestedAt": "2026-05-25",
+      "attachments": [
+        "CR-301_Microphone.pdf"
+      ],
+      "workflow": [
+        {
+          "step": "ส่งคำขอ",
+          "user": "นายสมชาย กิตติพงษ์",
+          "date": "2026-05-25",
+          "status": "done"
+        },
+        {
+          "step": "หัวหน้ากองพิจารณา",
+          "user": "นายสมชาย กิตติพงษ์",
+          "date": "2026-05-27",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "evm": [
+    {
+      "month": "2026-03",
+      "pv": 560000,
+      "ev": 560000,
+      "ac": 560000,
+      "paidToDate": 560000
+    },
+    {
+      "month": "2026-04",
+      "pv": 1350000,
+      "ev": 1365000,
+      "ac": 1400000,
+      "paidToDate": 1400000
+    },
+    {
+      "month": "2026-05",
+      "pv": 2100000,
+      "ev": 2140000,
+      "ac": 1400000,
+      "paidToDate": 1400000
+    },
+    {
+      "month": "2026-06",
+      "pv": 2520000,
+      "ev": 2580000,
+      "ac": 1400000,
+      "paidToDate": 1400000
+    }
+  ]
+}

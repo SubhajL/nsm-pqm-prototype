@@ -1,0 +1,460 @@
+{
+  "phases": [
+    {
+      "code": "1.0",
+      "name": "ออกแบบการวิจัย",
+      "weight": 20,
+      "progress": 100,
+      "durationDays": 30,
+      "children": [
+        {
+          "code": "1.1",
+          "name": "จัดทำแบบสอบถามและแผนสุ่มตัวอย่าง",
+          "weight": 60,
+          "progress": 100,
+          "owner": "นายสมชาย กิตติพงษ์"
+        },
+        {
+          "code": "1.2",
+          "name": "ทบทวนโดยผู้เชี่ยวชาญ",
+          "weight": 40,
+          "progress": 100,
+          "owner": "น.ส.นภา ศรีสุข"
+        }
+      ]
+    },
+    {
+      "code": "2.0",
+      "name": "เก็บข้อมูลภาคสนาม",
+      "weight": 35,
+      "progress": 100,
+      "durationDays": 60,
+      "children": [
+        {
+          "code": "2.1",
+          "name": "สำรวจผู้เข้าชมในพิพิธภัณฑ์หลัก",
+          "weight": 55,
+          "progress": 100,
+          "owner": "น.ส.นภา ศรีสุข",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "ค่าจ้างผู้ช่วยเก็บข้อมูล",
+              "quantity": 45,
+              "unit": "วันคน",
+              "unitPrice": 1200
+            },
+            {
+              "description": "ค่าอุปกรณ์ Tablet Survey",
+              "quantity": 4,
+              "unit": "เครื่อง",
+              "unitPrice": 18000
+            }
+          ]
+        },
+        {
+          "code": "2.2",
+          "name": "เก็บข้อมูลออนไลน์และโทรศัพท์",
+          "weight": 45,
+          "progress": 100,
+          "owner": "น.ส.นภา ศรีสุข",
+          "hasBOQ": true,
+          "boq": [
+            {
+              "description": "ค่าบริการโทรสัมภาษณ์และบันทึกข้อมูล",
+              "quantity": 30,
+              "unit": "วันคน",
+              "unitPrice": 1450
+            },
+            {
+              "description": "ค่าระบบส่งแบบสอบถามออนไลน์และ SMS",
+              "quantity": 1,
+              "unit": "โครงการ",
+              "unitPrice": 38000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3.0",
+      "name": "วิเคราะห์ข้อมูล",
+      "weight": 25,
+      "progress": 100,
+      "durationDays": 45,
+      "children": [
+        {
+          "code": "3.1",
+          "name": "ทำความสะอาดข้อมูลและถ่วงน้ำหนัก",
+          "weight": 50,
+          "progress": 100,
+          "owner": "นายสมชาย กิตติพงษ์"
+        },
+        {
+          "code": "3.2",
+          "name": "วิเคราะห์ผลและสรุปข้อค้นพบ",
+          "weight": 50,
+          "progress": 100,
+          "owner": "น.ส.นภา ศรีสุข"
+        }
+      ]
+    },
+    {
+      "code": "4.0",
+      "name": "จัดทำรายงานและเผยแพร่",
+      "weight": 20,
+      "progress": 100,
+      "durationDays": 47,
+      "children": [
+        {
+          "code": "4.1",
+          "name": "จัดทำรายงานฉบับสมบูรณ์",
+          "weight": 60,
+          "progress": 100,
+          "owner": "นายสมชาย กิตติพงษ์"
+        },
+        {
+          "code": "4.2",
+          "name": "นำเสนอผลต่อผู้บริหาร",
+          "weight": 40,
+          "progress": 100,
+          "owner": "น.ส.นภา ศรีสุข"
+        }
+      ]
+    }
+  ],
+  "milestones": [
+    {
+      "number": 1,
+      "name": "Research Design Approved",
+      "dueDate": "2025-10-31",
+      "percentage": 20,
+      "deliverables": "แบบสอบถามและ sampling plan",
+      "status": "completed"
+    },
+    {
+      "number": 2,
+      "name": "Fieldwork Complete",
+      "dueDate": "2025-12-31",
+      "percentage": 30,
+      "deliverables": "ข้อมูลดิบครบตามเป้า",
+      "status": "completed"
+    },
+    {
+      "number": 3,
+      "name": "Analysis Complete",
+      "dueDate": "2026-02-15",
+      "percentage": 25,
+      "deliverables": "dataset clean + findings",
+      "status": "completed"
+    },
+    {
+      "number": 4,
+      "name": "Final Report Delivered",
+      "dueDate": "2026-04-04",
+      "percentage": 25,
+      "deliverables": "รายงานฉบับสมบูรณ์และ presentation",
+      "status": "completed"
+    }
+  ],
+  "reports": [
+    {
+      "reportNumber": 8,
+      "date": "2026-01-12",
+      "weather": "แดดจัด (Sunny)",
+      "temperature": 32,
+      "linkedWbsCodes": [
+        "2.1"
+      ],
+      "activities": [
+        {
+          "wbsCode": "2.1",
+          "task": "เก็บข้อมูลผู้เข้าชมรอบเช้าและบ่าย",
+          "quantity": 126,
+          "unit": "ชุดแบบสอบถาม",
+          "cumulativeProgress": 0.92
+        }
+      ],
+      "issues": "ผู้ตอบบางส่วนขอแบบสอบถามเวอร์ชันภาษาอังกฤษ",
+      "status": "approved"
+    },
+    {
+      "reportNumber": 9,
+      "date": "2026-03-25",
+      "weather": "มีเมฆบางส่วน (Partly Cloudy)",
+      "temperature": 31,
+      "linkedWbsCodes": [
+        "4.1"
+      ],
+      "activities": [
+        {
+          "wbsCode": "4.1",
+          "task": "สรุปผลและจัดรูปเล่มรายงาน",
+          "quantity": 1,
+          "unit": "ฉบับ",
+          "cumulativeProgress": 1
+        }
+      ],
+      "issues": "ไม่มีประเด็นคงค้าง",
+      "status": "approved"
+    }
+  ],
+  "issues": [
+    {
+      "title": "ข้อมูลแบบสอบถามบางส่วนซ้ำซ้อน",
+      "severity": "low",
+      "status": "closed",
+      "linkedWbs": "WBS 3.1",
+      "slaHours": 96,
+      "createdAt": "2026-01-20",
+      "resolution": "ลบข้อมูลซ้ำและ re-weight sample แล้ว",
+      "closedAt": "2026-01-24"
+    },
+    {
+      "title": "ต้องปรับ wording รายงานสรุปสำหรับผู้บริหาร",
+      "severity": "low",
+      "status": "closed",
+      "linkedWbs": "WBS 4.1",
+      "slaHours": 72,
+      "createdAt": "2026-03-20",
+      "resolution": "แก้ไขถ้อยคำและเพิ่ม executive summary แล้ว",
+      "closedAt": "2026-03-23"
+    }
+  ],
+  "risks": [
+    {
+      "title": "อัตราการตอบแบบสอบถามต่ำกว่ากลุ่มเป้าหมาย",
+      "description": "ช่วงต้นโครงการกลุ่มวันธรรมดามีผู้ตอบต่ำกว่าคาด",
+      "likelihood": 3,
+      "impact": 3,
+      "status": "closed",
+      "dateIdentified": "2025-12-10",
+      "mitigation": "เพิ่มจุดเก็บข้อมูลออนไลน์และขยายเวลาเก็บข้อมูล"
+    },
+    {
+      "title": "ข้อมูลเปิดเผยตัวตนผู้ตอบแบบสอบถาม",
+      "description": "ต้องระวังการเก็บข้อมูลส่วนบุคคลเกินความจำเป็น",
+      "likelihood": 2,
+      "impact": 4,
+      "status": "accepted",
+      "dateIdentified": "2025-11-05",
+      "mitigation": "จำกัดข้อมูลส่วนบุคคลและลบข้อมูลอ่อนไหวหลังสรุปผล"
+    },
+    {
+      "title": "การตีความผลวิจัยคลาดเคลื่อน",
+      "description": "ผู้ใช้รายงานอาจสรุปผลเกินกว่าข้อเท็จจริงในตัวอย่าง",
+      "likelihood": 2,
+      "impact": 3,
+      "status": "closed",
+      "dateIdentified": "2026-02-10",
+      "mitigation": "มี peer review และอธิบายข้อจำกัดการวิจัยในรายงาน"
+    }
+  ],
+  "gates": [
+    {
+      "number": 0,
+      "name": "Methodology Review",
+      "nameEn": "Methodology Review",
+      "status": "passed",
+      "date": "2025-11-10"
+    },
+    {
+      "number": 1,
+      "name": "Fieldwork Readiness",
+      "nameEn": "Fieldwork Readiness",
+      "status": "passed",
+      "date": "2025-12-01"
+    },
+    {
+      "number": 2,
+      "name": "Analysis Review",
+      "nameEn": "Analysis Review",
+      "status": "passed",
+      "date": "2026-02-20"
+    },
+    {
+      "number": 3,
+      "name": "Final Publication",
+      "nameEn": "Final Publication",
+      "status": "passed",
+      "date": "2026-03-31"
+    }
+  ],
+  "itpItems": [
+    {
+      "sequence": 1,
+      "item": "ตรวจสอบแบบสอบถามก่อนใช้จริง",
+      "standard": "Research Instrument Checklist",
+      "inspectionType": "RS",
+      "inspector": "Research Lead",
+      "status": "passed"
+    },
+    {
+      "sequence": 2,
+      "item": "ทวนสอบคุณภาพข้อมูลภาคสนาม",
+      "standard": "Data Quality Protocol",
+      "inspectionType": "W",
+      "inspector": "PM",
+      "status": "passed"
+    },
+    {
+      "sequence": 3,
+      "item": "Peer Review รายงานวิจัย",
+      "standard": "Peer Review Checklist",
+      "inspectionType": "H",
+      "inspector": "Academic Committee",
+      "status": "passed"
+    }
+  ],
+  "inspections": [
+    {
+      "title": "Peer Review รายงานฉบับสมบูรณ์",
+      "itpSequence": 3,
+      "date": "2026-03-20",
+      "time": "09:00",
+      "wbsCode": "WBS 4.1 จัดทำรายงานฉบับสมบูรณ์",
+      "standards": [
+        "Peer Review Checklist"
+      ],
+      "overallResult": "pass",
+      "checklist": [
+        {
+          "id": "cl-5001",
+          "item": "ผลวิเคราะห์สอดคล้องกับข้อมูล",
+          "criteria": "ต้องมีหลักฐานอ้างอิงครบ",
+          "result": "pass",
+          "note": "ผ่าน"
+        },
+        {
+          "id": "cl-5002",
+          "item": "ข้อเสนอแนะปฏิบัติได้จริง",
+          "criteria": "ต้องมี action implication ชัดเจน",
+          "result": "pass",
+          "note": "ผ่าน"
+        }
+      ]
+    }
+  ],
+  "documents": {
+    "folders": [
+      "Research Design",
+      "Field Data",
+      "Analysis",
+      "Final Report"
+    ],
+    "files": [
+      {
+        "folder": "Research Design",
+        "name": "Questionnaire_vFinal.docx",
+        "type": "Questionnaire",
+        "version": 3,
+        "size": "0.5 MB",
+        "uploadedAt": "2025-11-12",
+        "status": "approved",
+        "workflow": [
+          "submitted",
+          "reviewed",
+          "approved"
+        ]
+      },
+      {
+        "folder": "Field Data",
+        "name": "Survey_Dataset_Clean.xlsx",
+        "type": "Dataset",
+        "version": 2,
+        "size": "1.3 MB",
+        "uploadedAt": "2026-02-05",
+        "status": "approved",
+        "workflow": [
+          "submitted",
+          "reviewed",
+          "approved"
+        ]
+      },
+      {
+        "folder": "Analysis",
+        "name": "Analysis_Slides_Exec.pdf",
+        "type": "Presentation",
+        "version": 1,
+        "size": "2.2 MB",
+        "uploadedAt": "2026-03-10",
+        "status": "approved",
+        "workflow": [
+          "submitted",
+          "reviewed",
+          "approved"
+        ]
+      },
+      {
+        "folder": "Final Report",
+        "name": "Visitor_Satisfaction_Report_2569.pdf",
+        "type": "Final Report",
+        "version": 1,
+        "size": "4.8 MB",
+        "uploadedAt": "2026-03-31",
+        "status": "approved",
+        "workflow": [
+          "submitted",
+          "reviewed",
+          "approved"
+        ]
+      }
+    ]
+  },
+  "changeRequests": [
+    {
+      "id": "CR-501",
+      "title": "เพิ่มคำถามเรื่องบริการผู้สูงอายุ",
+      "reason": "ผู้บริหารต้องการข้อมูลเชิงลึกเพิ่มเติมสำหรับผู้เข้าชมกลุ่ม senior",
+      "budgetImpact": 25000,
+      "scheduleImpact": 0,
+      "linkedWbs": "WBS 1.1 จัดทำแบบสอบถามและแผนสุ่มตัวอย่าง",
+      "priority": "low",
+      "status": "approved",
+      "requestedAt": "2025-11-08",
+      "attachments": [
+        "CR-501_SeniorQuestion.pdf"
+      ],
+      "workflow": [
+        {
+          "step": "ส่งคำขอ",
+          "user": "นายสมชาย กิตติพงษ์",
+          "date": "2025-11-08",
+          "status": "done"
+        },
+        {
+          "step": "อนุมัติ",
+          "user": "นายธนา กมลรัตน์",
+          "date": "2025-11-09",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "evm": [
+    {
+      "month": "2025-11",
+      "pv": 120000,
+      "ev": 118000,
+      "ac": 116000
+    },
+    {
+      "month": "2025-12",
+      "pv": 340000,
+      "ev": 336000,
+      "ac": 332000
+    },
+    {
+      "month": "2026-01",
+      "pv": 560000,
+      "ev": 558000,
+      "ac": 550000
+    },
+    {
+      "month": "2026-03",
+      "pv": 850000,
+      "ev": 850000,
+      "ac": 833000
+    }
+  ]
+}
