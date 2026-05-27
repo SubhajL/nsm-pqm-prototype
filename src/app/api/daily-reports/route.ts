@@ -101,30 +101,55 @@ export async function POST(request: Request) {
   const reportId = `dr-${String(store.length + 44).padStart(3, '0')}`;
   const uploadedAt = new Date().toISOString();
   const photoMetadata = body.photoMetadata ?? body.photos ?? [];
+
+  // Track the first upload rejection so we can surface a single 413/415.
+  let uploadRejection: { status: 413 | 415 | 400; code: string; message: string } | null = null;
+
+  function rejectionToHttp(reason: 'too_large' | 'mime_not_allowed' | 'empty' | 'infected', details: string) {
+    if (reason === 'too_large') {
+      return { status: 413 as const, code: 'PAYLOAD_TOO_LARGE', message: details };
+    }
+    if (reason === 'mime_not_allowed') {
+      return { status: 415 as const, code: 'UNSUPPORTED_MEDIA_TYPE', message: details };
+    }
+    if (reason === 'infected') {
+      return { status: 400 as const, code: 'UPLOAD_REJECTED_VIRUS_SCAN', message: details };
+    }
+    return { status: 400 as const, code: 'UPLOAD_REJECTED_EMPTY', message: details };
+  }
+
   const photos =
     uploadedPhotoFiles.length > 0
-      ? await Promise.all(
-          uploadedPhotoFiles.map(async (file, index) => {
-            const stored = await persistMockUpload(file, [
-              'daily-reports',
-              projectId,
-              reportId,
-              'photos',
-            ]);
-            const meta = photoMetadata[index];
+      ? (
+          await Promise.all(
+            uploadedPhotoFiles.map(async (file, index) => {
+              const result = await persistMockUpload(file, [
+                'daily-reports',
+                projectId,
+                reportId,
+                'photos',
+              ]);
+              if (!result.ok) {
+                if (!uploadRejection) {
+                  uploadRejection = rejectionToHttp(result.reason, result.details);
+                }
+                return null;
+              }
+              const meta = photoMetadata[index];
 
-            return {
-              id: `ph-${reportId}-${index + 1}`,
-              filename: stored.filename,
-              gpsLat: Number(meta?.gpsLat) || 0,
-              gpsLng: Number(meta?.gpsLng) || 0,
-              timestamp: meta?.timestamp?.trim() || uploadedAt,
-              url: stored.url,
-              mimeType: stored.mimeType,
-              sizeBytes: stored.sizeBytes,
-            };
-          }),
-        )
+              return {
+                id: `ph-${reportId}-${index + 1}`,
+                filename: result.filename,
+                gpsLat: Number(meta?.gpsLat) || 0,
+                gpsLng: Number(meta?.gpsLng) || 0,
+                timestamp: meta?.timestamp?.trim() || uploadedAt,
+                url: result.url,
+                mimeType: result.mimeType,
+                sizeBytes: result.sizeBytes,
+              };
+            }),
+          )
+        ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       : (body.photos ?? [])
           .filter((entry) => entry?.filename?.trim())
           .map((entry, index) => ({
@@ -138,27 +163,49 @@ export async function POST(request: Request) {
             mimeType: entry.mimeType,
             sizeBytes: entry.sizeBytes ? Number(entry.sizeBytes) : undefined,
           }));
+
+  if (uploadRejection) {
+    return Response.json(
+      {
+        status: 'error',
+        error: {
+          code: (uploadRejection as { code: string }).code,
+          message: (uploadRejection as { message: string }).message,
+        },
+      },
+      { status: (uploadRejection as { status: number }).status },
+    );
+  }
+
   const attachments =
     uploadedAttachmentFiles.length > 0
-      ? await Promise.all(
-          uploadedAttachmentFiles.map(async (file, index) => {
-            const stored = await persistMockUpload(file, [
-              'daily-reports',
-              projectId,
-              reportId,
-              'attachments',
-            ]);
+      ? (
+          await Promise.all(
+            uploadedAttachmentFiles.map(async (file, index) => {
+              const result = await persistMockUpload(file, [
+                'daily-reports',
+                projectId,
+                reportId,
+                'attachments',
+              ]);
+              if (!result.ok) {
+                if (!uploadRejection) {
+                  uploadRejection = rejectionToHttp(result.reason, result.details);
+                }
+                return null;
+              }
 
-            return {
-              id: `att-${reportId}-${index + 1}`,
-              filename: stored.filename,
-              url: stored.url,
-              mimeType: stored.mimeType,
-              sizeBytes: stored.sizeBytes,
-              uploadedAt,
-            };
-          }),
-        )
+              return {
+                id: `att-${reportId}-${index + 1}`,
+                filename: result.filename,
+                url: result.url,
+                mimeType: result.mimeType,
+                sizeBytes: result.sizeBytes,
+                uploadedAt,
+              };
+            }),
+          )
+        ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       : (body.attachments ?? []).map((attachment, index) => ({
           id: attachment.id ?? `att-${reportId}-legacy-${index + 1}`,
           filename: attachment.filename.trim(),
@@ -167,6 +214,19 @@ export async function POST(request: Request) {
           sizeBytes: Number(attachment.sizeBytes) || 0,
           uploadedAt: attachment.uploadedAt ?? uploadedAt,
         }));
+
+  if (uploadRejection) {
+    return Response.json(
+      {
+        status: 'error',
+        error: {
+          code: (uploadRejection as { code: string }).code,
+          message: (uploadRejection as { message: string }).message,
+        },
+      },
+      { status: (uploadRejection as { status: number }).status },
+    );
+  }
 
   const newReport: DailyReport = {
     id: reportId,

@@ -78,8 +78,16 @@ describe('AUTHZ_MATRIX sensible defaults', () => {
   it('Executive is view-only (no write actions)', () => {
     const executiveActions = AUTHZ_MATRIX.Executive;
 
-    expect(executiveActions.size).toBe(1);
+    // Executive may view both the project shell and its documents, but no
+    // mutating action is permitted. PR-06 added view_document — read-only
+    // capabilities remain consistent with the "view-only" doctrine.
     expect(executiveActions.has('view')).toBe(true);
+    expect(executiveActions.has('view_document')).toBe(true);
+
+    const writeActions = Array.from(executiveActions).filter(
+      (action) => action !== 'view' && action !== 'view_document',
+    );
+    expect(writeActions).toEqual([]);
   });
 
   it('Project Manager can do everything except delete_project', () => {
