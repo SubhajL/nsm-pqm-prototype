@@ -1,5 +1,3 @@
-'use client';
-
 import { Alert, Button } from 'antd';
 import {
   CheckCircleOutlined,
