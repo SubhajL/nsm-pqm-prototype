@@ -1,4 +1,4 @@
-import type { DeliveryMethod } from '@/types/rid/vocabulary';
+import type { DeliveryMethod, ProjectSizeTier } from '@/types/rid/vocabulary';
 
 export type ProjectType = 'construction' | 'it' | 'equipment' | 'academic' | 'renovation';
 export type ProjectStatus = 'draft' | 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
@@ -22,6 +22,14 @@ export interface Project {
   nameEn: string;
   type: ProjectType;
   executionModel: ProjectExecutionModel;
+  /**
+   * Coarse budget bucket used for approval-authority routing and reporting
+   * rollups. Inferred from `budget` via `classifyProjectSize()` at creation
+   * time (see `src/lib/project-bootstrap.ts`) but stored explicitly so the
+   * tier can be overridden by an administrator without re-deriving from the
+   * budget. Default for existing seed rows is `'medium'` per PR-14.
+   */
+  sizeTier: ProjectSizeTier;
   status: ProjectStatus;
   budget: number;
   progress: number;

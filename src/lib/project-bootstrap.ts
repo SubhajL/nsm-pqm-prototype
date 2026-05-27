@@ -17,6 +17,30 @@ import type { DocumentData } from '@/types/document';
 import type { GanttData, GanttTask } from '@/types/gantt';
 import type { Milestone, Project, ProjectType } from '@/types/project';
 import type { ITPItem, QualityGate } from '@/types/quality';
+import {
+  classifyProjectSize,
+  type ProjectSizeTier,
+} from '@/types/rid/vocabulary';
+
+/**
+ * Infers the `sizeTier` for a newly created project from its total budget
+ * (THB) via PR-13's `classifyProjectSize`. Returns `'medium'` when the
+ * budget is missing, zero, or negative so a sensible default is always
+ * available at the API write boundary — see PR-14 in MVP_EXECUTION_PLAN.md.
+ */
+export function inferProjectSizeTier(
+  totalBudgetTHB: number | undefined | null,
+): ProjectSizeTier {
+  if (
+    totalBudgetTHB === undefined ||
+    totalBudgetTHB === null ||
+    !Number.isFinite(totalBudgetTHB) ||
+    totalBudgetTHB <= 0
+  ) {
+    return 'medium';
+  }
+  return classifyProjectSize(totalBudgetTHB);
+}
 
 interface WbsNode {
   id: string;
