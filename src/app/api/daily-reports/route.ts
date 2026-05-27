@@ -5,8 +5,6 @@ import { getCurrentApiUser } from '@/lib/project-api-access';
 import { persistMockUpload } from '@/lib/mock-upload-storage';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 
-const store = getDailyReportStore();
-
 interface DailyReportCreateMetadata extends Partial<DailyReport> {
   photoMetadata?: Array<{
     gpsLat?: number;
@@ -18,6 +16,7 @@ interface DailyReportCreateMetadata extends Partial<DailyReport> {
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getDailyReportStore();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -43,6 +42,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getDailyReportStore();
 
   const contentType = request.headers.get('content-type') ?? '';
   const isMultipart = contentType.includes('multipart/form-data');

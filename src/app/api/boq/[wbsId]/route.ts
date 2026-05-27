@@ -17,16 +17,14 @@ interface BOQItem {
   total: number;
 }
 
-const store = getBoqStore();
-const projectStore = getProjectStore();
-const wbsStore = getWbsStore();
-
 export async function GET(
   _request: Request,
   { params }: { params: { wbsId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getBoqStore();
+  const wbsStore = getWbsStore();
   const wbsNode = wbsStore.find((node) => node.id === params.wbsId);
 
   if (!wbsNode) {
@@ -53,6 +51,9 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getBoqStore();
+  const projectStore = getProjectStore();
+  const wbsStore = getWbsStore();
 
   const wbsNode = wbsStore.find((node) => node.id === params.wbsId);
 

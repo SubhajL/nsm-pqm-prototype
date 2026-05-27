@@ -5,11 +5,10 @@ import { getCurrentApiUser, getVisibleProjectIdsForCurrentUser, requireProjectAc
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import type { ChangeRequest } from '@/types/document';
 
-const store: ChangeRequest[] = getChangeRequestStore();
-
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store: ChangeRequest[] = getChangeRequestStore();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -86,6 +85,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store: ChangeRequest[] = getChangeRequestStore();
 
   const currentUser = getCurrentApiUser();
   if (!currentUser) {

@@ -3,14 +3,13 @@ import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/p
 import { getIssueStore } from '@/lib/issue-store';
 import type { Issue } from '@/types/risk';
 
-const store = getIssueStore();
-
 export async function GET(
   request: Request,
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getIssueStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -32,6 +31,7 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getIssueStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -75,6 +75,7 @@ export async function PATCH(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getIssueStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
