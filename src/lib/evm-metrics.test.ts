@@ -37,7 +37,7 @@ function makeSnapshot(overrides: Partial<EVMDataPoint> = {}): EVMDataPoint {
 function makeProject(overrides: Partial<Project> = {}): Pick<Project, 'budget' | 'executionModel'> {
   return {
     budget: 1_000_000,
-    executionModel: 'internal',
+    executionModel: 'in_house',
     ...overrides,
   } as Pick<Project, 'budget' | 'executionModel'>;
 }
@@ -64,15 +64,15 @@ describe('deriveEvmMetrics — guard clauses', () => {
   });
 });
 
-describe('deriveEvmMetrics — internal execution mode', () => {
+describe('deriveEvmMetrics — in-house execution mode', () => {
   it('derives full SPI, CPI, EAC, ETC, VAC, TCPI for a typical snapshot', () => {
-    const project = makeProject({ budget: 1_000_000, executionModel: 'internal' });
+    const project = makeProject({ budget: 1_000_000, executionModel: 'in_house' });
     const snapshot = makeSnapshot({ pv: 500_000, ev: 460_000, ac: 440_000 });
 
     const result = deriveEvmMetrics(project, [snapshot]) as DerivedInternalEvmMetrics;
 
     expect(result).not.toBeNull();
-    expect(result.mode).toBe('internal');
+    expect(result.mode).toBe('in_house');
     expect(result.bac).toBe(1_000_000);
     expect(result.pv).toBe(500_000);
     expect(result.ev).toBe(460_000);
@@ -91,12 +91,12 @@ describe('deriveEvmMetrics — internal execution mode', () => {
     expect(result.latest).toBe(snapshot);
   });
 
-  it('defaults missing executionModel to internal', () => {
+  it('defaults missing executionModel to in_house', () => {
     const result = deriveEvmMetrics(
       { budget: 1_000_000 } as Pick<Project, 'budget' | 'executionModel'>,
       [makeSnapshot()],
     );
-    expect(result?.mode).toBe('internal');
+    expect(result?.mode).toBe('in_house');
   });
 
   it('uses the snapshot with the latest month when multiple are provided', () => {

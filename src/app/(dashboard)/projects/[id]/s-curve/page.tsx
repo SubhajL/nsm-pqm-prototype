@@ -98,7 +98,7 @@ export default function SCurvePage() {
   const hasSnapshots = (evmData?.length ?? 0) > 0;
 
   const metrics = useMemo(() => deriveEvmMetrics(project, evmData), [evmData, project]);
-  const internalMetrics = metrics?.mode === 'internal' ? metrics : null;
+  const internalMetrics = metrics?.mode === 'in_house' ? metrics : null;
   const outsourcedMetrics = metrics?.mode === 'outsourced' ? metrics : null;
   const latestSnapshotLabel = metrics
     ? `ข้อมูลล่าสุด ณ งวด ${metrics.latest.monthThai}`
@@ -113,7 +113,7 @@ export default function SCurvePage() {
   const cvIsPositive = internalMetrics ? internalMetrics.cv >= 0 : false;
   const analysisAlertType = !metrics
     ? 'info'
-    : metrics.mode === 'internal'
+    : metrics.mode === 'in_house'
       ? (metrics.spi < 1 || metrics.cpi < 1 ? 'warning' : 'success')
       : metrics.spi < 1 || metrics.paymentGap < 0
         ? 'warning'
@@ -635,7 +635,7 @@ export default function SCurvePage() {
         message="วิเคราะห์สถานะโครงการ (Project Analysis)"
         description={
           metrics
-            ? metrics.mode === 'internal'
+            ? metrics.mode === 'in_house'
               ? `โครงการ${metrics.svPercent < 0 ? 'ช้ากว่าแผน' : 'เร็วกว่าแผน'} ${Math.abs(metrics.svPercent).toFixed(1)}% (SPI = ${metrics.spi.toFixed(2)}) และ${metrics.cvPercent < 0 ? 'เกินงบ' : 'ประหยัดงบ'} ${Math.abs(metrics.cvPercent).toFixed(1)}% (CPI = ${metrics.cpi.toFixed(2)}) โดยคาดว่าเมื่อปิดโครงการจะ${metrics.vac < 0 ? 'เกินงบ' : 'เหลืองบ'} ${formatBaht(Math.abs(Math.round(metrics.vac)))} บาท`
               : `มุมมองเจ้าของสัญญา: โครงการ${metrics.svPercent < 0 ? 'ช้ากว่าแผน' : 'เป็นไปตามแผน'} ${Math.abs(metrics.svPercent).toFixed(1)}% (SPI = ${metrics.spi.toFixed(2)}) ขณะนี้ตรวจรับมูลค่างาน ${formatBaht(metrics.ev)} บาท และจ่ายแล้ว ${formatBaht(metrics.paidToDate)} บาท ${metrics.paymentGap > 0 ? `ยังมีมูลค่างานรอจ่ายอีก ${formatBaht(metrics.paymentGap)} บาท` : metrics.paymentGap < 0 ? `โดยจ่ายนำหน้ามูลค่างาน ${formatBaht(Math.abs(metrics.paymentGap))} บาท` : 'มูลค่างานและยอดจ่ายสมดุล'}`
             : isOutsourced

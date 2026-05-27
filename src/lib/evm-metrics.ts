@@ -13,7 +13,7 @@ interface BaseDerivedMetrics {
 }
 
 export interface DerivedInternalEvmMetrics extends BaseDerivedMetrics {
-  mode: 'internal';
+  mode: 'in_house';
   ac: number;
   cv: number;
   cpi: number;
@@ -98,8 +98,11 @@ export function deriveEvmMetrics(
   const tcpi = bac - ac !== 0 ? (bac - ev) / (bac - ac) : 0;
   const cvPercent = ac > 0 ? (cv / ac) * 100 : 0;
 
+  // PR-13 note: `consultant_supervised` falls through to the in-house EVM
+  // shape until PR-15 wires its own pricing semantics. Preserving the
+  // pre-rename two-branch behavior keeps EVM math regressions at zero.
   return {
-    mode,
+    mode: 'in_house',
     latest,
     bac,
     pv,

@@ -44,7 +44,7 @@ test.describe('project EVM consistency across all seeded projects', () => {
       id: string;
       budget: number;
       name: string;
-      executionModel?: 'internal' | 'outsourced';
+      executionModel?: 'in_house' | 'outsourced' | 'consultant_supervised';
     }>;
 
     for (const project of projects) {
@@ -69,7 +69,7 @@ test.describe('project EVM consistency across all seeded projects', () => {
       const latest = evmData[evmData.length - 1];
       const spi = latest.pv > 0 ? latest.ev / latest.pv : 0;
       const sv = latest.ev - latest.pv;
-      const executionModel = project.executionModel ?? 'internal';
+      const executionModel = project.executionModel ?? 'in_house';
 
       await page.goto(`/projects/${project.id}/s-curve`);
       await expect(page.getByText(`ข้อมูลล่าสุด ณ งวด ${latest.monthThai}`)).toBeVisible();

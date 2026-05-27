@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     name: projectFields.name,
     nameEn: projectFields.nameEn ?? projectFields.name,
     type: projectFields.type,
-    executionModel: projectFields.executionModel ?? 'internal',
+    executionModel: projectFields.executionModel ?? 'in_house',
     status: projectFields.status ?? 'planning',
     budget: projectFields.budget,
     progress: projectFields.progress ?? 0,
