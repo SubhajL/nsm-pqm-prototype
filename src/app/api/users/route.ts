@@ -1,5 +1,8 @@
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
+import {
+  ensureProjectDemoStateHydrated,
+  persistProjectDemoState,
+} from '@/lib/project-demo-state';
 import { getProjectStore } from '@/lib/project-store';
 import { appendAuditLog } from '@/lib/audit-log-store';
 import { getCurrentApiUser } from '@/lib/project-api-access';
@@ -33,6 +36,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createUserRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -46,12 +50,14 @@ export async function POST(request: Request) {
 
   addUser(nextUser);
   appendAuditLog(getCurrentApiUser(), 'Admin', `เพิ่มผู้ใช้งาน ${nextUser.name}`);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: nextUser }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateUserRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -73,6 +79,7 @@ export async function PATCH(request: Request) {
       ? `${body.updates.status === 'active' ? 'เปิดใช้งาน' : 'ระงับการใช้งาน'} ${updatedUser.name}`
       : `แก้ไขข้อมูลผู้ใช้งาน ${updatedUser.name}`,
   );
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: updatedUser });
 }

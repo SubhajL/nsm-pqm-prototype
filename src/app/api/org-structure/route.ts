@@ -1,4 +1,8 @@
 import { appendAuditLog } from '@/lib/audit-log-store';
+import {
+  ensureProjectDemoStateHydrated,
+  persistProjectDemoState,
+} from '@/lib/project-demo-state';
 import { getCurrentApiUser } from '@/lib/project-api-access';
 import { addOrgUnit, deleteOrgUnit, getOrgStructureStore, updateOrgUnit } from '@/lib/org-structure-store';
 import { getUserStore } from '@/lib/user-store';
@@ -12,6 +16,7 @@ import {
 
 export async function GET() {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
 
   const units = getOrgStructureStore().map((unit) => ({
     ...unit,
@@ -23,6 +28,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createOrgUnitRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -36,12 +42,14 @@ export async function POST(request: Request) {
 
   addOrgUnit(nextUnit);
   appendAuditLog(getCurrentApiUser(), 'Admin', `เพิ่มหน่วยงาน ${nextUnit.name}`);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: nextUnit }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateOrgUnitRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -57,12 +65,14 @@ export async function PATCH(request: Request) {
   }
 
   appendAuditLog(getCurrentApiUser(), 'Admin', `แก้ไขหน่วยงาน ${updatedUnit.name}`);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: updatedUnit });
 }
 
 export async function DELETE(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(deleteOrgUnitRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -100,6 +110,7 @@ export async function DELETE(request: Request) {
   }
 
   appendAuditLog(getCurrentApiUser(), 'Admin', `ลบหน่วยงาน ${deletedUnit.name}`);
+  await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: deletedUnit });
 }
