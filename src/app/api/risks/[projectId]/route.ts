@@ -1,4 +1,9 @@
-import { requireProjectAccess } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getIssueStore } from '@/lib/issue-store';
 import { getRiskStore } from '@/lib/risk-store';
@@ -37,6 +42,10 @@ export async function POST(
   const issueStore = getIssueStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
+
+  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_risk')) {
+    return forbiddenResponse('edit_risk');
+  }
 
   const body = (await request.json()) as Partial<Risk>;
 

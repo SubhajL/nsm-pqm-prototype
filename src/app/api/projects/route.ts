@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
-import { canCreateProject as canCreateProjectForRole } from '@/lib/auth';
+import { AUTHZ_MATRIX } from '@/lib/authz-matrix';
+import { forbiddenResponse } from '@/lib/project-api-access';
 import {
   getActiveUser,
   getAssignmentRoleForUserRole,
@@ -54,17 +55,12 @@ export async function POST(request: Request) {
   const membershipStore = getProjectMembershipStore();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
-  if (!currentUser || !canCreateProjectForRole(currentUser.role)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only project managers or system admins can create new projects',
-        },
-      },
-      { status: 403 },
-    );
+  // create_project does not target an existing project, so we skip
+  // canPerformProjectAction (which composes a per-project visibility check)
+  // and consult the matrix directly. Visibility-scoped actions on the new
+  // project ID will start applying once the row exists.
+  if (!currentUser || !AUTHZ_MATRIX[currentUser.role].has('create_project')) {
+    return forbiddenResponse('create_project');
   }
 
   const body = (await request.json()) as Partial<Project> & {

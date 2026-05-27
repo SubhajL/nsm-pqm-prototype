@@ -1,7 +1,10 @@
-import { requireProjectAccess } from '@/lib/project-api-access';
-import { getCurrentApiUser } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { getDailyReportStore } from '@/lib/daily-report-store';
-import { canReviewDailyReport } from '@/lib/auth';
 import { pushNotification } from '@/lib/notification-store';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import type { DailyReportStatus } from '@/types/daily-report';
@@ -86,14 +89,24 @@ export async function PATCH(
     );
   }
 
-  const canReview = canReviewDailyReport(currentUser.role);
+  // Action depends on which transition is being attempted:
+  //   - submit/resubmit  → 'submit_daily_report' (Engineer, Team Member, etc.)
+  //   - approve/reject   → 'approve_daily_report' (PM, Coordinator, Sys Admin)
+  // We gate first on the action's matrix capability, then validate the
+  // transition (the latter encodes additional state-machine rules).
+  const requiredAction =
+    nextStatus === 'submitted' ? 'submit_daily_report' : 'approve_daily_report';
+
+  if (!canPerformProjectAction(currentUser, report.projectId, requiredAction)) {
+    return forbiddenResponse(requiredAction);
+  }
+
   const canSubmit =
     nextStatus === 'submitted' &&
     (report.status === 'draft' || report.status === 'rejected');
   const canApproveOrReject =
     (nextStatus === 'approved' || nextStatus === 'rejected') &&
-    report.status === 'submitted' &&
-    canReview;
+    report.status === 'submitted';
 
   if (!canSubmit && !canApproveOrReject) {
     return Response.json(

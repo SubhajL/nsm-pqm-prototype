@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE_USER_ID, canCreateProject as canCreateProjectForRole } from '@/lib/auth';
+import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
+import { canPerformProjectAction, forbiddenResponse } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { canUserAccessProject, getActiveUser } from '@/lib/project-access';
@@ -57,24 +58,8 @@ export async function PATCH(
   const store = getProjectStore();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
-  if (!canUserAccessProject(currentUser, params.id, store)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'FORBIDDEN', message: `Project ${params.id} is not accessible` },
-      },
-      { status: 403 },
-    );
-  }
-
-  if (!currentUser || !canCreateProjectForRole(currentUser.role)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'FORBIDDEN', message: 'Only project managers or system admins can update project status' },
-      },
-      { status: 403 },
-    );
+  if (!canPerformProjectAction(currentUser, params.id, 'edit_basic')) {
+    return forbiddenResponse('edit_basic');
   }
 
   const project = store.find((candidate) => candidate.id === params.id);

@@ -1,9 +1,13 @@
 import dayjs from 'dayjs';
-import { canManageGantt } from '@/lib/auth';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getGanttDataForProject, getNextGanttTaskId } from '@/lib/gantt-store';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
-import { getCurrentApiUser, requireProjectAccess } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import type { GanttLinkType, GanttTask } from '@/types/gantt';
 
 interface GanttRequestBody {
@@ -36,19 +40,6 @@ function badRequest(message: string) {
       error: { code: 'BAD_REQUEST', message },
     },
     { status: 400 },
-  );
-}
-
-function forbiddenWriteResponse() {
-  return Response.json(
-    {
-      status: 'error',
-      error: {
-        code: 'FORBIDDEN',
-        message: 'Only project managers, coordinators, or system admins can manage Gantt items',
-      },
-    },
-    { status: 403 },
   );
 }
 
@@ -185,11 +176,11 @@ function replaceIncomingLinks(
   });
 }
 
-function ensureCanManageGantt() {
+function ensureCanManageGantt(projectId: string) {
   const currentUser = getCurrentApiUser();
 
-  if (!currentUser || !canManageGantt(currentUser.role)) {
-    return forbiddenWriteResponse();
+  if (!canPerformProjectAction(currentUser, projectId, 'edit_schedule')) {
+    return forbiddenResponse('edit_schedule');
   }
 
   return null;
@@ -235,7 +226,7 @@ export async function POST(
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const cannotManage = ensureCanManageGantt();
+  const cannotManage = ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
 
   const body = (await request.json()) as GanttRequestBody;
@@ -286,7 +277,7 @@ export async function PATCH(
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const cannotManage = ensureCanManageGantt();
+  const cannotManage = ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
 
   const body = (await request.json()) as GanttRequestBody;
@@ -353,7 +344,7 @@ export async function DELETE(
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const cannotManage = ensureCanManageGantt();
+  const cannotManage = ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
 
   const body = (await request.json()) as { id?: number };

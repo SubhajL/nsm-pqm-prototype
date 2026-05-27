@@ -1,7 +1,13 @@
 import { getChangeRequestStore } from '@/lib/change-request-store';
 import { appendAuditLog } from '@/lib/audit-log-store';
 import { addChangeRequest, updateChangeRequest } from '@/lib/change-request-store';
-import { getCurrentApiUser, getVisibleProjectIdsForCurrentUser, requireProjectAccess } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  getVisibleProjectIdsForCurrentUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import type { ChangeRequest } from '@/types/document';
 
@@ -52,6 +58,10 @@ export async function POST(request: Request) {
 
   const forbidden = requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;
+
+  if (!canPerformProjectAction(currentUser, body.projectId, 'submit_change_request')) {
+    return forbiddenResponse('submit_change_request');
+  }
 
   const nextChangeRequest: ChangeRequest = {
     id: `CR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
@@ -111,6 +121,12 @@ export async function PATCH(request: Request) {
 
   const forbidden = requireProjectAccess(changeRequest.projectId);
   if (forbidden) return forbidden;
+
+  if (
+    !canPerformProjectAction(currentUser, changeRequest.projectId, 'approve_change_request')
+  ) {
+    return forbiddenResponse('approve_change_request');
+  }
 
   const nextStatus =
     body.action === 'approve' ? 'approved' : 'rejected';

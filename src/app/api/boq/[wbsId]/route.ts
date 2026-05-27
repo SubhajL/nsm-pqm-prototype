@@ -1,9 +1,12 @@
-import { requireProjectAccess } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { getBoqStore } from '@/lib/boq-store';
 import { getProjectStore } from '@/lib/project-store';
 import { getWbsStore } from '@/lib/wbs-store';
-import { canAccessAdmin } from '@/lib/auth';
-import { getCurrentApiUser } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { isOutsourcedProject } from '@/types/project';
 
@@ -72,21 +75,8 @@ export async function POST(
 
   const currentUser = getCurrentApiUser();
 
-  if (!currentUser) {
-    return Response.json(
-      { status: 'error', error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-      { status: 401 },
-    );
-  }
-
-  if (!canAccessAdmin(currentUser.role) && currentUser.role !== 'Project Manager') {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'FORBIDDEN', message: 'Only project managers can create BOQ items' },
-      },
-      { status: 403 },
-    );
+  if (!canPerformProjectAction(currentUser, wbsNode.projectId, 'edit_boq')) {
+    return forbiddenResponse('edit_boq');
   }
 
   const project = projectStore.find((entry) => entry.id === wbsNode.projectId);

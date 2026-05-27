@@ -7,7 +7,12 @@ import {
   getDocumentDataForProject,
   uploadDocumentVersion,
 } from '@/lib/document-store';
-import { getCurrentApiUser, requireProjectAccess } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import type { DocumentFile, Folder, VersionEntry } from '@/types/document';
 
@@ -33,6 +38,11 @@ export async function POST(
   if (forbidden) return forbidden;
 
   const currentUser = getCurrentApiUser();
+
+  if (!canPerformProjectAction(currentUser, params.projectId, 'upload_document')) {
+    return forbiddenResponse('upload_document');
+  }
+
   const body = (await request.json()) as
     | { kind: 'folder'; name: string; parentId: string | null }
     | { kind: 'file'; folderId: string; name: string; type: string; size: string }
@@ -105,6 +115,11 @@ export async function DELETE(
   if (forbidden) return forbidden;
 
   const currentUser = getCurrentApiUser();
+
+  if (!canPerformProjectAction(currentUser, params.projectId, 'upload_document')) {
+    return forbiddenResponse('upload_document');
+  }
+
   const body = (await request.json()) as
     | { kind: 'folder'; id: string }
     | { kind: 'file'; id: string };

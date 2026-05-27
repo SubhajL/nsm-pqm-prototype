@@ -1,5 +1,9 @@
-import { canCreateProject } from '@/lib/auth';
-import { requireProjectAccess, getCurrentApiUser } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getEvmStore } from '@/lib/evm-store';
 import { getProjectStore } from '@/lib/project-store';
@@ -41,16 +45,8 @@ export async function POST(
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getCurrentApiUser();
-
-  if (!currentUser || !canCreateProject(currentUser.role)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'FORBIDDEN', message: 'Only project managers or system admins can manage EVM data' },
-      },
-      { status: 403 },
-    );
+  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_evm')) {
+    return forbiddenResponse('edit_evm');
   }
 
   const body = (await request.json()) as Partial<EVMDataPoint>;
@@ -149,16 +145,8 @@ export async function DELETE(
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getCurrentApiUser();
-
-  if (!currentUser || !canCreateProject(currentUser.role)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'FORBIDDEN', message: 'Only project managers or system admins can manage EVM data' },
-      },
-      { status: 403 },
-    );
+  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_evm')) {
+    return forbiddenResponse('edit_evm');
   }
 
   const body = (await request.json()) as { id?: string };
