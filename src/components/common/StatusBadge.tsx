@@ -1,5 +1,3 @@
-'use client';
-
 import { Tag } from 'antd';
 import { PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 

@@ -19,8 +19,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const activeProjectId = currentProjectId ?? 'proj-001';
 
-  // Pre-warm all routes after initial mount so dev compilation happens in background
+  // Pre-warm all routes after initial mount so dev compilation happens in background.
+  // Dev-only: this is a dev-speedup; running it in prod would prefetch 12 routes on
+  // every user's first dashboard render, inflating bundle/network for no benefit.
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') {
+      return;
+    }
     const prewarmRoutes = [
       '/dashboard',
       `/projects/${activeProjectId}`,
