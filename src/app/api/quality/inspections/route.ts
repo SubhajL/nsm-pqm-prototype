@@ -10,9 +10,6 @@ import {
 } from '@/lib/quality-consistency';
 import { getQualityStore } from '@/lib/quality-store';
 
-const store = getQualityStore();
-const issueStore = getIssueStore();
-
 function canManageQuality(role: string | null | undefined) {
   return Boolean(role && (canAccessAdmin(role) || role === 'Project Manager' || role === 'Engineer'));
 }
@@ -20,6 +17,7 @@ function canManageQuality(role: string | null | undefined) {
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getQualityStore();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -50,6 +48,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getQualityStore();
+  const issueStore = getIssueStore();
 
   const currentUser = getCurrentApiUser();
 
@@ -177,6 +177,8 @@ const VALID_TRANSITIONS: Record<string, string> = {
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getQualityStore();
+  const issueStore = getIssueStore();
 
   const currentUser = getCurrentApiUser();
 
@@ -310,6 +312,8 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getQualityStore();
+  const issueStore = getIssueStore();
 
   const currentUser = getCurrentApiUser();
 

@@ -5,15 +5,13 @@ import { getRiskStore } from '@/lib/risk-store';
 import { synchronizeMitigatingRiskIssues } from '@/lib/risk-issue-consistency';
 import type { Risk } from '@/types/risk';
 
-const store = getRiskStore();
-const issueStore = getIssueStore();
-
 export async function GET(
   request: Request,
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getRiskStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -35,6 +33,8 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getRiskStore();
+  const issueStore = getIssueStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 

@@ -18,14 +18,12 @@ interface WBSNode {
   hasBOQ: boolean;
 }
 
-const store = getWbsStore();
-
 interface CreateWBSNodeRequest {
   name?: string;
   parentId?: string | null;
 }
 
-function getNextNodeCode(projectId: string, parentId: string | null) {
+function getNextNodeCode(store: WBSNode[], projectId: string, parentId: string | null) {
   const siblings = store.filter(
     (node) => node.projectId === projectId && node.parentId === parentId,
   );
@@ -54,6 +52,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getWbsStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -68,6 +67,7 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getWbsStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -130,7 +130,7 @@ export async function POST(
     id: `wbs-${params.projectId}-${crypto.randomUUID().slice(0, 8)}`,
     projectId: params.projectId,
     parentId,
-    code: getNextNodeCode(params.projectId, parentId),
+    code: getNextNodeCode(store, params.projectId, parentId),
     name,
     weight: 0,
     progress: 0,

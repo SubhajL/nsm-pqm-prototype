@@ -7,8 +7,6 @@ import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/p
 import type { DailyReportStatus } from '@/types/daily-report';
 import type { Notification } from '@/types/notification';
 
-const store = getDailyReportStore();
-
 interface UpdateDailyReportBody {
   status?: DailyReportStatus;
   note?: string;
@@ -20,6 +18,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getDailyReportStore();
 
   const report = store.find((r) => r.id === params.id);
 
@@ -45,6 +44,7 @@ export async function PATCH(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getDailyReportStore();
 
   const report = store.find((entry) => entry.id === params.id);
 

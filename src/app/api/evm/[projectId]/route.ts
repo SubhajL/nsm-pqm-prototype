@@ -6,9 +6,6 @@ import { getProjectStore } from '@/lib/project-store';
 import type { EVMDataPoint } from '@/types/evm';
 import { getProjectExecutionModel } from '@/types/project';
 
-const store = getEvmStore();
-const projectStore = getProjectStore();
-
 function formatMonthThai(month: string) {
   const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
   const [year, monthPart] = month.split('-').map(Number);
@@ -23,6 +20,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getEvmStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -38,6 +36,8 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getEvmStore();
+  const projectStore = getProjectStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -145,6 +145,7 @@ export async function DELETE(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const store = getEvmStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
