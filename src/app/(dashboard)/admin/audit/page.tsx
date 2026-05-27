@@ -296,7 +296,7 @@ export default function AuditLogPage() {
               style={{
                 marginTop: 12,
                 padding: '8px 12px',
-                background: '#f6ffed',
+                background: COLORS.successBg,
                 borderRadius: 6,
                 fontSize: 12,
               }}

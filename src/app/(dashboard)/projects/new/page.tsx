@@ -763,7 +763,7 @@ export default function NewProjectPage() {
             summary={() => (
               <Table.Summary fixed>
                 <Table.Summary.Row
-                  style={{ background: '#f0f2f5' }}
+                  style={{ background: COLORS.tableHeaderBg }}
                 >
                   <Table.Summary.Cell index={0} align="center">
                     <Text strong>รวม</Text>
@@ -822,7 +822,7 @@ export default function NewProjectPage() {
                   padding: '12px 16px',
                   border: `1px solid ${COLORS.borderLight}`,
                   borderRadius: 8,
-                  background: '#fafbfc',
+                  background: COLORS.surfaceSubtle,
                 }}
               >
                 <Space size={12}>

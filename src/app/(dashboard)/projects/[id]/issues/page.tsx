@@ -174,12 +174,12 @@ function IssueCard({
         ))}
       </div>
 
-      <div style={{ marginTop: 8, fontSize: 12, color: sla.overdue ? COLORS.error : '#8c8c8c' }}>
+      <div style={{ marginTop: 8, fontSize: 12, color: sla.overdue ? COLORS.error : COLORS.textMuted }}>
         <ClockCircleOutlined style={{ marginRight: 4 }} />
         SLA: {sla.text}
       </div>
 
-      <div style={{ marginTop: 4, fontSize: 12, color: '#8c8c8c' }}>
+      <div style={{ marginTop: 4, fontSize: 12, color: COLORS.textMuted }}>
         {issue.linkedWbs}
       </div>
 
@@ -404,22 +404,22 @@ export default function IssueTrackingPage() {
                   body: {
                     padding: 8,
                     minHeight: 200,
-                    backgroundColor: '#fafafa',
+                    backgroundColor: COLORS.surfaceMuted,
                   },
                 }}
                 style={{ borderRadius: 8, overflow: 'hidden' }}
               >
                 {col.key === 'closed' ? (
-                  <div style={{ textAlign: 'center', padding: '24px 0', color: '#8c8c8c' }}>
+                  <div style={{ textAlign: 'center', padding: '24px 0', color: COLORS.textMuted }}>
                     <Text type="secondary" style={{ fontSize: 16, fontWeight: 600 }}>
                       {grouped.closed.length} รายการ
                     </Text>
                     <div style={{ marginTop: 8, maxHeight: 180, overflowY: 'auto' }}>
                       {grouped.closed.map((iss) => (
-                        <div key={iss.id} style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>
+                        <div key={iss.id} style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>
                           <Link
                             href={issueDestinations[iss.id]?.href ?? `/projects/${projectId}`}
-                            style={{ color: '#8c8c8c' }}
+                            style={{ color: COLORS.textMuted }}
                           >
                             {iss.id}: {iss.title}
                           </Link>

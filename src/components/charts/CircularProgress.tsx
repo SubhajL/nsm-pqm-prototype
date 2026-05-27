@@ -44,7 +44,7 @@ export function CircularProgress({
         axisLine: {
           lineStyle: {
             width: 14,
-            color: [[1, '#F0F0F0']],
+            color: [[1, COLORS.borderSoft]],
           },
           roundCap: true,
         },

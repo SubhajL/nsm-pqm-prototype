@@ -7,6 +7,7 @@ import { useProject } from '@/hooks/useProjects';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { COLORS } from '@/theme/antd-theme';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -68,12 +69,12 @@ export function Header() {
   return (
     <AntHeader
       style={{
-        background: '#fff',
+        background: COLORS.white,
         padding: isMobile ? '0 12px' : '0 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid #E8ECF1',
+        borderBottom: `1px solid ${COLORS.borderLight}`,
         position: 'sticky',
         top: 0,
         zIndex: 99,
@@ -106,8 +107,8 @@ export function Header() {
           />
         </Badge>
         <Space size="small">
-          <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#00B894' }} />
-          <span style={{ fontSize: isMobile ? 12 : 14, color: '#2C3E50', maxWidth: isMobile ? 84 : undefined, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: COLORS.accentTeal }} />
+          <span style={{ fontSize: isMobile ? 12 : 14, color: COLORS.textDark, maxWidth: isMobile ? 84 : undefined, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {currentUser?.name ?? 'ผู้ใช้ทดลอง'}
           </span>
         </Space>

@@ -54,12 +54,12 @@ const { Title, Text } = Typography;
 /* Constants                                                           */
 /* ------------------------------------------------------------------ */
 
-const COLOR_COMPLETED = COLORS.success;   // #27AE60
-const COLOR_IN_PROGRESS = COLORS.info;    // #2D6BFF
-const COLOR_NOT_STARTED = '#d9d9d9';
-const COLOR_MILESTONE = COLORS.warning;   // #F39C12
-const COLOR_TODAY = COLORS.error;         // #E74C3C
-const COLOR_BASELINE_BAR = '#E8ECF1';
+const COLOR_COMPLETED = COLORS.success;        // #27AE60
+const COLOR_IN_PROGRESS = COLORS.info;         // #2D6BFF
+const COLOR_NOT_STARTED = COLORS.neutralGray;  // #d9d9d9
+const COLOR_MILESTONE = COLORS.warning;        // #F39C12
+const COLOR_TODAY = COLORS.error;              // #E74C3C
+const COLOR_BASELINE_BAR = COLORS.baselineBar; // #E8ECF1
 
 type ViewMode = 'baseline' | 'current' | 'compare';
 type TimeScale = 'day' | 'week' | 'month';
@@ -422,7 +422,7 @@ function TimelineBar({
                 left: `calc(${baselineLeftPct}% - 7px)`,
                 top: viewMode === 'compare' ? 2 : 7,
                 width: 12, height: 12,
-                backgroundColor: COLOR_BASELINE_BAR, border: '2px solid #bfbfbf',
+                backgroundColor: COLOR_BASELINE_BAR, border: `2px solid ${COLORS.textDisabled}`,
                 transform: 'rotate(45deg)', zIndex: 1,
               }}
             />
@@ -489,7 +489,7 @@ function TimelineBar({
               height: baselineBarHeight,
               backgroundColor: COLOR_BASELINE_BAR,
               borderRadius: barRadius,
-              border: viewMode === 'compare' ? '1px dashed #bfbfbf' : undefined,
+              border: viewMode === 'compare' ? `1px dashed ${COLORS.textDisabled}` : undefined,
             }}
           />
         </Tooltip>
@@ -536,7 +536,7 @@ function TimelineBar({
               left: `${currentMetrics.leftPct}%`,
               top: currentTop + currentBarHeight - 1,
               width: 6, height: 6,
-              backgroundColor: '#8c8c8c',
+              backgroundColor: COLORS.textMuted,
               clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
             }}
           />
@@ -546,7 +546,7 @@ function TimelineBar({
               left: `calc(${currentMetrics.leftPct + currentMetrics.widthPct}% - 6px)`,
               top: currentTop + currentBarHeight - 1,
               width: 6, height: 6,
-              backgroundColor: '#8c8c8c',
+              backgroundColor: COLORS.textMuted,
               clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
             }}
           />
@@ -601,7 +601,7 @@ function TimelineHeader({ timeline, timeScale }: { timeline: TimelineConfig; tim
               fontSize: 11,
               color: COLORS.textDark,
               fontWeight: 600,
-              backgroundColor: '#f8f9fb',
+              backgroundColor: COLORS.surfaceCool,
               overflow: 'hidden',
               whiteSpace: 'nowrap',
             }}
@@ -1283,10 +1283,10 @@ export default function GanttChartPage() {
       {/* ---------- Inline styles for parent row highlight ---------- */}
       <style jsx global>{`
         .gantt-parent-row td {
-          background-color: #f8f9fb !important;
+          background-color: ${COLORS.surfaceCool} !important;
         }
         .gantt-parent-row:hover td {
-          background-color: #f0f2f5 !important;
+          background-color: ${COLORS.tableHeaderBg} !important;
         }
       `}</style>
 

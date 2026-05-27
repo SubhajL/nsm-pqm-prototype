@@ -93,7 +93,7 @@ export function LoginScreen({ nextPath }: LoginScreenProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #F5F7FA 0%, #E8F4F1 100%)',
+        background: `linear-gradient(135deg, ${COLORS.bgLayout} 0%, ${COLORS.tealLight} 100%)`,
         padding: 24,
       }}
     >
@@ -134,7 +134,7 @@ export function LoginScreen({ nextPath }: LoginScreenProps) {
                     style={{
                       cursor: 'pointer',
                       opacity: user.canLogin ? 1 : 0.72,
-                      borderColor: selectedUserId === user.id ? COLORS.accentTeal : '#E8ECF1',
+                      borderColor: selectedUserId === user.id ? COLORS.accentTeal : COLORS.borderLight,
                       boxShadow:
                         selectedUserId === user.id
                           ? '0 0 0 2px rgba(0,184,148,0.12)'
@@ -175,7 +175,7 @@ export function LoginScreen({ nextPath }: LoginScreenProps) {
           )}
 
           {selectedUser && (
-            <Card size="small" style={{ background: '#FAFBFC', borderColor: '#E8ECF1' }}>
+            <Card size="small" style={{ background: COLORS.surfaceSubtle, borderColor: COLORS.borderLight }}>
               <Text strong>สิทธิ์ที่คาดว่าจะได้:</Text>
               <div style={{ marginTop: 8 }}>
                 <Text type="secondary">

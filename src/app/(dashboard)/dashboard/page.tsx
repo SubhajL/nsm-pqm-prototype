@@ -426,7 +426,7 @@ export default function PortfolioDashboardPage() {
             title="กำลังดำเนินการ (In Progress)"
             value={inProgressCount}
             icon={<ClockCircleOutlined />}
-            color="#00B894"
+            color={COLORS.accentTeal}
             subtitle={`${inProgressPct}% ของทั้งหมด`}
             active={statusFilter === 'in_progress'}
             onClick={() => setStatusFilter('in_progress')}
@@ -448,7 +448,7 @@ export default function PortfolioDashboardPage() {
             title="เสร็จสิ้น (Completed)"
             value={completedCount}
             icon={<CheckCircleOutlined />}
-            color="#27AE60"
+            color={COLORS.success}
             subtitle={`${completedPct}% ของทั้งหมด`}
             active={statusFilter === 'completed'}
             onClick={() => setStatusFilter('completed')}
@@ -545,8 +545,8 @@ export default function PortfolioDashboardPage() {
               bottom: 32,
               right: 32,
               zIndex: 100,
-              backgroundColor: '#00B894',
-              borderColor: '#00B894',
+              backgroundColor: COLORS.accentTeal,
+              borderColor: COLORS.accentTeal,
               borderRadius: 8,
               height: 48,
               paddingInline: 24,

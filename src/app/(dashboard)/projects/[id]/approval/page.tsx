@@ -212,8 +212,8 @@ export default function PlanApprovalPage() {
                         style={{
                           backgroundColor:
                             item.name.endsWith('.pdf')
-                              ? '#fff1f0'
-                              : '#f6ffed',
+                              ? COLORS.errorBgAlt
+                              : COLORS.successBg,
                           color: item.name.endsWith('.pdf')
                             ? COLORS.error
                             : COLORS.success,
@@ -253,7 +253,7 @@ export default function PlanApprovalPage() {
             display: 'flex',
             gap: 12,
             padding: '16px',
-            background: '#fafbfc',
+            background: COLORS.surfaceSubtle,
             borderRadius: 8,
             border: `1px solid ${COLORS.borderLight}`,
             marginBottom: 20,

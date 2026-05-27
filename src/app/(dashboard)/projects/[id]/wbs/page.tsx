@@ -45,7 +45,7 @@ import {
   type CreateBOQItemInput,
 } from '@/hooks/useBOQ';
 import { buildWbsExportDocument } from '@/lib/export-documents';
-import { formatBaht } from '@/lib/date-utils';
+import { formatBaht, formatBahtCurrency } from '@/lib/date-utils';
 import { downloadSpreadsheetReport } from '@/lib/export-utils';
 import { COLORS } from '@/theme/antd-theme';
 import { isOutsourcedProject } from '@/types/project';
@@ -453,7 +453,7 @@ export default function WbsBOQPage() {
                             strong
                             style={{ color: COLORS.primary, fontSize: 15 }}
                           >
-                            {formatBaht(boqTotalSum)} ฿
+                            {formatBahtCurrency(boqTotalSum)}
                           </Text>
                         </Table.Summary.Cell>
                       </Table.Summary.Row>

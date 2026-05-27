@@ -42,7 +42,7 @@ import { useProject } from '@/hooks/useProjects';
 import { useRouteProjectId } from '@/hooks/useRouteProjectId';
 import { KPICard } from '@/components/common/KPICard';
 import { buildEvmExcelDocument, buildEvmPdfDocument } from '@/lib/export-documents';
-import { formatBaht } from '@/lib/date-utils';
+import { formatBaht, formatBahtCurrency, formatBahtShort } from '@/lib/date-utils';
 import { downloadSpreadsheetReport, openPrintableReport } from '@/lib/export-utils';
 import { COLORS } from '@/theme/antd-theme';
 import {
@@ -130,18 +130,18 @@ export default function SCurvePage() {
       title: 'PV',
       dataIndex: 'pv',
       key: 'pv',
-      render: (value: number) => `${formatBaht(value)} ฿`,
+      render: (value: number) => formatBahtCurrency(value),
     },
     {
       title: 'EV',
       dataIndex: 'ev',
       key: 'ev',
-      render: (value: number) => `${formatBaht(value)} ฿`,
+      render: (value: number) => formatBahtCurrency(value),
     },
     {
       title: isOutsourced ? 'Paid to Date' : 'AC',
       key: 'actualAmount',
-      render: (_value: unknown, record) => `${formatBaht(isOutsourced ? getPaidToDate(record) : record.ac)} ฿`,
+      render: (_value: unknown, record) => formatBahtCurrency(isOutsourced ? getPaidToDate(record) : record.ac),
     },
     ...(isOutsourced
       ? [
@@ -325,7 +325,7 @@ export default function SCurvePage() {
             <Col span={6}>
               <KPICard
                 title="EV (Earned Value)"
-                value={outsourcedMetrics ? `${(outsourcedMetrics.ev / 1_000_000).toFixed(1)}M฿` : '-'}
+                value={outsourcedMetrics ? formatBahtShort(outsourcedMetrics.ev) : '-'}
                 icon={<InfoCircleOutlined />}
                 color={COLORS.info}
                 subtitle={outsourcedMetrics ? 'มูลค่างานที่ตรวจรับได้ตามความก้าวหน้า' : 'ยังไม่มีข้อมูลงวด'}
@@ -334,7 +334,7 @@ export default function SCurvePage() {
             <Col span={6}>
               <KPICard
                 title="Paid to Date"
-                value={outsourcedMetrics ? `${(outsourcedMetrics.paidToDate / 1_000_000).toFixed(1)}M฿` : '-'}
+                value={outsourcedMetrics ? formatBahtShort(outsourcedMetrics.paidToDate) : '-'}
                 icon={<CheckCircleOutlined />}
                 color={COLORS.success}
                 subtitle={outsourcedMetrics ? 'จ่ายแล้วสะสม (Owner Disbursement)' : 'ยังไม่มีข้อมูลงวด'}
@@ -372,7 +372,7 @@ export default function SCurvePage() {
             <Col span={6}>
               <KPICard
                 title="EAC (Estimate at Completion)"
-                value={internalMetrics ? `${(internalMetrics.eac / 1_000_000).toFixed(1)}M฿` : '-'}
+                value={internalMetrics ? formatBahtShort(internalMetrics.eac) : '-'}
                 icon={<InfoCircleOutlined />}
                 color={COLORS.info}
                 subtitle="ประมาณการต้นทุนเมื่อแล้วเสร็จ (Estimate at Completion)"
@@ -452,7 +452,7 @@ export default function SCurvePage() {
                 height={350}
                 primaryLabel={isOutsourced ? 'Paid/BAC' : 'CPI'}
                 secondaryLabel={isOutsourced ? 'EV/BAC' : 'SPI'}
-                primaryColor={isOutsourced ? COLORS.success : '#52c41a'}
+                primaryColor={isOutsourced ? COLORS.success : COLORS.chartGreenAlt}
                 secondaryColor={COLORS.info}
                 referenceLine={isOutsourced ? null : 1}
                 yMin={0}
@@ -490,29 +490,29 @@ export default function SCurvePage() {
       >
         <Descriptions bordered column={2}>
           <Descriptions.Item label={isOutsourced ? 'BAC (Contract Value)' : 'BAC (Budget at Completion)'}>
-            {bac > 0 ? `${formatBaht(bac)} ฿` : '-'}
+            {bac > 0 ? formatBahtCurrency(bac) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="PV (Planned Value)">
-            {metrics ? `${formatBaht(metrics.pv)} ฿` : '-'}
+            {metrics ? formatBahtCurrency(metrics.pv) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="EV (Earned Value)">
-            {metrics ? `${formatBaht(metrics.ev)} ฿` : '-'}
+            {metrics ? formatBahtCurrency(metrics.ev) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label={isOutsourced ? 'Paid to Date' : 'AC (Actual Cost)'}>
             {metrics
-              ? `${formatBaht(metrics.mode === 'outsourced' ? metrics.paidToDate : metrics.ac)} ฿`
+              ? formatBahtCurrency(metrics.mode === 'outsourced' ? metrics.paidToDate : metrics.ac)
               : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="SV = EV - PV (Schedule Variance)">
             <span style={{ color: svIsPositive ? COLORS.success : COLORS.error }}>
-              {metrics ? `${formatBaht(metrics.sv)} ฿` : '-'}
+              {metrics ? formatBahtCurrency(metrics.sv) : '-'}
             </span>
           </Descriptions.Item>
           {internalMetrics ? (
             <>
               <Descriptions.Item label="CV = EV - AC (Cost Variance)">
                 <span style={{ color: cvIsPositive ? COLORS.success : COLORS.error }}>
-                  {`${formatBaht(internalMetrics.cv)} ฿`}
+                  {formatBahtCurrency(internalMetrics.cv)}
                 </span>
               </Descriptions.Item>
               <Descriptions.Item label="SPI = EV / PV">
@@ -544,17 +544,17 @@ export default function SCurvePage() {
                 </span>
               </Descriptions.Item>
               <Descriptions.Item label="EAC = BAC / CPI">
-                {`${formatBaht(Math.round(internalMetrics.eac))} ฿`}
+                {formatBahtCurrency(Math.round(internalMetrics.eac))}
               </Descriptions.Item>
               <Descriptions.Item label="ETC = EAC - AC">
-                {`${formatBaht(Math.round(internalMetrics.etc))} ฿`}
+                {formatBahtCurrency(Math.round(internalMetrics.etc))}
               </Descriptions.Item>
               <Descriptions.Item label="TCPI = (BAC - EV) / (BAC - AC)">
                 {internalMetrics.tcpi.toFixed(2)}
               </Descriptions.Item>
               <Descriptions.Item label="VAC = BAC - EAC">
                 <span style={{ color: vacIsPositive ? COLORS.success : COLORS.error }}>
-                  {`${formatBaht(Math.round(internalMetrics.vac))} ฿`}
+                  {formatBahtCurrency(Math.round(internalMetrics.vac))}
                 </span>
               </Descriptions.Item>
             </>
@@ -585,7 +585,7 @@ export default function SCurvePage() {
                           : COLORS.info,
                   }}
                 >
-                  {outsourcedMetrics ? `${formatBaht(outsourcedMetrics.paymentGap)} ฿` : '-'}
+                  {outsourcedMetrics ? formatBahtCurrency(outsourcedMetrics.paymentGap) : '-'}
                 </span>
               </Descriptions.Item>
               <Descriptions.Item label="Paid / BAC">
@@ -595,7 +595,7 @@ export default function SCurvePage() {
                 {outsourcedMetrics ? `${outsourcedMetrics.evPercent.toFixed(1)}%` : '-'}
               </Descriptions.Item>
               <Descriptions.Item label="Remaining Payable = BAC - Paid">
-                {outsourcedMetrics ? `${formatBaht(outsourcedMetrics.remainingPayable)} ฿` : '-'}
+                {outsourcedMetrics ? formatBahtCurrency(outsourcedMetrics.remainingPayable) : '-'}
               </Descriptions.Item>
               <Descriptions.Item label="มุมมองเจ้าของโครงการ">
                 ติดตามความก้าวหน้าและยอดเบิกจ่าย ไม่ใช่ต้นทุนภายในของผู้รับจ้าง

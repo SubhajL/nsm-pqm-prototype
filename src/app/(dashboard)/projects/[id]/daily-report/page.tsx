@@ -110,9 +110,9 @@ const STATUS_FILTER_OPTIONS = [
 
 function getWeatherIcon(weather: string) {
   if (weather.includes('แดด') || weather.includes('Sunny')) {
-    return <SunOutlined style={{ color: '#F39C12', marginRight: 6 }} />;
+    return <SunOutlined style={{ color: COLORS.warning, marginRight: 6 }} />;
   }
-  return <CloudOutlined style={{ color: '#95A5A6', marginRight: 6 }} />;
+  return <CloudOutlined style={{ color: COLORS.weatherCloud, marginRight: 6 }} />;
 }
 
 function normalizeUploadQueue(fileList: UploadFile[]): UploadQueueItem[] {
@@ -1096,14 +1096,14 @@ function ReportDetail({
           <Col key={photo.id} xs={12} sm={8} md={6}>
             <div
               style={{
-                backgroundColor: '#f0f2f5',
+                backgroundColor: COLORS.tableHeaderBg,
                 borderRadius: 8,
                 height: 160,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px dashed #d9d9d9',
+                border: `1px dashed ${COLORS.neutralGray}`,
                 marginBottom: 16,
               }}
             >
@@ -1123,7 +1123,7 @@ function ReportDetail({
                   }}
                 />
               ) : (
-                <CameraOutlined style={{ fontSize: 32, color: '#bfbfbf', marginBottom: 8 }} />
+                <CameraOutlined style={{ fontSize: 32, color: COLORS.textDisabled, marginBottom: 8 }} />
               )}
               <Text
                 type="secondary"
@@ -1172,18 +1172,18 @@ function ReportDetail({
           <Col xs={12} sm={8} md={6}>
             <div
               style={{
-                backgroundColor: '#fafafa',
+                backgroundColor: COLORS.surfaceMuted,
                 borderRadius: 8,
                 height: 160,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px dashed #d9d9d9',
+                border: `1px dashed ${COLORS.neutralGray}`,
                 marginBottom: 16,
               }}
             >
-              <CameraOutlined style={{ fontSize: 32, color: '#d9d9d9', marginBottom: 8 }} />
+              <CameraOutlined style={{ fontSize: 32, color: COLORS.neutralGray, marginBottom: 8 }} />
               <Text type="secondary" style={{ fontSize: 12 }}>
                 เพิ่มภาพ
               </Text>
@@ -1231,8 +1231,8 @@ function ReportDetail({
       </Title>
       <div
         style={{
-          backgroundColor: report.issues === 'ไม่พบปัญหา' ? '#f6ffed' : '#fff7e6',
-          border: `1px solid ${report.issues === 'ไม่พบปัญหา' ? '#b7eb8f' : '#ffd591'}`,
+          backgroundColor: report.issues === 'ไม่พบปัญหา' ? COLORS.successBg : COLORS.warningBg,
+          border: `1px solid ${report.issues === 'ไม่พบปัญหา' ? COLORS.successBorder : COLORS.warningBorder}`,
           borderRadius: 8,
           padding: '12px 16px',
           marginBottom: 16,
@@ -1266,7 +1266,7 @@ function ReportDetail({
               />
             ) : (
               <ClockCircleOutlined
-                style={{ fontSize: 28, color: '#bfbfbf' }}
+                style={{ fontSize: 28, color: COLORS.textDisabled }}
               />
             )}
             <div>
@@ -1306,7 +1306,7 @@ function ReportDetail({
               />
             ) : (
               <ClockCircleOutlined
-                style={{ fontSize: 28, color: '#bfbfbf' }}
+                style={{ fontSize: 28, color: COLORS.textDisabled }}
               />
             )}
             <div>

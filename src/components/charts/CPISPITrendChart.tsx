@@ -2,6 +2,7 @@
 
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
+import { COLORS } from '@/theme/antd-theme';
 
 export interface TrendSeriesPoint {
   monthThai: string;
@@ -29,8 +30,8 @@ export function CPISPITrendChart({
   height = 300,
   primaryLabel = 'CPI',
   secondaryLabel = 'SPI',
-  primaryColor = '#52c41a',
-  secondaryColor = '#2D6BFF',
+  primaryColor = COLORS.chartGreenAlt,
+  secondaryColor = COLORS.info,
   referenceLine = 1,
   yMin = 0.7,
   yMax = 1.2,
@@ -120,7 +121,7 @@ export function CPISPITrendChart({
               },
               lineStyle: {
                 type: 'dashed',
-                color: '#BFBFBF',
+                color: COLORS.textDisabled,
                 width: 1,
               },
               data: [{ yAxis: referenceLine }],

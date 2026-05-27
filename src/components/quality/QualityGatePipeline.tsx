@@ -15,15 +15,15 @@ interface QualityGatePipelineProps {
 const STATUS_COLORS: Record<string, string> = {
   passed: COLORS.success,
   conditional: COLORS.warning,
-  pending: '#d9d9d9',
+  pending: COLORS.neutralGray,
 };
 
 function GateIcon({ status }: { status: string }) {
   if (status === 'passed') {
-    return <CheckCircleOutlined style={{ fontSize: 22, color: '#fff' }} />;
+    return <CheckCircleOutlined style={{ fontSize: 22, color: COLORS.white }} />;
   }
   if (status === 'conditional') {
-    return <WarningOutlined style={{ fontSize: 22, color: '#fff' }} />;
+    return <WarningOutlined style={{ fontSize: 22, color: COLORS.white }} />;
   }
   return (
     <div
@@ -31,7 +31,7 @@ function GateIcon({ status }: { status: string }) {
         width: 18,
         height: 18,
         borderRadius: '50%',
-        border: '2px solid #bfbfbf',
+        border: `2px solid ${COLORS.textDisabled}`,
         backgroundColor: 'transparent',
       }}
     />
@@ -59,16 +59,16 @@ export function QualityGatePipeline({ gates }: QualityGatePipelineProps) {
         }}
       >
         {gates.map((gate, index) => {
-          const color = STATUS_COLORS[gate.status] ?? '#d9d9d9';
+          const color = STATUS_COLORS[gate.status] ?? COLORS.neutralGray;
           const isLast = index === gates.length - 1;
           const nextGate = !isLast ? gates[index + 1] : null;
           const lineColor =
             gate.status === 'passed' || gate.status === 'conditional'
               ? COLORS.success
-              : '#d9d9d9';
+              : COLORS.neutralGray;
           // If current gate is conditional, the line after it should be gray
           const segmentColor =
-            gate.status === 'passed' ? lineColor : '#d9d9d9';
+            gate.status === 'passed' ? lineColor : COLORS.neutralGray;
 
           return (
             <div
@@ -102,7 +102,7 @@ export function QualityGatePipeline({ gates }: QualityGatePipelineProps) {
                     justifyContent: 'center',
                     border:
                       gate.status === 'pending'
-                        ? '2px dashed #bfbfbf'
+                        ? `2px dashed ${COLORS.textDisabled}`
                         : `2px solid ${color}`,
                     position: 'relative',
                   }}
@@ -125,7 +125,7 @@ export function QualityGatePipeline({ gates }: QualityGatePipelineProps) {
                   style={{
                     textAlign: 'center',
                     fontSize: 11,
-                    color: '#8c8c8c',
+                    color: COLORS.textMuted,
                     lineHeight: 1.3,
                     maxWidth: 80,
                   }}
@@ -137,7 +137,7 @@ export function QualityGatePipeline({ gates }: QualityGatePipelineProps) {
                     style={{
                       textAlign: 'center',
                       fontSize: 10,
-                      color: '#8c8c8c',
+                      color: COLORS.textMuted,
                       marginTop: 2,
                     }}
                   >
@@ -182,9 +182,9 @@ export function QualityGatePipeline({ gates }: QualityGatePipelineProps) {
                 disabled
                 icon={<LockOutlined />}
                 style={{
-                  backgroundColor: '#d9d9d9',
-                  borderColor: '#d9d9d9',
-                  color: '#8c8c8c',
+                  backgroundColor: COLORS.neutralGray,
+                  borderColor: COLORS.neutralGray,
+                  color: COLORS.textMuted,
                 }}
               >
                 ดำเนินการ Gate 5
