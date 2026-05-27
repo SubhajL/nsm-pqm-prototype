@@ -39,6 +39,9 @@ import { useEVM } from '@/hooks/useEVM';
 import { useGantt } from '@/hooks/useGantt';
 import { KPICard } from '@/components/common/KPICard';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { RidLifecycleGates } from '@/components/rid/RidLifecycleGates';
+import { QualityGatePipeline } from '@/components/quality/QualityGatePipeline';
+import { useQualityGates } from '@/hooks/useQuality';
 import { formatBahtCurrency, formatBahtShort, formatThaiDateShort } from '@/lib/date-utils';
 import {
   deriveCurrentMilestoneNumber,
@@ -79,6 +82,16 @@ export default function ProjectOverviewPage() {
   const { data: risks, isLoading: loadingRisks } = useRisks(projectId);
   const { data: evmData, isLoading: loadingEvm } = useEVM(projectId);
   const { data: ganttData } = useGantt(projectId);
+  const { data: qualityGates } = useQualityGates(projectId);
+  /**
+   * PR-16 feature flag — when set to `'true'` the project detail page
+   * renders the new `<RidLifecycleGates>` above the existing
+   * `<QualityGatePipeline>`. The two stay separate per the senior
+   * team-lead review (lifecycle gates vs ITP/quality gates are distinct
+   * domain concepts). Defaults to OFF.
+   */
+  const ridLifecycleGatesEnabled =
+    process.env.NEXT_PUBLIC_FEATURE_RID_LIFECYCLE_GATES === 'true';
 
   /* Derive the "current" step index from milestones status */
   const currentStep = useMemo(() => {
@@ -451,6 +464,22 @@ export default function ProjectOverviewPage() {
           </Card>
         </Col>
       </Row>
+
+      {/* ====== 3b. RID Lifecycle Gates (PR-16, feature-flagged) ====== */}
+      {ridLifecycleGatesEnabled && project ? (
+        <Card
+          title="ขั้นตอนวงจรชีวิตโครงการ (Lifecycle Gates)"
+          style={{
+            borderRadius: 8,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+          }}
+        >
+          <RidLifecycleGates project={project} />
+          <div style={{ marginTop: 24 }}>
+            <QualityGatePipeline gates={qualityGates ?? []} />
+          </div>
+        </Card>
+      ) : null}
 
       {/* ====== 4. Quick Action Buttons ====== */}
       <Card

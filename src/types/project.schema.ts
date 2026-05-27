@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { DELIVERY_METHODS, PROJECT_SIZE_TIERS } from '@/types/rid/vocabulary';
+import { DELIVERY_METHODS, PROJECT_SIZE_TIERS, RID_LIFECYCLE_STAGES } from '@/types/rid/vocabulary';
 
 /**
  * Zod schemas for the `project` domain.
@@ -42,6 +42,45 @@ export const projectExecutionModelSchema = z.enum(DELIVERY_METHODS);
  * On the full Project entity the field is required.
  */
 export const projectSizeTierSchema = z.enum(PROJECT_SIZE_TIERS);
+
+/**
+ * RID lifecycle stage validator (PR-16). Mirrors the canonical
+ * `RidLifecycleStage` union from the vocabulary module so the wire shape
+ * cannot drift from the runtime type.
+ */
+export const ridLifecycleStageSchema = z.enum(RID_LIFECYCLE_STAGES);
+
+/**
+ * Validator for a single entry in `Project.lifecycleStageHistory`.
+ *
+ * `enteredBy` is nullable to permit the auto-seeded first entry which has no
+ * actor. `artifactDocIds` is an array of `DocumentFile.id` strings — empty
+ * is allowed (most stages have only optional artifacts for MVP).
+ */
+export const lifecycleStageHistoryEntrySchema = z
+  .object({
+    stage: ridLifecycleStageSchema,
+    enteredAt: z.string().min(1, 'enteredAt is required'),
+    enteredBy: z.string().nullable(),
+    artifactDocIds: z.array(z.string()),
+  })
+  .strict();
+
+/**
+ * Body schema for `PATCH /api/projects/[id]/lifecycle` (PR-16). The acting
+ * user + ISO timestamp are derived server-side; the wire body carries only
+ * the target stage and the citing artifacts.
+ */
+export const advanceLifecycleStageRequestSchema = z
+  .object({
+    targetStage: ridLifecycleStageSchema,
+    artifactDocIds: z.array(z.string()),
+  })
+  .strict();
+
+export type AdvanceLifecycleStageRequest = z.infer<
+  typeof advanceLifecycleStageRequestSchema
+>;
 
 const milestoneInputSchema = z.object({
   milestone: z.number(),

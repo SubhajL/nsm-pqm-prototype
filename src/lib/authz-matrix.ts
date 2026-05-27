@@ -34,7 +34,8 @@ export type Action =
   | 'edit_evm'
   | 'create_project'
   | 'edit_wbs'
-  | 'edit_boq';
+  | 'edit_boq'
+  | 'advance_lifecycle_stage';
 
 /**
  * Complete list of actions. Used by tests to enforce matrix completeness — every
@@ -63,6 +64,7 @@ export const ALL_ACTIONS: readonly Action[] = [
   'create_project',
   'edit_wbs',
   'edit_boq',
+  'advance_lifecycle_stage',
 ] as const;
 
 /**
@@ -127,6 +129,7 @@ export const AUTHZ_MATRIX: Record<UserRole, Set<Action>> = {
     'create_project',
     'edit_wbs',
     'edit_boq',
+    'advance_lifecycle_stage',
   ]),
   'Project Manager': new Set<Action>([
     'view',
@@ -151,6 +154,7 @@ export const AUTHZ_MATRIX: Record<UserRole, Set<Action>> = {
     'create_project',
     'edit_wbs',
     'edit_boq',
+    'advance_lifecycle_stage',
   ]),
   Engineer: new Set<Action>([
     'view',
