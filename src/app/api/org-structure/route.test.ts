@@ -93,8 +93,12 @@ describe('POST /api/org-structure persistence (PR-07)', () => {
     expect(body.data.name).toBe(NEW_ORG_UNIT_PAYLOAD.name);
 
     expect(getOrgStructureStore().length).toBe(before + 1);
+    // Audit log records the mutation as a structured AuditEvent (PR-05).
     expect(getAuditLogStore().length).toBe(beforeAuditCount + 1);
-    expect(getAuditLogStore()[0]?.action).toContain('เพิ่มหน่วยงาน');
+    const newEvent = getAuditLogStore().at(-1);
+    expect(newEvent?.action).toBe('edit_org_structure');
+    expect(newEvent?.resourceType).toBe('org_unit');
+    expect(newEvent?.resourceId).toBe(body.data.id);
 
     const persistedRaw = await readFile(process.env.PROJECT_DEMO_STATE_FILE!, 'utf8');
     const persisted = JSON.parse(persistedRaw) as {

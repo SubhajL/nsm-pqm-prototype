@@ -111,18 +111,25 @@ describe('POST /api/users persistence (PR-07)', () => {
     expect(getUserStore().length).toBe(before + 1);
     expect(getUserStore().some((u) => u.id === body.data.id)).toBe(true);
 
-    // Audit log records the mutation.
+    // Audit log records the mutation as a structured AuditEvent (PR-05).
     expect(getAuditLogStore().length).toBe(beforeAuditCount + 1);
-    expect(getAuditLogStore()[0]?.action).toContain('เพิ่มผู้ใช้งาน');
+    const newEvent = getAuditLogStore().at(-1);
+    expect(newEvent?.action).toBe('edit_user');
+    expect(newEvent?.resourceType).toBe('user');
+    expect(newEvent?.resourceId).toBe(body.data.id);
 
-    // On-disk snapshot includes the new user.
+    // On-disk snapshot includes the new user + new audit event.
     const persistedRaw = await readFile(process.env.PROJECT_DEMO_STATE_FILE!, 'utf8');
     const persisted = JSON.parse(persistedRaw) as {
       users: Array<{ id: string; name: string }>;
-      auditLogs: Array<{ action: string }>;
+      auditLogs: Array<{ action: string; resourceId?: string; resourceType?: string }>;
     };
     expect(persisted.users.some((u) => u.id === body.data.id)).toBe(true);
-    expect(persisted.auditLogs.some((log) => log.action.includes(NEW_USER_PAYLOAD.name))).toBe(true);
+    expect(
+      persisted.auditLogs.some(
+        (log) => log.action === 'edit_user' && log.resourceId === body.data.id,
+      ),
+    ).toBe(true);
 
     // Simulate cold restart: wipe in-memory state + hydration flags, then
     // re-hydrate from the persisted file. The user must still be there.
