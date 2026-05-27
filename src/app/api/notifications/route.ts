@@ -3,7 +3,9 @@ import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { getNotificationStore } from '@/lib/notification-store';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { filterNotificationsForUser, getActiveUser } from '@/lib/project-access';
+import { parseRequestBody } from '@/lib/validation';
 import type { Notification } from '@/types/notification';
+import { markNotificationsReadRequestSchema } from '@/types/notification.schema';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -29,19 +31,10 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-
-  const body = await request.json();
-  const { ids } = body as { ids: string[] };
-
-  if (!ids || !Array.isArray(ids)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'ids array is required' },
-      },
-      { status: 400 },
-    );
-  }
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(markNotificationsReadRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const { ids } = parsed.data;
 
   const updated: Notification[] = [];
 

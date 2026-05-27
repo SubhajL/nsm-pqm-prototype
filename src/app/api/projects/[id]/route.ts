@@ -5,7 +5,8 @@ import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/p
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { canUserAccessProject, getActiveUser } from '@/lib/project-access';
 import { getProjectStore } from '@/lib/project-store';
-import type { ProjectStatus } from '@/types/project';
+import { parseRequestBody } from '@/lib/validation';
+import { updateProjectStatusRequestSchema } from '@/types/project.schema';
 
 export async function GET(
   _request: Request,
@@ -43,18 +44,16 @@ export async function GET(
   return Response.json({ status: 'success', data: project });
 }
 
-const MANUAL_PROJECT_STATUSES: ProjectStatus[] = [
-  'draft',
-  'on_hold',
-  'cancelled',
-];
-
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(updateProjectStatusRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+
   const store = getProjectStore();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
@@ -74,23 +73,7 @@ export async function PATCH(
     );
   }
 
-  const body = (await request.json()) as { status?: ProjectStatus };
-
-  if (!body.status || !MANUAL_PROJECT_STATUSES.includes(body.status)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: {
-          code: 'BAD_REQUEST',
-          message:
-            'Only draft, on hold, or cancelled can be set manually. Planning, in progress, and completed are derived automatically from Gantt execution.',
-        },
-      },
-      { status: 400 },
-    );
-  }
-
-  project.status = body.status;
+  project.status = parsed.data.status;
   await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: project });

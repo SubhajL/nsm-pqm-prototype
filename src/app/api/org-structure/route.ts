@@ -2,7 +2,13 @@ import { appendAuditLog } from '@/lib/audit-log-store';
 import { getCurrentApiUser } from '@/lib/project-api-access';
 import { addOrgUnit, deleteOrgUnit, getOrgStructureStore, updateOrgUnit } from '@/lib/org-structure-store';
 import { getUserStore } from '@/lib/user-store';
+import { parseRequestBody } from '@/lib/validation';
 import type { OrgUnit } from '@/types/admin';
+import {
+  createOrgUnitRequestSchema,
+  deleteOrgUnitRequestSchema,
+  updateOrgUnitRequestSchema,
+} from '@/types/admin.schema';
 
 export async function GET() {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -17,8 +23,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createOrgUnitRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
-  const body = (await request.json()) as Omit<OrgUnit, 'id' | 'userCount'>;
   const nextUnit: OrgUnit = {
     ...body,
     id: `dept-${crypto.randomUUID()}`,
@@ -33,11 +42,10 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-
-  const body = (await request.json()) as {
-    id: string;
-    updates: Partial<Omit<OrgUnit, 'id' | 'userCount'>>;
-  };
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(updateOrgUnitRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
   const updatedUnit = updateOrgUnit(body.id, body.updates);
 
@@ -55,8 +63,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(deleteOrgUnitRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
-  const body = (await request.json()) as { id: string };
   const store = getOrgStructureStore();
 
   if (store.some((unit) => unit.parentId === body.id)) {

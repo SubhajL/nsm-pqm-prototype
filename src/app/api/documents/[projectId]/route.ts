@@ -14,7 +14,12 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
+import { parseRequestBody } from '@/lib/validation';
 import type { DocumentFile, Folder, VersionEntry } from '@/types/document';
+import {
+  documentDeleteRequestSchema,
+  documentWriteRequestSchema,
+} from '@/types/document.schema';
 
 export async function GET(
   _request: Request,
@@ -34,6 +39,10 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(documentWriteRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -43,10 +52,7 @@ export async function POST(
     return forbiddenResponse('upload_document');
   }
 
-  const body = (await request.json()) as
-    | { kind: 'folder'; name: string; parentId: string | null }
-    | { kind: 'file'; folderId: string; name: string; type: string; size: string }
-    | { kind: 'version'; fileId: string; note: string };
+  const body = parsed.data;
 
   if (body.kind === 'folder') {
     const folder: Folder = {
@@ -111,6 +117,10 @@ export async function DELETE(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(documentDeleteRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -120,9 +130,7 @@ export async function DELETE(
     return forbiddenResponse('upload_document');
   }
 
-  const body = (await request.json()) as
-    | { kind: 'folder'; id: string }
-    | { kind: 'file'; id: string };
+  const body = parsed.data;
 
   if (body.kind === 'folder') {
     const deletedFolder = deleteDocumentFolder(params.projectId, body.id);

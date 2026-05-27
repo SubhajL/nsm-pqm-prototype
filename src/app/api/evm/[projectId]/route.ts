@@ -7,7 +7,12 @@ import {
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getEvmStore } from '@/lib/evm-store';
 import { getProjectStore } from '@/lib/project-store';
+import { parseRequestBody } from '@/lib/validation';
 import type { EVMDataPoint } from '@/types/evm';
+import {
+  createEvmDataPointRequestSchema,
+  deleteEvmDataPointRequestSchema,
+} from '@/types/evm.schema';
 import { getProjectExecutionModel } from '@/types/project';
 
 function formatMonthThai(month: string) {
@@ -42,6 +47,12 @@ export async function POST(
   await ensureProjectDemoStateHydrated();
   const store = getEvmStore();
   const projectStore = getProjectStore();
+
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createEvmDataPointRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -49,7 +60,6 @@ export async function POST(
     return forbiddenResponse('edit_evm');
   }
 
-  const body = (await request.json()) as Partial<EVMDataPoint>;
   const project = projectStore.find((entry) => entry.id === params.projectId);
 
   if (!project) {
@@ -63,16 +73,6 @@ export async function POST(
   }
 
   const executionModel = getProjectExecutionModel(project);
-
-  if (!body.month || body.pv === undefined || body.ev === undefined) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'month, pv, and ev are required' },
-      },
-      { status: 400 },
-    );
-  }
 
   const month = body.month;
   const monthThai = body.monthThai ?? formatMonthThai(month);
@@ -142,23 +142,17 @@ export async function DELETE(
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
   const store = getEvmStore();
+
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(deleteEvmDataPointRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_evm')) {
     return forbiddenResponse('edit_evm');
-  }
-
-  const body = (await request.json()) as { id?: string };
-
-  if (!body.id) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'id is required' },
-      },
-      { status: 400 },
-    );
   }
 
   const index = store.findIndex(

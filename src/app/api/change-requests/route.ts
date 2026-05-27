@@ -9,7 +9,12 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
+import { parseRequestBody } from '@/lib/validation';
 import type { ChangeRequest } from '@/types/document';
+import {
+  createChangeRequestRequestSchema,
+  decideChangeRequestRequestSchema,
+} from '@/types/document.schema';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -38,6 +43,11 @@ export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
 
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createChangeRequestRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const currentUser = getCurrentApiUser();
   if (!currentUser) {
     return Response.json(
@@ -45,16 +55,6 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-
-  const body = (await request.json()) as {
-    projectId: string;
-    title: string;
-    reason: string;
-    budgetImpact: number;
-    scheduleImpact: number;
-    linkedWbs: string;
-    priority: ChangeRequest['priority'];
-  };
 
   const forbidden = requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;
@@ -97,6 +97,11 @@ export async function PATCH(request: Request) {
   await ensureProjectDemoStateHydrated();
   const store: ChangeRequest[] = getChangeRequestStore();
 
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(decideChangeRequestRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const currentUser = getCurrentApiUser();
   if (!currentUser) {
     return Response.json(
@@ -104,11 +109,6 @@ export async function PATCH(request: Request) {
       { status: 401 },
     );
   }
-
-  const body = (await request.json()) as {
-    id: string;
-    action: 'approve' | 'reject' | 'return';
-  };
 
   const changeRequest = store.find((entry) => entry.id === body.id);
 

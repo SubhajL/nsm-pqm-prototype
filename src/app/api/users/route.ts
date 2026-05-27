@@ -4,7 +4,12 @@ import { getProjectStore } from '@/lib/project-store';
 import { appendAuditLog } from '@/lib/audit-log-store';
 import { getCurrentApiUser } from '@/lib/project-api-access';
 import { addUser, getUserStore, updateUser } from '@/lib/user-store';
+import { parseRequestBody } from '@/lib/validation';
 import type { User } from '@/types/admin';
+import {
+  createUserRequestSchema,
+  updateUserRequestSchema,
+} from '@/types/admin.schema';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -28,8 +33,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createUserRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
-  const body = (await request.json()) as Omit<User, 'id' | 'projectCount'>;
   const nextUser: User = {
     ...body,
     id: `user-${crypto.randomUUID()}`,
@@ -44,11 +52,10 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-
-  const body = (await request.json()) as {
-    id: string;
-    updates: Partial<Omit<User, 'id' | 'projectCount'>>;
-  };
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(updateUserRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
   const updatedUser = updateUser(body.id, body.updates);
 

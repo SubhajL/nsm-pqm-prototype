@@ -7,13 +7,9 @@ import {
 import { getDailyReportStore } from '@/lib/daily-report-store';
 import { pushNotification } from '@/lib/notification-store';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-import type { DailyReportStatus } from '@/types/daily-report';
+import { parseRequestBody } from '@/lib/validation';
+import { updateDailyReportStatusRequestSchema } from '@/types/daily-report.schema';
 import type { Notification } from '@/types/notification';
-
-interface UpdateDailyReportBody {
-  status?: DailyReportStatus;
-  note?: string;
-}
 
 export async function GET(
   _request: Request,
@@ -49,6 +45,20 @@ export async function PATCH(
   await ensureProjectDemoStateHydrated();
   const store = getDailyReportStore();
 
+  const rawText = await request.text();
+  let rawBody: unknown = {};
+  if (rawText) {
+    try {
+      rawBody = JSON.parse(rawText);
+    } catch {
+      rawBody = null;
+    }
+  }
+  const parsed = parseRequestBody(updateDailyReportStatusRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+  const nextStatus = body.status;
+
   const report = store.find((entry) => entry.id === params.id);
 
   if (!report) {
@@ -72,20 +82,6 @@ export async function PATCH(
         error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
       },
       { status: 401 },
-    );
-  }
-
-  const rawBody = await request.text();
-  const body = (rawBody ? JSON.parse(rawBody) : {}) as UpdateDailyReportBody;
-  const nextStatus = body.status;
-
-  if (!nextStatus) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'status is required' },
-      },
-      { status: 400 },
     );
   }
 

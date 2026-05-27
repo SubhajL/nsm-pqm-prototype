@@ -9,14 +9,8 @@ import { getDailyReportStore } from '@/lib/daily-report-store';
 import type { DailyReport } from '@/types/daily-report';
 import { persistMockUpload } from '@/lib/mock-upload-storage';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-
-interface DailyReportCreateMetadata extends Partial<DailyReport> {
-  photoMetadata?: Array<{
-    gpsLat?: number;
-    gpsLng?: number;
-    timestamp?: string;
-  }>;
-}
+import { parseRequestBody } from '@/lib/validation';
+import { createDailyReportRequestSchema } from '@/types/daily-report.schema';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -51,17 +45,22 @@ export async function POST(request: Request) {
 
   const contentType = request.headers.get('content-type') ?? '';
   const isMultipart = contentType.includes('multipart/form-data');
-  let body: DailyReportCreateMetadata = {};
+  let rawMetadata: unknown = null;
   let uploadedPhotoFiles: File[] = [];
   let uploadedAttachmentFiles: File[] = [];
 
   if (isMultipart) {
     const formData = await request.formData();
     const metadata = formData.get('metadata');
-    body =
-      typeof metadata === 'string'
-        ? (JSON.parse(metadata) as DailyReportCreateMetadata)
-        : {};
+    if (typeof metadata === 'string') {
+      try {
+        rawMetadata = JSON.parse(metadata);
+      } catch {
+        rawMetadata = null;
+      }
+    } else {
+      rawMetadata = {};
+    }
     uploadedPhotoFiles = formData
       .getAll('photoFiles')
       .filter((entry): entry is File => entry instanceof File && entry.size > 0);
@@ -69,18 +68,12 @@ export async function POST(request: Request) {
       .getAll('attachmentFiles')
       .filter((entry): entry is File => entry instanceof File && entry.size > 0);
   } else {
-    body = (await request.json()) as DailyReportCreateMetadata;
+    rawMetadata = await request.json().catch(() => null);
   }
 
-  if (!body.projectId) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'projectId is required' },
-      },
-      { status: 400 },
-    );
-  }
+  const parsed = parseRequestBody(createDailyReportRequestSchema, rawMetadata);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
   const forbidden = requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;

@@ -13,6 +13,12 @@ import {
   synchronizeItpStatuses,
 } from '@/lib/quality-consistency';
 import { getQualityStore } from '@/lib/quality-store';
+import { parseRequestBody } from '@/lib/validation';
+import {
+  createInspectionRequestSchema,
+  deleteInspectionRequestSchema,
+  updateInspectionRequestSchema,
+} from '@/types/quality.schema';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -51,28 +57,10 @@ export async function POST(request: Request) {
   const store = getQualityStore();
   const issueStore = getIssueStore();
 
-  const body = (await request.json()) as {
-    projectId?: string;
-    itpId?: string;
-    title?: string;
-    date?: string;
-    time?: string;
-    inspectors?: string[];
-    wbsLink?: string;
-    standards?: string[];
-    overallResult?: 'pass' | 'conditional';
-    failReason?: string;
-  };
-
-  if (!body.projectId) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'projectId is required' },
-      },
-      { status: 400 },
-    );
-  }
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createInspectionRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
   const forbidden = requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;
@@ -92,16 +80,6 @@ export async function POST(request: Request) {
       {
         status: 'error',
         error: { code: 'BAD_REQUEST', message: 'ไม่พบรายการ ITP ที่เลือก' },
-      },
-      { status: 400 },
-    );
-  }
-
-  if (!body.title?.trim() || !body.date || !body.time || !body.wbsLink?.trim()) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'title, date, time, and wbsLink are required' },
       },
       { status: 400 },
     );
@@ -171,22 +149,10 @@ export async function PATCH(request: Request) {
   const store = getQualityStore();
   const issueStore = getIssueStore();
 
-  const body = (await request.json()) as {
-    id?: string;
-    workflowStatus?: string;
-    checklistItemId?: string;
-    resolveAsPass?: boolean;
-  };
-
-  if (!body.id) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'id is required' },
-      },
-      { status: 400 },
-    );
-  }
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(updateInspectionRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
   const record = store.inspectionRecords.find((r) => r.id === body.id);
 
@@ -285,7 +251,7 @@ export async function PATCH(request: Request) {
     );
   }
 
-  record.workflowStatus = body.workflowStatus as 'draft' | 'confirmed' | 'signed';
+  record.workflowStatus = body.workflowStatus;
   await persistProjectDemoState();
 
   return Response.json({ status: 'success', data: record });
@@ -297,17 +263,10 @@ export async function DELETE(request: Request) {
   const store = getQualityStore();
   const issueStore = getIssueStore();
 
-  const body = (await request.json()) as { id?: string };
-
-  if (!body.id) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'id is required' },
-      },
-      { status: 400 },
-    );
-  }
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(deleteInspectionRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
   const index = store.inspectionRecords.findIndex((record) => record.id === body.id);
 

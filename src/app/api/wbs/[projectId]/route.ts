@@ -8,6 +8,8 @@ import { getActiveUser } from '@/lib/project-access';
 import { cookies } from 'next/headers';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getWbsStore } from '@/lib/wbs-store';
+import { parseRequestBody } from '@/lib/validation';
+import { createWbsNodeRequestSchema } from '@/types/wbs.schema';
 
 interface WBSNode {
   id: string;
@@ -19,11 +21,6 @@ interface WBSNode {
   progress: number;
   level: number;
   hasBOQ: boolean;
-}
-
-interface CreateWBSNodeRequest {
-  name?: string;
-  parentId?: string | null;
 }
 
 function getNextNodeCode(store: WBSNode[], projectId: string, parentId: string | null) {
@@ -71,6 +68,12 @@ export async function POST(
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
   const store = getWbsStore();
+
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createWbsNodeRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -80,19 +83,8 @@ export async function POST(
     return forbiddenResponse('edit_wbs');
   }
 
-  const body = (await request.json()) as CreateWBSNodeRequest;
-  const name = body.name?.trim();
+  const name = body.name.trim();
   const parentId = body.parentId ?? null;
-
-  if (!name) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'INVALID_WBS_NAME', message: 'กรุณาระบุชื่อ WBS' },
-      },
-      { status: 400 },
-    );
-  }
 
   const parentNode = parentId
     ? store.find(

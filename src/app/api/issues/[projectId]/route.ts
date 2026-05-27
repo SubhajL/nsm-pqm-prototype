@@ -6,7 +6,12 @@ import {
 } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getIssueStore } from '@/lib/issue-store';
+import { parseRequestBody } from '@/lib/validation';
 import type { Issue } from '@/types/risk';
+import {
+  createIssueRequestSchema,
+  updateIssueStatusRequestSchema,
+} from '@/types/risk.schema';
 
 export async function GET(
   request: Request,
@@ -37,23 +42,17 @@ export async function POST(
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
   const store = getIssueStore();
+
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createIssueRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_issue')) {
     return forbiddenResponse('edit_issue');
-  }
-
-  const body = (await request.json()) as Partial<Issue>;
-
-  if (!body.title?.trim() || !body.assignee?.trim()) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'title and assignee are required' },
-      },
-      { status: 400 },
-    );
   }
 
   const newIssue: Issue = {
@@ -85,15 +84,18 @@ export async function PATCH(
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
   const store = getIssueStore();
+
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(updateIssueStatusRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const { issueId, status: newStatus } = parsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_issue')) {
     return forbiddenResponse('edit_issue');
   }
-
-  const body = await request.json();
-  const { issueId, status: newStatus } = body as { issueId: string; status: string };
 
   const index = store.findIndex(
     (i) => i.id === issueId && i.projectId === params.projectId,
@@ -108,7 +110,7 @@ export async function PATCH(
 
   store[index] = {
     ...store[index],
-    status: newStatus as Issue['status'],
+    status: newStatus,
     closedAt: newStatus === 'closed' ? new Date().toISOString().split('T')[0] : store[index].closedAt,
   };
   await persistProjectDemoState();
