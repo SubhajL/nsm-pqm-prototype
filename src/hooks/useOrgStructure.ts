@@ -2,12 +2,23 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api-client';
-import type { OrgUnit } from '@/types/admin';
+import type { OrgUnit, OrgUnitWithUserCount } from '@/types/admin';
 
+/**
+ * Distributive `Omit` — when applied to a discriminated union, this preserves
+ * each branch separately instead of collapsing them into a single object
+ * type that drops branch-specific fields like `constructionTier`.
+ */
+type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+
+/**
+ * PR-17: the GET response returns `OrgUnitWithUserCount` — the canonical
+ * RidOrgUnit shape plus a derived `userCount` (not persisted on the unit).
+ */
 export function useOrgStructure() {
-  return useQuery<OrgUnit[]>({
+  return useQuery<OrgUnitWithUserCount[]>({
     queryKey: ['org-structure'],
-    queryFn: () => apiGet<OrgUnit[]>('/org-structure'),
+    queryFn: () => apiGet<OrgUnitWithUserCount[]>('/org-structure'),
   });
 }
 
@@ -15,7 +26,7 @@ export function useCreateOrgUnit() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: Omit<OrgUnit, 'id' | 'userCount'>) =>
+    mutationFn: (payload: DistributiveOmit<OrgUnit, 'id'>) =>
       apiPost('/org-structure', payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['org-structure'] });
@@ -30,7 +41,7 @@ export function useUpdateOrgUnit() {
   return useMutation({
     mutationFn: (payload: {
       id: string;
-      updates: Partial<Omit<OrgUnit, 'id' | 'userCount'>>;
+      updates: Partial<DistributiveOmit<OrgUnit, 'id'>>;
     }) => apiPatch('/org-structure', payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['org-structure'] });

@@ -161,6 +161,13 @@ export interface RidOrgUnitBase {
   nameEn: string | null;
   /** Null only for the root department. */
   parentId: string | null;
+  /**
+   * GFMIS cost-center code (PR-17). Nullable because RID-IT has not yet
+   * confirmed the canonical code list — once they ship the mapping, every
+   * non-null entry should match the agreed format. Cost centers apply at
+   * every org level because finance reporting rolls up through the tree.
+   */
+  costCenter: string | null;
 }
 
 export type RidOrgUnit = RidOrgUnitBase &

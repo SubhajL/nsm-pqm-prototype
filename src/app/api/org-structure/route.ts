@@ -1,22 +1,66 @@
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
-import { addOrgUnit, deleteOrgUnit, getOrgStructureStore, updateOrgUnit } from '@/lib/org-structure-store';
+import {
+  addOrgUnit,
+  deleteOrgUnit,
+  getOrgStructureStore,
+  getOrgUnitTreeFor,
+  getRootOrgUnit,
+  updateOrgUnit,
+  type RidOrgUnitTreeNode,
+} from '@/lib/org-structure-store';
 import { getUserStore } from '@/lib/user-store';
 import { parseRequestBody } from '@/lib/validation';
-import type { OrgUnit } from '@/types/admin';
+import type { OrgUnit, OrgUnitWithUserCount } from '@/types/admin';
 import {
   createOrgUnitRequestSchema,
   deleteOrgUnitRequestSchema,
   updateOrgUnitRequestSchema,
 } from '@/types/admin.schema';
 
-export async function GET() {
+/**
+ * Decorated tree-node shape returned when `?asTree=true` is requested: every
+ * node carries the derived `userCount` so the admin UI can render badges
+ * without a second pass over the user store.
+ */
+interface OrgUnitTreeNodeWithUserCount {
+  unit: OrgUnitWithUserCount;
+  children: OrgUnitTreeNodeWithUserCount[];
+}
+
+function decorateTreeWithUserCount(
+  node: RidOrgUnitTreeNode,
+  countsById: Map<string, number>,
+): OrgUnitTreeNodeWithUserCount {
+  return {
+    unit: { ...node.unit, userCount: countsById.get(node.unit.id) ?? 0 },
+    children: node.children.map((child) => decorateTreeWithUserCount(child, countsById)),
+  };
+}
+
+export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
 
-  const units = getOrgStructureStore().map((unit) => ({
+  const { searchParams } = new URL(request.url);
+  const asTree = searchParams.get('asTree') === 'true';
+
+  const users = getUserStore();
+  const countsById = new Map<string, number>();
+  for (const user of users) {
+    countsById.set(user.departmentId, (countsById.get(user.departmentId) ?? 0) + 1);
+  }
+
+  if (asTree) {
+    const root = getRootOrgUnit();
+    const tree = root ? getOrgUnitTreeFor(root.id) : null;
+    const decorated = tree ? decorateTreeWithUserCount(tree, countsById) : null;
+    return Response.json({ status: 'success', data: decorated });
+  }
+
+  const units: OrgUnitWithUserCount[] = getOrgStructureStore().map((unit) => ({
     ...unit,
-    userCount: getUserStore().filter((user) => user.departmentId === unit.id).length,
+    userCount: countsById.get(unit.id) ?? 0,
   }));
 
   return Response.json({ status: 'success', data: units });
@@ -30,11 +74,13 @@ export async function POST(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const nextUnit: OrgUnit = {
+  // The Zod discriminated union guarantees `body` is already a valid
+  // RidOrgUnit shape (sans `id`); the cast just plugs in the freshly minted
+  // id without re-narrowing the discriminator.
+  const nextUnit = {
     ...body,
     id: `dept-${crypto.randomUUID()}`,
-    userCount: 0,
-  };
+  } as OrgUnit;
 
   addOrgUnit(nextUnit);
   await recordAuditEvent(request, {

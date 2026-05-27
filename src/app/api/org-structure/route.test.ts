@@ -65,10 +65,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// PR-17: the org-unit body now follows the `RidOrgUnit` discriminated union
+// (PR-13 vocabulary). Persistence-test payload uses `kind: 'bureau'` to mimic
+// the existing flat seed entries; `costCenter: null` matches the post-PR-17
+// seed default (real codes pending RID-IT confirmation).
 const NEW_ORG_UNIT_PAYLOAD = {
+  kind: 'bureau' as const,
   name: 'หน่วยทดสอบความคงทน',
   nameEn: 'Persistence Test Unit',
   parentId: 'dept-root',
+  costCenter: null,
 };
 
 describe('POST /api/org-structure persistence (PR-07)', () => {
@@ -159,6 +165,51 @@ describe('PATCH /api/org-structure persistence (PR-07)', () => {
     expect(getOrgStructureStore().find((u) => u.id === createdId)?.nameEn).toBe(
       'Persistence Test Unit (Renamed)',
     );
+  });
+});
+
+describe('GET /api/org-structure (PR-17 asTree support)', () => {
+  it('default GET returns the flat list (back-compat)', async () => {
+    const { GET } = await import('./route');
+    const response = await GET(new Request('http://localhost/api/org-structure'));
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      status: string;
+      data: Array<{ id: string; kind: string; userCount: number }>;
+    };
+    expect(body.status).toBe('success');
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    // Every entry now carries the discriminator and the derived userCount.
+    for (const unit of body.data) {
+      expect(typeof unit.kind).toBe('string');
+      expect(typeof unit.userCount).toBe('number');
+    }
+  });
+
+  it('?asTree=true returns a nested tree rooted at the department', async () => {
+    const { GET } = await import('./route');
+    const response = await GET(
+      new Request('http://localhost/api/org-structure?asTree=true'),
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      status: string;
+      data: {
+        unit: { id: string; kind: string; userCount: number };
+        children: Array<{ unit: { id: string }; children: unknown[] }>;
+      } | null;
+    };
+    expect(body.status).toBe('success');
+    expect(body.data).not.toBeNull();
+    expect(body.data?.unit.id).toBe('dept-root');
+    expect(body.data?.unit.kind).toBe('department');
+    expect(Array.isArray(body.data?.children)).toBe(true);
+    expect(body.data!.children.length).toBeGreaterThan(0);
+    // A known seed grandchild lookup proves recursion.
+    const dept001 = body.data!.children.find((node) => node.unit.id === 'dept-001');
+    expect(dept001).toBeDefined();
+    expect(dept001!.children.length).toBeGreaterThan(0);
   });
 });
 

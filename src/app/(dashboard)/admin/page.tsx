@@ -43,13 +43,54 @@ import { useAuditLogs } from '@/hooks/useAuditLogs';
 import { useCreateUser, useUpdateUser, useUsers } from '@/hooks/useUsers';
 import { buildAdminUserExportDocument } from '@/lib/export-documents';
 import { downloadSpreadsheetReport } from '@/lib/export-utils';
-import type { OrgUnit, User } from '@/types/admin';
+import type { OrgUnit, OrgUnitWithUserCount, User } from '@/types/admin';
+
+// Distributive Omit preserves each discriminated-union branch separately —
+// without it, `Omit<OrgUnit, 'id'>` would drop the construction_office
+// branch's `constructionTier` qualifier when building the payload.
+type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+import {
+  PROJECT_SIZE_TIERS,
+  RID_ORG_UNIT_KINDS,
+  type ProjectSizeTier,
+  type RidOrgUnitKind,
+} from '@/types/rid/vocabulary';
+import { OrgUnitTreePicker } from '@/components/admin/OrgUnitTreePicker';
 import { COLORS } from '@/theme/antd-theme';
 import { formatThaiDateShort } from '@/lib/date-utils';
 
 const { Title, Text } = Typography;
 
-function buildTree(units: OrgUnit[]): DataNode[] {
+// PR-17: Thai labels for each RID org-unit kind, used in badges and form
+// dropdowns. Keys are exhaustively typed against `RidOrgUnitKind` so a new
+// kind in the vocabulary will surface as a TS error here.
+const ORG_KIND_LABELS: Record<RidOrgUnitKind, string> = {
+  department: 'กรม (Department)',
+  bureau: 'สำนัก/กอง (Bureau)',
+  regional_office: 'สำนักงานชลประทาน (Regional)',
+  construction_office: 'สำนักงานก่อสร้าง (Construction)',
+  provincial_office: 'โครงการชลประทานจังหวัด (Provincial)',
+  om_project: 'โครงการส่งน้ำและบำรุงรักษา (O&M)',
+  basin: 'ลุ่มน้ำ (Basin)',
+};
+
+const ORG_KIND_BADGE_COLORS: Record<RidOrgUnitKind, string> = {
+  department: 'magenta',
+  bureau: 'blue',
+  regional_office: 'geekblue',
+  construction_office: 'gold',
+  provincial_office: 'cyan',
+  om_project: 'green',
+  basin: 'purple',
+};
+
+const CONSTRUCTION_TIER_LABELS: Record<ProjectSizeTier, string> = {
+  small: 'ขนาดเล็ก (Small)',
+  medium: 'ขนาดกลาง (Medium)',
+  large: 'ขนาดใหญ่ (Large)',
+};
+
+function buildTree(units: OrgUnitWithUserCount[]): DataNode[] {
   const map = new Map<string, DataNode>();
   const roots: DataNode[] = [];
 
@@ -59,7 +100,23 @@ function buildTree(units: OrgUnit[]): DataNode[] {
       title: (
         <span>
           <ApartmentOutlined style={{ marginRight: 6, color: COLORS.accentTeal }} />
-          {unit.name}{' '}
+          {unit.name}
+          {unit.nameEn ? (
+            <Text type="secondary" style={{ marginLeft: 4, fontSize: 12 }}>
+              ({unit.nameEn})
+            </Text>
+          ) : null}
+          <Tag
+            color={ORG_KIND_BADGE_COLORS[unit.kind]}
+            style={{ marginLeft: 6, fontSize: 11 }}
+          >
+            {ORG_KIND_LABELS[unit.kind]}
+          </Tag>
+          {unit.costCenter ? (
+            <Tag color="default" style={{ marginLeft: 4, fontSize: 11 }}>
+              CC: {unit.costCenter}
+            </Tag>
+          ) : null}{' '}
           <Badge
             count={unit.userCount}
             style={{ backgroundColor: COLORS.accentTeal, marginLeft: 4 }}
@@ -95,9 +152,12 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 interface OrgUnitFormValues {
+  kind: RidOrgUnitKind;
   name: string;
-  nameEn: string;
+  nameEn: string | null;
   parentId: string | null;
+  costCenter: string | null;
+  constructionTier?: ProjectSizeTier | null;
 }
 
 interface UserFormValues {
@@ -244,14 +304,38 @@ export default function AdminManagementPage() {
     try {
       const values = await orgForm.validateFields();
 
+      // Normalize form values into PR-13's discriminated `RidOrgUnit` shape:
+      // `constructionTier` is only present on the `construction_office`
+      // branch, so we drop it for any other kind to keep the Zod
+      // discriminator happy.
+      const nameEn = values.nameEn?.trim() ? values.nameEn : null;
+      const costCenter = values.costCenter?.trim() ? values.costCenter : null;
+      const payload: DistributiveOmit<OrgUnit, 'id'> =
+        values.kind === 'construction_office'
+          ? {
+              kind: 'construction_office',
+              name: values.name,
+              nameEn,
+              parentId: values.parentId,
+              costCenter,
+              constructionTier: values.constructionTier ?? null,
+            }
+          : {
+              kind: values.kind,
+              name: values.name,
+              nameEn,
+              parentId: values.parentId,
+              costCenter,
+            };
+
       if (orgModalMode === 'create') {
-        const createdUnit = (await createOrgUnit.mutateAsync(values)) as OrgUnit;
+        const createdUnit = (await createOrgUnit.mutateAsync(payload)) as OrgUnit;
         setSelectedDeptId(createdUnit.id);
         message.success(`เพิ่มหน่วยงาน ${values.name} แล้ว`);
       } else if (selectedDept) {
         await updateOrgUnit.mutateAsync({
           id: selectedDept.id,
-          updates: values,
+          updates: payload,
         });
         message.success(`แก้ไขหน่วยงาน ${values.name} แล้ว`);
       }
@@ -352,8 +436,11 @@ export default function AdminManagementPage() {
                           }}
                           onClick={() => {
                             setOrgModalMode('create');
+                            orgForm.resetFields();
                             orgForm.setFieldsValue({
+                              kind: 'bureau',
                               parentId: selectedDeptId,
+                              costCenter: null,
                             });
                             setOrgModalOpen(true);
                           }}
@@ -365,10 +452,17 @@ export default function AdminManagementPage() {
                           onClick={() => {
                             if (!selectedDept) return;
                             setOrgModalMode('edit');
+                            orgForm.resetFields();
                             orgForm.setFieldsValue({
+                              kind: selectedDept.kind,
                               name: selectedDept.name,
                               nameEn: selectedDept.nameEn,
                               parentId: selectedDept.parentId,
+                              costCenter: selectedDept.costCenter,
+                              constructionTier:
+                                selectedDept.kind === 'construction_office'
+                                  ? selectedDept.constructionTier
+                                  : null,
                             });
                             setOrgModalOpen(true);
                           }}
@@ -502,25 +596,57 @@ export default function AdminManagementPage() {
       >
         <Form layout="vertical" form={orgForm}>
           <Form.Item
+            label="ประเภทหน่วยงาน (Kind)"
+            name="kind"
+            rules={[{ required: true, message: 'กรุณาเลือกประเภทหน่วยงาน' }]}
+          >
+            <Select
+              aria-label="ประเภทหน่วยงาน"
+              options={RID_ORG_UNIT_KINDS.map((kind) => ({
+                value: kind,
+                label: ORG_KIND_LABELS[kind],
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
             label="ชื่อหน่วยงาน"
             name="name"
             rules={[{ required: true, message: 'กรุณาระบุชื่อหน่วยงาน' }]}
           >
             <Input aria-label="ชื่อหน่วยงาน" />
           </Form.Item>
-          <Form.Item
-            label="ชื่อภาษาอังกฤษ"
-            name="nameEn"
-            rules={[{ required: true, message: 'กรุณาระบุชื่อภาษาอังกฤษ' }]}
-          >
+          <Form.Item label="ชื่อภาษาอังกฤษ (English name)" name="nameEn">
             <Input aria-label="ชื่อภาษาอังกฤษ" />
           </Form.Item>
-          <Form.Item label="หน่วยงานแม่" name="parentId">
-            <Select
-              aria-label="หน่วยงานแม่"
-              allowClear
-              options={orgUnits?.map((unit) => ({ value: unit.id, label: unit.name }))}
+          <Form.Item label="หน่วยงานแม่ (Parent unit)" name="parentId">
+            <OrgUnitTreePicker
+              units={orgUnits ?? []}
+              ariaLabel="หน่วยงานแม่"
             />
+          </Form.Item>
+          <Form.Item label="รหัสศูนย์ต้นทุน (Cost center)" name="costCenter">
+            <Input aria-label="รหัสศูนย์ต้นทุน" placeholder="เช่น CC-1234 (รอ RID-IT ยืนยันรูปแบบ)" />
+          </Form.Item>
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev: OrgUnitFormValues, next: OrgUnitFormValues) =>
+              prev.kind !== next.kind
+            }
+          >
+            {() =>
+              orgForm.getFieldValue('kind') === 'construction_office' ? (
+                <Form.Item label="ระดับสำนักงานก่อสร้าง (Construction tier)" name="constructionTier">
+                  <Select
+                    aria-label="ระดับสำนักงานก่อสร้าง"
+                    allowClear
+                    options={PROJECT_SIZE_TIERS.map((tier) => ({
+                      value: tier,
+                      label: CONSTRUCTION_TIER_LABELS[tier],
+                    }))}
+                  />
+                </Form.Item>
+              ) : null
+            }
           </Form.Item>
         </Form>
       </Modal>
@@ -576,9 +702,9 @@ export default function AdminManagementPage() {
             name="departmentId"
             rules={[{ required: true, message: 'กรุณาเลือกหน่วยงาน' }]}
           >
-            <Select
-              aria-label="สังกัดหน่วยงาน"
-              options={orgUnits?.map((unit) => ({ value: unit.id, label: unit.name }))}
+            <OrgUnitTreePicker
+              units={orgUnits ?? []}
+              ariaLabel="สังกัดหน่วยงาน"
             />
           </Form.Item>
           <Form.Item
