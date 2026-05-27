@@ -178,7 +178,7 @@ export default function ProjectEvaluationPage() {
                 <span
                   style={{
                     fontSize: 16,
-                    color: '#8c8c8c',
+                    color: COLORS.textMuted,
                     lineHeight: 1.2,
                   }}
                 >

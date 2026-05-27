@@ -295,7 +295,7 @@ function WeightingMethodCard({
         size="small"
         locale={{ emptyText: 'ยังไม่มีข้อมูล WBS สำหรับโครงการนี้' }}
         summary={() => (
-          <Table.Summary.Row style={{ backgroundColor: '#f0f2f5' }}>
+          <Table.Summary.Row style={{ backgroundColor: COLORS.tableHeaderBg }}>
             <Table.Summary.Cell index={0} colSpan={2}>
               <Text strong>รวม (Total)</Text>
             </Table.Summary.Cell>
@@ -374,7 +374,7 @@ function PhysicalProgressCard({
         style={{
           marginTop: 16,
           padding: '12px 16px',
-          backgroundColor: '#f6ffed',
+          backgroundColor: COLORS.successBg,
           border: `1px solid ${COLORS.success}`,
           borderRadius: 8,
           textAlign: 'center',
@@ -521,7 +521,7 @@ function SummaryCard({
         style={{
           marginTop: 20,
           padding: '12px 16px',
-          backgroundColor: '#f5f7fa',
+          backgroundColor: COLORS.bgLayout,
           borderRadius: 8,
           border: `1px solid ${COLORS.borderLight}`,
         }}

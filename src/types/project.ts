@@ -66,9 +66,11 @@ export function isOutsourcedProject(
   return getProjectExecutionModel(project) === 'outsourced';
 }
 
+import { COLORS } from '@/theme/antd-theme';
+
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, { th: string; en: string; color: string }> = {
   draft: { th: 'ร่าง', en: 'Draft', color: 'default' },
-  planning: { th: 'วางแผน', en: 'Planning', color: '#2D6BFF' },
+  planning: { th: 'วางแผน', en: 'Planning', color: COLORS.info },
   in_progress: { th: 'กำลังดำเนินการ', en: 'In Progress', color: 'processing' },
   on_hold: { th: 'หยุดชั่วคราว', en: 'On Hold', color: 'warning' },
   completed: { th: 'เสร็จสิ้น', en: 'Completed', color: 'success' },

@@ -1,3 +1,28 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "root": true,
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "Literal[value=/^#[0-9a-fA-F]{6}$/]",
+        "message": "Use COLORS tokens from src/theme/antd-theme.ts instead of hex literals. If a new token is needed, add it to the palette first."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/theme/**/*.{ts,tsx}",
+        "src/lib/export-utils.ts",
+        "src/lib/export-documents.ts",
+        "tests/**/*.{ts,tsx}",
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-syntax": "off"
+      }
+    }
+  ]
 }

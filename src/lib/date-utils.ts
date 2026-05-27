@@ -27,9 +27,26 @@ export function formatThaiDateShort(isoDate: string): string {
   return `${day} ${month} ${beYear}`;
 }
 
-/** Format number as Thai Baht */
+/**
+ * Format number with Thai locale grouping (no currency symbol).
+ * Also used for non-currency quantities — keep this helper symbol-free.
+ */
 export function formatBaht(amount: number): string {
   return new Intl.NumberFormat('th-TH', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+/**
+ * Format a monetary amount as Thai Baht with the currency symbol.
+ * Uses Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
+ * so the ฿ symbol position is locale-aware (never hardcoded at the call site).
+ */
+export function formatBahtCurrency(amount: number): string {
+  return new Intl.NumberFormat('th-TH', {
+    style: 'currency',
+    currency: 'THB',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);

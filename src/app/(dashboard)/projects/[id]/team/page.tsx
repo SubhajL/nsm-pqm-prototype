@@ -234,7 +234,7 @@ export default function ProjectTeamPage() {
                   style={{
                     height: '100%',
                     borderRadius: 8,
-                    borderColor: '#E8ECF1',
+                    borderColor: COLORS.borderLight,
                   }}
                 >
                   <Space align="start" size={12} style={{ width: '100%' }}>

@@ -58,7 +58,7 @@ function getTypeIcon(type: NotificationType) {
     case 'risk':
       return <ExclamationCircleOutlined style={{ color: COLORS.warning }} />;
     case 'system':
-      return <ToolOutlined style={{ color: '#8c8c8c' }} />;
+      return <ToolOutlined style={{ color: COLORS.textMuted }} />;
     default:
       return <BellOutlined />;
   }
@@ -196,7 +196,7 @@ export default function NotificationCenterPage() {
                     key={item.id}
                     style={{
                       borderLeft: `4px solid ${borderColor}`,
-                      backgroundColor: isUnread ? '#f0f7ff' : '#ffffff',
+                      backgroundColor: isUnread ? COLORS.infoBg : COLORS.white,
                       padding: '16px 20px',
                       display: 'flex',
                       alignItems: 'flex-start',

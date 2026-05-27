@@ -39,7 +39,7 @@ import { useEVM } from '@/hooks/useEVM';
 import { useGantt } from '@/hooks/useGantt';
 import { KPICard } from '@/components/common/KPICard';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { formatBaht, formatBahtShort, formatThaiDateShort } from '@/lib/date-utils';
+import { formatBahtCurrency, formatBahtShort, formatThaiDateShort } from '@/lib/date-utils';
 import {
   deriveCurrentMilestoneNumber,
 } from '@/lib/project-milestone-derivations';
@@ -301,14 +301,14 @@ export default function ProjectOverviewPage() {
             onClick={() => router.push(`/projects/${projectId}/s-curve`)}
             extraContent={
               <>
-                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 6 }}>
                   {budgetSpentLabel}
                 </div>
                 <Progress
                   percent={budget > 0 ? Number(((budgetSpent / budget) * 100).toFixed(1)) : 0}
                   size="small"
                   strokeColor={COLORS.info}
-                  format={() => `${formatBaht(budgetSpent)}฿`}
+                  format={() => formatBahtCurrency(budgetSpent)}
                 />
               </>
             }
@@ -319,7 +319,7 @@ export default function ProjectOverviewPage() {
             title="SPI"
             value={spi.toFixed(2)}
             icon={<WarningOutlined />}
-            color="#F39C12"
+            color={COLORS.warning}
             subtitle="Schedule Performance Index"
             onClick={() => router.push(`/projects/${projectId}/s-curve`)}
           />
@@ -335,7 +335,7 @@ export default function ProjectOverviewPage() {
                   : '0.00'
             }
             icon={<CheckCircleOutlined />}
-            color="#27AE60"
+            color={COLORS.success}
             subtitle={
               executionModel === 'outsourced'
                 ? 'Paid to Date'
@@ -357,7 +357,7 @@ export default function ProjectOverviewPage() {
             title="ปัญหาเปิด"
             value={openIssues}
             icon={<BugOutlined />}
-            color="#E74C3C"
+            color={COLORS.error}
             onClick={() => router.push(`/projects/${projectId}/issues`)}
           />
         </Col>
@@ -366,7 +366,7 @@ export default function ProjectOverviewPage() {
             title="ความเสี่ยงสูง"
             value={highRisks}
             icon={<WarningOutlined />}
-            color="#F39C12"
+            color={COLORS.warning}
             onClick={() => router.push(`/projects/${projectId}/risk`)}
           />
         </Col>
@@ -425,7 +425,7 @@ export default function ProjectOverviewPage() {
                   description: (
                     <div style={{ paddingTop: 4 }}>
                       <Text>
-                        {formatBaht(ms.amount)}฿ &middot; กำหนด{' '}
+                        {formatBahtCurrency(ms.amount)} &middot; กำหนด{' '}
                         {formatThaiDateShort(ms.dueDate)}
                       </Text>
                       {isCompleted && (

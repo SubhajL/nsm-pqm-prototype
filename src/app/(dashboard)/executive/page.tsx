@@ -265,10 +265,10 @@ export default function ExecutiveDashboardPage() {
         title="โครงการที่ต้องติดตามเป็นพิเศษ (Critical Watchlist)"
         style={{
           marginBottom: 24,
-          background: '#fff2f0',
-          borderColor: '#ffccc7',
+          background: COLORS.errorBg,
+          borderColor: COLORS.errorBorder,
         }}
-        styles={{ header: { background: '#fff2f0' } }}
+        styles={{ header: { background: COLORS.errorBg } }}
       >
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>

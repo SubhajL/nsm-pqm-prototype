@@ -2,7 +2,7 @@
 
 import { EChartsWrapper } from './EChartsWrapper';
 import type { EChartsOption } from 'echarts';
-import { CHART_COLORS } from '@/theme/antd-theme';
+import { CHART_COLORS, COLORS } from '@/theme/antd-theme';
 
 interface RadarDataItem {
   dimension: string;
@@ -39,7 +39,7 @@ export function RadarChart({ data, maxScore = 5, height = 300 }: RadarChartProps
       },
       splitArea: {
         areaStyle: {
-          color: ['#fff', '#f5f5f5', '#fff', '#f5f5f5', '#fff'],
+          color: ['#fff', COLORS.surfaceSoft, '#fff', COLORS.surfaceSoft, '#fff'],
         },
       },
     },

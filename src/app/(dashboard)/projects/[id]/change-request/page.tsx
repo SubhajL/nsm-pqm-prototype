@@ -33,7 +33,7 @@ import {
 } from '@/hooks/useChangeRequests';
 import { useRouteProjectId } from '@/hooks/useRouteProjectId';
 import { COLORS } from '@/theme/antd-theme';
-import { formatBaht, formatThaiDate } from '@/lib/date-utils';
+import { formatBaht, formatBahtCurrency, formatThaiDate } from '@/lib/date-utils';
 import type { ChangeRequest } from '@/types/document';
 import { CR_PRIORITY_LABELS, CR_STATUS_LABELS } from '@/types/document';
 
@@ -156,7 +156,7 @@ export default function ChangeRequestPage() {
           }}
         >
           {value > 0 ? '+' : ''}
-          {formatBaht(value)} ฿
+          {formatBahtCurrency(value)}
         </span>
       ),
     },
@@ -249,7 +249,7 @@ export default function ChangeRequestPage() {
                   <ArrowUpOutlined style={{ marginRight: 4 }} />
                 ) : null}
                 {selectedChangeRequest.budgetImpact > 0 ? '+' : ''}
-                {formatBaht(selectedChangeRequest.budgetImpact)} ฿
+                {formatBahtCurrency(selectedChangeRequest.budgetImpact)}
               </span>
             </Descriptions.Item>
             <Descriptions.Item label="ผลกระทบเวลา (Schedule Impact)">
@@ -332,7 +332,7 @@ export default function ChangeRequestPage() {
         style={{
           borderRadius: 8,
           boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-          background: '#f8f9fa',
+          background: COLORS.surfaceCoolAlt,
         }}
         styles={{ body: { padding: '12px 24px' } }}
       >

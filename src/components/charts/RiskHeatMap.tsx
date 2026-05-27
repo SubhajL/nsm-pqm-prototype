@@ -2,7 +2,7 @@
 
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
-import { CHART_COLORS } from '@/theme/antd-theme';
+import { CHART_COLORS, COLORS } from '@/theme/antd-theme';
 import type { Risk } from '@/types/risk';
 
 interface RiskHeatMapProps {
@@ -79,13 +79,13 @@ export function RiskHeatMap({ risks, height = 400 }: RiskHeatMapProps) {
       max: 25,
       show: false,
       inRange: {
-        color: ['#27AE60', '#F1C40F', '#E67E22', '#E74C3C'],
+        color: [COLORS.success, COLORS.riskMedium, COLORS.riskHigh, COLORS.error],
       },
       pieces: [
-        { min: 1, max: 4, color: '#27AE60' },
-        { min: 5, max: 9, color: '#F1C40F' },
-        { min: 10, max: 15, color: '#E67E22' },
-        { min: 16, max: 25, color: '#E74C3C' },
+        { min: 1, max: 4, color: COLORS.success },
+        { min: 5, max: 9, color: COLORS.riskMedium },
+        { min: 10, max: 15, color: COLORS.riskHigh },
+        { min: 16, max: 25, color: COLORS.error },
       ],
       type: 'piecewise',
     },

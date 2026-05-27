@@ -51,7 +51,7 @@ export function KPICard({
       style={{
         borderRadius: 8,
         cursor: isInteractive ? 'pointer' : 'default',
-        borderColor: active ? color : '#f0f0f0',
+        borderColor: active ? color : COLORS.borderSoft,
         boxShadow: active ? `0 0 0 2px ${color}33, 0 8px 20px rgba(0,0,0,0.10)` : '0 2px 10px rgba(0,0,0,0.08)',
         transition: 'all 0.2s ease',
       }}
@@ -76,7 +76,7 @@ export function KPICard({
             valueStyle={{ fontSize: 28, fontWeight: 600, color }}
           />
           {subtitle && (
-            <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4 }}>
               {subtitle}
             </div>
           )}

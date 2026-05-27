@@ -6,6 +6,7 @@ import { Suspense, useEffect } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { useAppStore } from '@/stores/useAppStore';
+import { COLORS } from '@/theme/antd-theme';
 import DashboardLoading from './loading';
 
 const { Content } = Layout;
@@ -51,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <Layout style={{ marginLeft, transition: 'margin-left 0.2s' }}>
         <Header />
-        <Content style={{ padding: isMobile ? 12 : 24, background: '#F5F7FA', minHeight: 'calc(100vh - 60px)' }}>
+        <Content style={{ padding: isMobile ? 12 : 24, background: COLORS.bgLayout, minHeight: 'calc(100vh - 60px)' }}>
           <Suspense fallback={<DashboardLoading />}>
             {children}
           </Suspense>
