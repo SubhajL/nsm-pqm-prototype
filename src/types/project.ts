@@ -1,7 +1,19 @@
+import type { DeliveryMethod } from '@/types/rid/vocabulary';
+
 export type ProjectType = 'construction' | 'it' | 'equipment' | 'academic' | 'renovation';
 export type ProjectStatus = 'draft' | 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
 export type ProjectScheduleHealth = 'on_schedule' | 'watch' | 'delayed';
-export type ProjectExecutionModel = 'internal' | 'outsourced';
+
+/**
+ * Project execution model.
+ *
+ * @deprecated Renamed to `DeliveryMethod` in `@/types/rid/vocabulary`. The
+ * legacy `'internal' | 'outsourced'` union has been replaced by
+ * `'in_house' | 'outsourced' | 'consultant_supervised'` (PR-13, MVP plan).
+ * This alias is retained for one release for back-compat — migrate new
+ * callers to `DeliveryMethod` directly.
+ */
+export type ProjectExecutionModel = DeliveryMethod;
 
 export interface Project {
   id: string;
@@ -50,14 +62,15 @@ export const PROJECT_TYPE_LABELS: Record<ProjectType, { th: string; en: string }
 };
 
 export const PROJECT_EXECUTION_MODEL_LABELS: Record<ProjectExecutionModel, { th: string; en: string }> = {
-  internal: { th: 'โครงการภายใน', en: 'Internal Project' },
-  outsourced: { th: 'จ้างภายนอก', en: 'Outsourced Project' },
+  in_house: { th: 'ดำเนินการเอง', en: 'In-House Project' },
+  outsourced: { th: 'จ้างเหมา', en: 'Outsourced Project' },
+  consultant_supervised: { th: 'ที่ปรึกษากำกับ', en: 'Consultant Supervised' },
 };
 
 export function getProjectExecutionModel(
   project: Pick<Project, 'executionModel'> | undefined,
 ): ProjectExecutionModel {
-  return project?.executionModel ?? 'internal';
+  return project?.executionModel ?? 'in_house';
 }
 
 export function isOutsourcedProject(

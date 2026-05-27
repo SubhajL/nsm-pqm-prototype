@@ -18,7 +18,7 @@ async function selectOptionByFormLabel(
 }
 
 async function createProject(page: import('@playwright/test').Page, projectName: string) {
-  return createProjectWithExecutionModel(page, projectName, 'โครงการภายใน');
+  return createProjectWithExecutionModel(page, projectName, 'ดำเนินการเอง');
 }
 
 async function createProjectWithExecutionModel(
@@ -129,7 +129,7 @@ test.describe('new-project bootstrap state', () => {
     const projectId = await createProjectWithExecutionModel(
       page,
       projectName,
-      'จ้างภายนอก',
+      'จ้างเหมา',
     );
 
     await page.goto(`/projects/${projectId}/s-curve`);

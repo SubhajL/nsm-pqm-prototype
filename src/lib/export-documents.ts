@@ -228,17 +228,17 @@ export function buildEvmPdfDocument(options: {
       ? [
           { label: 'SPI', value: options.metrics.spi.toFixed(2), tone: options.metrics.spi >= 1 ? 'success' : 'warning' },
           {
-            label: options.metrics.mode === 'internal' ? 'CPI' : 'Paid/BAC',
+            label: options.metrics.mode === 'in_house' ? 'CPI' : 'Paid/BAC',
             value:
-              options.metrics.mode === 'internal'
+              options.metrics.mode === 'in_house'
                 ? options.metrics.cpi.toFixed(2)
                 : `${options.metrics.paidPercent.toFixed(1)}%`,
             tone: 'neutral',
           },
           { label: 'EV', value: `${formatBaht(options.metrics.ev)} ฿`, tone: 'neutral' },
           {
-            label: options.metrics.mode === 'internal' ? 'AC' : 'Paid to Date',
-            value: `${formatBaht(options.metrics.mode === 'internal' ? options.metrics.ac : options.metrics.paidToDate)} ฿`,
+            label: options.metrics.mode === 'in_house' ? 'AC' : 'Paid to Date',
+            value: `${formatBaht(options.metrics.mode === 'in_house' ? options.metrics.ac : options.metrics.paidToDate)} ฿`,
             tone: 'neutral',
           },
         ]
@@ -274,8 +274,8 @@ export function buildEvmExcelDocument(options: {
         ['PV', `${formatBaht(options.metrics.pv)} ฿`],
         ['EV', `${formatBaht(options.metrics.ev)} ฿`],
         [
-          options.metrics.mode === 'internal' ? 'AC' : 'Paid to Date',
-          `${formatBaht(options.metrics.mode === 'internal' ? options.metrics.ac : options.metrics.paidToDate)} ฿`,
+          options.metrics.mode === 'in_house' ? 'AC' : 'Paid to Date',
+          `${formatBaht(options.metrics.mode === 'in_house' ? options.metrics.ac : options.metrics.paidToDate)} ฿`,
         ],
         ['SPI', options.metrics.spi.toFixed(2)],
       ]

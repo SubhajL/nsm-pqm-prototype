@@ -34,7 +34,7 @@ test.describe('project EVM and quality write flows', () => {
     await selectOptionByFormLabel(
       page,
       'รูปแบบการดำเนินโครงการ (Execution Model)',
-      'โครงการภายใน',
+      'ดำเนินการเอง',
     );
     await page.getByPlaceholder('ระบุวัตถุประสงค์ของโครงการ').fill('EVM CRUD validation');
     await page.getByPlaceholder('ระบุรายละเอียดเพิ่มเติม (ถ้ามี)').fill('Created by Playwright');

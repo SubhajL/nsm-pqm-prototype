@@ -32,7 +32,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     name: 'Test Project',
     nameEn: 'Test Project',
     type: 'construction',
-    executionModel: 'internal',
+    executionModel: 'in_house',
     status: 'planning',
     budget: 1_000_000,
     progress: 0,

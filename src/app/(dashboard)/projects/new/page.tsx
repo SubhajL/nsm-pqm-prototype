@@ -581,7 +581,7 @@ export default function NewProjectPage() {
           requiredMark="optional"
           initialValues={{
             budget: TOTAL_BUDGET,
-            executionModel: 'internal',
+            executionModel: 'in_house',
           }}
         >
           {/* ===== Section 1: Basic Info ===== */}

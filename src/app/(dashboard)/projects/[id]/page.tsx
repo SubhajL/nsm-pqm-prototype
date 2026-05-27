@@ -245,7 +245,7 @@ export default function ProjectOverviewPage() {
   const budgetSpent =
     evmMetrics?.mode === 'outsourced'
       ? evmMetrics.paidToDate
-      : evmMetrics?.mode === 'internal'
+      : evmMetrics?.mode === 'in_house'
         ? evmMetrics.ac
         : budget * projectProgress;
   const budgetSpentLabel =
@@ -330,7 +330,7 @@ export default function ProjectOverviewPage() {
             value={
               executionModel === 'outsourced'
                 ? formatBahtShort(budgetSpent)
-                : evmMetrics?.mode === 'internal'
+                : evmMetrics?.mode === 'in_house'
                   ? evmMetrics.cpi.toFixed(2)
                   : '0.00'
             }

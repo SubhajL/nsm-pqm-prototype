@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { DELIVERY_METHODS } from '@/types/rid/vocabulary';
+
 /**
  * Zod schemas for the `project` domain.
  *
@@ -31,7 +33,7 @@ export const projectScheduleHealthSchema = z.enum([
   'delayed',
 ]);
 
-export const projectExecutionModelSchema = z.enum(['internal', 'outsourced']);
+export const projectExecutionModelSchema = z.enum(DELIVERY_METHODS);
 
 const milestoneInputSchema = z.object({
   milestone: z.number(),
