@@ -1,106 +1,40 @@
-# Gantt Chart — dhtmlxGantt Integration
+# Gantt Chart — Hand-Rolled AntD Table Implementation
 
-**Technology**: dhtmlxGantt 8.x (evaluation/GPL version)
+**Technology**: Hand-rolled Gantt using Ant Design `<Table>` + inline CSS (no third-party Gantt library)
 **Parent Context**: [../../CLAUDE.md](../../../CLAUDE.md)
+**Primary location**: `src/app/(dashboard)/projects/[id]/gantt/page.tsx`
 
-## Critical Rules
+## Why Hand-Rolled
 
-- **MUST** wrap the Gantt component with `dynamic(() => import(...), { ssr: false })` — dhtmlxGantt requires DOM
-- **MUST** initialize gantt in `useEffect` with `useRef` — never in render body
-- **MUST** call `gantt.clearAll()` in the useEffect cleanup to prevent memory leaks
-- **MUST NOT** re-initialize gantt on every render — check ref before calling `gantt.init()`
-- **MUST** import CSS: `import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'`
+No Gantt npm package is installed (verify with `grep -i gantt package.json`). The Gantt view is built as a custom Ant Design `<Table>` with a calendar header and absolutely-positioned bars per row. This keeps the prototype free of large GPL/commercial dependencies while still demonstrating the planning view.
 
-## Initialization Pattern
+## Key Patterns
 
-```typescript
-'use client';
+### 1. Row-Tree Builder
+- WBS items are flattened from `src/data/wbs.json` into a list of rows ordered by parent-child traversal.
+- Each row carries `level` (indent depth) and `hasChildren` flags so the AntD `<Table>` `expandable` API can render the tree controls.
+- Phase/parent rows render as summary bars (spanning the date range of their children); leaf tasks render with start/end + progress.
 
-import { useEffect, useRef } from 'react';
-import { gantt } from 'dhtmlx-gantt';
-import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
+### 2. Custom Date Math
+- Date arithmetic is done with plain `Date` objects (no `dayjs`/`moment` in this view) — `dayMs = 24 * 60 * 60 * 1000`, `Math.round((d - origin) / dayMs)`.
+- The visible window is computed from `min(plannedStart)` and `max(plannedEnd)` across all tasks, padded by a few days.
+- Bar `left` and `width` are computed as percentages of the window so the table column resizes responsively.
 
-interface GanttChartProps {
-  tasks: GanttTask[];
-  links: GanttLink[];
-}
+### 3. Baseline Bar Overlay via `<style jsx>`
+- Each row renders TWO overlapping bars in the timeline column: a baseline bar (planned dates) and an actual bar (actual progress).
+- Colors and stripes are defined inline via Next.js `<style jsx>` rather than Tailwind, because the bar geometry depends on per-row computed `left`/`width` values that cannot be expressed as static utility classes.
+- The baseline bar uses a striped background to visually distinguish "planned" from "actual" without needing a legend.
 
-export function GanttChart({ tasks, links }: GanttChartProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const initializedRef = useRef(false);
+### 4. Progress Propagation via `project-execution-sync.ts`
+- When a user edits a leaf task's progress in the Gantt, the change is written through `src/lib/project-execution-sync.ts` rather than directly to the WBS store.
+- `project-execution-sync.ts` recomputes parent/phase progress as a weighted average of child progress, then persists the updated WBS snapshot via `project-demo-state.ts`.
+- This keeps Gantt, WBS tree, and EVM views in sync without each view needing its own propagation logic.
 
-  useEffect(() => {
-    if (!containerRef.current || initializedRef.current) return;
+## What This Does Not Have
 
-    // Configure BEFORE init
-    gantt.config.date_format = '%Y-%m-%d';
-    gantt.config.scale_unit = 'month';
-    gantt.config.highlight_critical_path = true;
-    gantt.config.show_progress = true;
-    gantt.config.readonly = false;
+- No critical-path computation (no CPM algorithm in the codebase).
+- No drag-to-resize bars (read/edit happens via row-level controls and forms).
+- No dependency arrows between bars (dependencies live in the data model but are not drawn).
+- No zoom controls beyond the static day/week/month scale chosen at render time.
 
-    // Thai locale
-    gantt.locale.labels.section_description = 'รายละเอียด';
-    gantt.locale.labels.section_time = 'ระยะเวลา';
-
-    // Columns
-    gantt.config.columns = [
-      { name: 'text', label: 'กิจกรรม', width: 200, tree: true },
-      { name: 'owner', label: 'ผู้รับผิดชอบ', width: 100 },
-      { name: 'progress', label: '%', width: 50, template: (task) => Math.round(task.progress * 100) + '%' },
-      { name: 'add', width: 44 },
-    ];
-
-    gantt.init(containerRef.current);
-    gantt.parse({ data: tasks, links });
-    initializedRef.current = true;
-
-    return () => {
-      gantt.clearAll();
-      initializedRef.current = false;
-    };
-  }, [tasks, links]);
-
-  return <div ref={containerRef} style={{ width: '100%', height: '500px' }} />;
-}
-```
-
-## Dependency Types
-
-| Type | Code | Description | Thai | Example |
-|---|---|---|---|---|
-| FS | 0 | Finish-to-Start | ทำ A เสร็จ → เริ่ม B | Pour concrete → Remove formwork |
-| SS | 1 | Start-to-Start | เริ่ม A → เริ่ม B | Excavation → Soil removal |
-| FF | 2 | Finish-to-Finish | เสร็จ A → เสร็จ B | Paint → Clean up |
-| SF | 3 | Start-to-Finish | เริ่ม A → เสร็จ B | New system on → Old system off |
-
-## Critical Path Styling
-
-```javascript
-gantt.templates.task_class = function(start, end, task) {
-  if (task.$critical) return 'critical-task';
-  if (task.progress === 1) return 'completed-task';
-  return '';
-};
-```
-
-Custom CSS for critical path:
-```css
-.critical-task .gantt_task_progress { background: #E74C3C; }
-.critical-task .gantt_task_line { border-color: #E74C3C; }
-.completed-task .gantt_task_progress { background: #27AE60; }
-```
-
-## Milestone Markers
-
-Tasks with `type: 'milestone'` render as diamond shapes automatically in dhtmlxGantt. Set `duration: 0` for milestones.
-
-## View Modes (Toolbar)
-
-Implement zoom controls that call:
-```typescript
-const setView = (unit: 'day' | 'week' | 'month') => {
-  gantt.config.scale_unit = unit;
-  gantt.render();
-};
-```
+If/when these are needed, add them inside the existing `page.tsx` — do NOT pull in a heavy Gantt library without a CLAUDE.md update.
