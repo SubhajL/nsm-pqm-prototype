@@ -7,12 +7,14 @@ import {
   getAssignmentRoleForUserRole,
   getVisibleProjectsForUser,
 } from '@/lib/project-access';
-import { bootstrapProjectData, type NewProjectMilestoneInput } from '@/lib/project-bootstrap';
+import { bootstrapProjectData } from '@/lib/project-bootstrap';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { getProjectMembershipStore } from '@/lib/project-membership-store';
 import { getProjectStore } from '@/lib/project-store';
+import { parseRequestBody } from '@/lib/validation';
 import type { Project } from '@/types/project';
+import { createProjectRequestSchema } from '@/types/project.schema';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -51,6 +53,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createProjectRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const { milestones = [], ...projectFields } = parsed.data;
+
   const store = getProjectStore();
   const membershipStore = getProjectMembershipStore();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
@@ -61,35 +68,6 @@ export async function POST(request: Request) {
   // project ID will start applying once the row exists.
   if (!currentUser || !AUTHZ_MATRIX[currentUser.role].has('create_project')) {
     return forbiddenResponse('create_project');
-  }
-
-  const body = (await request.json()) as Partial<Project> & {
-    milestones?: NewProjectMilestoneInput[];
-  };
-  const { milestones = [], ...projectFields } = body;
-
-  if (
-    !projectFields.name ||
-    !projectFields.type ||
-    !projectFields.startDate ||
-    !projectFields.endDate ||
-    projectFields.budget === undefined ||
-    !projectFields.managerId ||
-    !projectFields.managerName ||
-    !projectFields.departmentId ||
-    !projectFields.departmentName ||
-    projectFields.duration === undefined
-  ) {
-    return Response.json(
-      {
-        status: 'error',
-        error: {
-          code: 'BAD_REQUEST',
-          message: 'Missing required project fields for creation',
-        },
-      },
-      { status: 400 },
-    );
   }
 
   const newProject: Project = {

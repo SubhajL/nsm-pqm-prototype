@@ -8,7 +8,13 @@ import {
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
+import { parseRequestBody } from '@/lib/validation';
 import type { GanttLinkType, GanttTask } from '@/types/gantt';
+import {
+  createGanttTaskRequestSchema,
+  deleteGanttTaskRequestSchema,
+  updateGanttTaskRequestSchema,
+} from '@/types/gantt.schema';
 
 interface GanttRequestBody {
   id?: number;
@@ -223,13 +229,17 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const schemaParsed = parseRequestBody(createGanttTaskRequestSchema, rawBody);
+  if (!schemaParsed.success) return schemaParsed.response;
+  const body: GanttRequestBody = schemaParsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const cannotManage = ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
 
-  const body = (await request.json()) as GanttRequestBody;
   const parsed = validateTaskInput(body);
   if (parsed.error) return parsed.error;
 
@@ -274,17 +284,16 @@ export async function PATCH(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const schemaParsed = parseRequestBody(updateGanttTaskRequestSchema, rawBody);
+  if (!schemaParsed.success) return schemaParsed.response;
+  const body: GanttRequestBody = schemaParsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const cannotManage = ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
-
-  const body = (await request.json()) as GanttRequestBody;
-
-  if (!body.id) {
-    return badRequest('id is required');
-  }
 
   const parsed = validateTaskInput(body);
   if (parsed.error) return parsed.error;
@@ -341,17 +350,16 @@ export async function DELETE(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const schemaParsed = parseRequestBody(deleteGanttTaskRequestSchema, rawBody);
+  if (!schemaParsed.success) return schemaParsed.response;
+  const body = schemaParsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const cannotManage = ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
-
-  const body = (await request.json()) as { id?: number };
-
-  if (!body.id) {
-    return badRequest('id is required');
-  }
 
   const store = getGanttDataForProject(params.projectId);
   const task = store.data.find((entry) => entry.id === body.id);

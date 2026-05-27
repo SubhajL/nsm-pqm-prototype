@@ -9,10 +9,16 @@ import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { getProjectStore } from '@/lib/project-store';
 import { getUserStore } from '@/lib/user-store';
+import { parseRequestBody } from '@/lib/validation';
+import { loginRequestSchema } from '@/types/admin.schema';
 
 export async function POST(request: Request) {
   await ensureProjectDemoStateHydrated();
-  const body = (await request.json()) as { userId?: string };
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(loginRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const store = getUserStore();
   const selectedUser = store.find((user) => user.id === body.userId && user.status === 'active');
 

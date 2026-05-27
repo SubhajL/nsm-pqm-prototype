@@ -8,7 +8,9 @@ import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/p
 import { getIssueStore } from '@/lib/issue-store';
 import { getRiskStore } from '@/lib/risk-store';
 import { synchronizeMitigatingRiskIssues } from '@/lib/risk-issue-consistency';
+import { parseRequestBody } from '@/lib/validation';
 import type { Risk } from '@/types/risk';
+import { createRiskRequestSchema } from '@/types/risk.schema';
 
 export async function GET(
   request: Request,
@@ -40,23 +42,17 @@ export async function POST(
   await ensureProjectDemoStateHydrated();
   const store = getRiskStore();
   const issueStore = getIssueStore();
+
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createRiskRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_risk')) {
     return forbiddenResponse('edit_risk');
-  }
-
-  const body = (await request.json()) as Partial<Risk>;
-
-  if (!body.title?.trim() || !body.owner?.trim()) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'title and owner are required' },
-      },
-      { status: 400 },
-    );
   }
 
   const likelihood = Number(body.likelihood ?? 1);

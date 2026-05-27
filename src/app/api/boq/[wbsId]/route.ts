@@ -8,6 +8,8 @@ import { getBoqStore } from '@/lib/boq-store';
 import { getProjectStore } from '@/lib/project-store';
 import { getWbsStore } from '@/lib/wbs-store';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
+import { parseRequestBody } from '@/lib/validation';
+import { createBoqItemRequestSchema } from '@/types/boq.schema';
 import { isOutsourcedProject } from '@/types/project';
 
 interface BOQItem {
@@ -58,6 +60,11 @@ export async function POST(
   const projectStore = getProjectStore();
   const wbsStore = getWbsStore();
 
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(createBoqItemRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
   const wbsNode = wbsStore.find((node) => node.id === params.wbsId);
 
   if (!wbsNode) {
@@ -101,18 +108,6 @@ export async function POST(
         },
       },
       { status: 403 },
-    );
-  }
-
-  const body = (await request.json()) as Partial<BOQItem>;
-
-  if (!body.description?.trim() || !body.unit?.trim()) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'BAD_REQUEST', message: 'description and unit are required' },
-      },
-      { status: 400 },
     );
   }
 

@@ -18,7 +18,12 @@ import {
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getProjectStore } from '@/lib/project-store';
 import { getUserStore } from '@/lib/user-store';
+import { parseRequestBody } from '@/lib/validation';
 import type { ProjectTeamMember } from '@/types/team';
+import {
+  inviteTeamMemberRequestSchema,
+  removeTeamMemberRequestSchema,
+} from '@/types/team.schema';
 
 function badRequestResponse(code: string, message: string) {
   return Response.json(
@@ -106,6 +111,10 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(inviteTeamMemberRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
   const denied = requireProjectAccess(params.projectId);
   if (denied) {
@@ -116,7 +125,6 @@ export async function POST(
     return forbiddenResponse('manage_team');
   }
 
-  const body = (await request.json()) as { userId?: string };
   const userStore = getUserStore();
   const user = userStore.find(
     (candidate) => candidate.id === body.userId && candidate.status === 'active',
@@ -153,6 +161,10 @@ export async function DELETE(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(removeTeamMemberRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
 
   const denied = requireProjectAccess(params.projectId);
   if (denied) {
@@ -163,7 +175,6 @@ export async function DELETE(
     return forbiddenResponse('manage_team');
   }
 
-  const body = (await request.json()) as { userId?: string };
   const userStore = getUserStore();
   const user = userStore.find((candidate) => candidate.id === body.userId);
 
