@@ -4,7 +4,7 @@
 
 | Item | Detail |
 |---|---|
-| **Tech Stack** | Next.js 14 + TypeScript + Ant Design 5 + Tailwind CSS + ECharts + dhtmlxGantt |
+| **Tech Stack** | Next.js 14 + TypeScript + Ant Design 5 + Tailwind CSS + ECharts |
 | **Total Pages** | 21 (20 desktop + 1 mobile) |
 | **Estimated Files** | ~120 files |
 | **Phases** | 9 phases (Phase 0-8) |

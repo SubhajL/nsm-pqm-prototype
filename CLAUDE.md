@@ -80,7 +80,6 @@ src/
 │   │   ├── notifications/            # Screen 2.5 Notification Center
 │   │   ├── executive/                # Screens 6.1–6.2 Executive views
 │   │   └── admin/                    # Screens 7.1–7.2 Admin views
-│   ├── (mobile)/                     # Mobile routes (bottom tab layout)
 │   ├── api/                          # Mock API routes (18 endpoints)
 │   └── layout.tsx                    # Root layout (fonts, providers)
 ├── components/
@@ -96,7 +95,6 @@ src/
 ├── stores/                           # Zustand stores (app, notifications, auth)
 ├── data/                             # JSON mock data fixtures (15 files)
 ├── theme/                            # Ant Design theme configuration
-├── i18n/                             # Thai/English message files
 ├── lib/                              # Utilities (date, format, API client)
 └── types/                            # TypeScript type definitions
 ```
@@ -159,7 +157,7 @@ export async function POST(request: Request) {
 }
 ```
 
-**Key rule**: Data persists during dev session, resets on server restart. This is intentional for demo purposes.
+**Key rule**: Data persists durably via Vercel Blob in production and a local JSON file in development — see `src/lib/project-demo-state.ts`. In-memory stores in `src/lib/*-store.ts` are hydrated from this snapshot on cold start.
 
 ### Mock Data Reference
 
