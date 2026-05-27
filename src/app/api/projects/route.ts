@@ -110,6 +110,17 @@ export async function POST(request: Request) {
     highRisks: projectFields.highRisks ?? 0,
     currentMilestone: projectFields.currentMilestone ?? 0,
     totalMilestones: projectFields.totalMilestones ?? 0,
+    // PR-16: every project starts in the 'planning' lifecycle stage with a
+    // single auto-seeded history entry (no actor; entry time = creation).
+    currentLifecycleStage: 'planning',
+    lifecycleStageHistory: [
+      {
+        stage: 'planning',
+        enteredAt: new Date().toISOString(),
+        enteredBy: null,
+        artifactDocIds: [],
+      },
+    ],
   };
 
   store.push(newProject);

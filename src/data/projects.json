@@ -22,7 +22,16 @@
     "openIssues": 3,
     "highRisks": 1,
     "currentMilestone": 1,
-    "totalMilestones": 4
+    "totalMilestones": 4,
+    "currentLifecycleStage": "planning",
+    "lifecycleStageHistory": [
+      {
+        "stage": "planning",
+        "enteredAt": "2026-01-05T00:00:00.000Z",
+        "enteredBy": null,
+        "artifactDocIds": []
+      }
+    ]
   },
   {
     "id": "proj-002",
@@ -47,7 +56,16 @@
     "openIssues": 1,
     "highRisks": 0,
     "currentMilestone": 1,
-    "totalMilestones": 4
+    "totalMilestones": 4,
+    "currentLifecycleStage": "planning",
+    "lifecycleStageHistory": [
+      {
+        "stage": "planning",
+        "enteredAt": "2026-01-01T00:00:00.000Z",
+        "enteredBy": null,
+        "artifactDocIds": []
+      }
+    ]
   },
   {
     "id": "proj-003",
@@ -72,7 +90,16 @@
     "openIssues": 0,
     "highRisks": 0,
     "currentMilestone": 3,
-    "totalMilestones": 4
+    "totalMilestones": 4,
+    "currentLifecycleStage": "planning",
+    "lifecycleStageHistory": [
+      {
+        "stage": "planning",
+        "enteredAt": "2026-01-10T00:00:00.000Z",
+        "enteredBy": null,
+        "artifactDocIds": []
+      }
+    ]
   },
   {
     "id": "proj-004",
@@ -97,7 +124,16 @@
     "openIssues": 0,
     "highRisks": 0,
     "currentMilestone": 1,
-    "totalMilestones": 4
+    "totalMilestones": 4,
+    "currentLifecycleStage": "planning",
+    "lifecycleStageHistory": [
+      {
+        "stage": "planning",
+        "enteredAt": "2026-10-01T00:00:00.000Z",
+        "enteredBy": null,
+        "artifactDocIds": []
+      }
+    ]
   },
   {
     "id": "proj-005",
@@ -122,6 +158,15 @@
     "openIssues": 0,
     "highRisks": 0,
     "currentMilestone": 4,
-    "totalMilestones": 4
+    "totalMilestones": 4,
+    "currentLifecycleStage": "planning",
+    "lifecycleStageHistory": [
+      {
+        "stage": "planning",
+        "enteredAt": "2025-10-01T00:00:00.000Z",
+        "enteredBy": null,
+        "artifactDocIds": []
+      }
+    ]
   }
 ]

@@ -51,6 +51,15 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     highRisks: 0,
     currentMilestone: 0,
     totalMilestones: 0,
+    currentLifecycleStage: 'planning',
+    lifecycleStageHistory: [
+      {
+        stage: 'planning',
+        enteredAt: '2026-01-01T00:00:00.000Z',
+        enteredBy: null,
+        artifactDocIds: [],
+      },
+    ],
     ...overrides,
   };
 }
