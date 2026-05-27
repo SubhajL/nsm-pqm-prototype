@@ -1,4 +1,9 @@
-import { requireProjectAccess } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getIssueStore } from '@/lib/issue-store';
 import type { Issue } from '@/types/risk';
@@ -34,6 +39,10 @@ export async function POST(
   const store = getIssueStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
+
+  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_issue')) {
+    return forbiddenResponse('edit_issue');
+  }
 
   const body = (await request.json()) as Partial<Issue>;
 
@@ -78,6 +87,10 @@ export async function PATCH(
   const store = getIssueStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
+
+  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_issue')) {
+    return forbiddenResponse('edit_issue');
+  }
 
   const body = await request.json();
   const { issueId, status: newStatus } = body as { issueId: string; status: string };

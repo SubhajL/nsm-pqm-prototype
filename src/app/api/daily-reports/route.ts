@@ -1,7 +1,12 @@
-import { getVisibleProjectIdsForCurrentUser, requireProjectAccess } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  getVisibleProjectIdsForCurrentUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { getDailyReportStore } from '@/lib/daily-report-store';
 import type { DailyReport } from '@/types/daily-report';
-import { getCurrentApiUser } from '@/lib/project-api-access';
 import { persistMockUpload } from '@/lib/mock-upload-storage';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 
@@ -79,6 +84,10 @@ export async function POST(request: Request) {
 
   const forbidden = requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;
+
+  if (!canPerformProjectAction(getCurrentApiUser(), body.projectId, 'submit_daily_report')) {
+    return forbiddenResponse('submit_daily_report');
+  }
 
   const { projectId } = body;
   const personnel = (body.personnel ?? []).filter(

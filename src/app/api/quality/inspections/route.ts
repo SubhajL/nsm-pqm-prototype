@@ -1,6 +1,10 @@
-import { canAccessAdmin } from '@/lib/auth';
-import { getVisibleProjectIdsForCurrentUser, requireProjectAccess } from '@/lib/project-api-access';
-import { getCurrentApiUser } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+  getVisibleProjectIdsForCurrentUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getIssueStore } from '@/lib/issue-store';
 import {
@@ -9,10 +13,6 @@ import {
   synchronizeItpStatuses,
 } from '@/lib/quality-consistency';
 import { getQualityStore } from '@/lib/quality-store';
-
-function canManageQuality(role: string | null | undefined) {
-  return Boolean(role && (canAccessAdmin(role) || role === 'Project Manager' || role === 'Engineer'));
-}
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -51,21 +51,6 @@ export async function POST(request: Request) {
   const store = getQualityStore();
   const issueStore = getIssueStore();
 
-  const currentUser = getCurrentApiUser();
-
-  if (!currentUser || !canManageQuality(currentUser.role)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only project managers, engineers, or system admins can manage quality inspections',
-        },
-      },
-      { status: 403 },
-    );
-  }
-
   const body = (await request.json()) as {
     projectId?: string;
     itpId?: string;
@@ -91,6 +76,12 @@ export async function POST(request: Request) {
 
   const forbidden = requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;
+
+  if (
+    !canPerformProjectAction(getCurrentApiUser(), body.projectId, 'edit_quality_inspection')
+  ) {
+    return forbiddenResponse('edit_quality_inspection');
+  }
 
   const itpItem = store.itpItems.find(
     (item) => item.projectId === body.projectId && item.id === body.itpId,
@@ -180,21 +171,6 @@ export async function PATCH(request: Request) {
   const store = getQualityStore();
   const issueStore = getIssueStore();
 
-  const currentUser = getCurrentApiUser();
-
-  if (!currentUser || !canManageQuality(currentUser.role)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only project managers, engineers, or system admins can manage quality inspections',
-        },
-      },
-      { status: 403 },
-    );
-  }
-
   const body = (await request.json()) as {
     id?: string;
     workflowStatus?: string;
@@ -226,6 +202,12 @@ export async function PATCH(request: Request) {
 
   const forbidden = requireProjectAccess(record.projectId);
   if (forbidden) return forbidden;
+
+  const currentUser = getCurrentApiUser();
+
+  if (!canPerformProjectAction(currentUser, record.projectId, 'edit_quality_inspection')) {
+    return forbiddenResponse('edit_quality_inspection');
+  }
 
   // --- Resolve checklist item as pass ---
   if (body.checklistItemId && body.resolveAsPass) {
@@ -315,21 +297,6 @@ export async function DELETE(request: Request) {
   const store = getQualityStore();
   const issueStore = getIssueStore();
 
-  const currentUser = getCurrentApiUser();
-
-  if (!currentUser || !canManageQuality(currentUser.role)) {
-    return Response.json(
-      {
-        status: 'error',
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only project managers, engineers, or system admins can manage quality inspections',
-        },
-      },
-      { status: 403 },
-    );
-  }
-
   const body = (await request.json()) as { id?: string };
 
   if (!body.id) {
@@ -357,6 +324,12 @@ export async function DELETE(request: Request) {
   const record = store.inspectionRecords[index];
   const forbidden = requireProjectAccess(record.projectId);
   if (forbidden) return forbidden;
+
+  if (
+    !canPerformProjectAction(getCurrentApiUser(), record.projectId, 'edit_quality_inspection')
+  ) {
+    return forbiddenResponse('edit_quality_inspection');
+  }
 
   store.inspectionRecords.splice(index, 1);
   removeAutoNcrIssuesForInspection(issueStore, record.id);

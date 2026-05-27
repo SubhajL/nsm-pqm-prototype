@@ -1,5 +1,7 @@
-import { canAccessAdmin, requiresProjectDuty } from '@/lib/auth';
+import { requiresProjectDuty } from '@/lib/auth';
 import {
+  canPerformProjectAction,
+  forbiddenResponse,
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
@@ -18,19 +20,6 @@ import { getProjectStore } from '@/lib/project-store';
 import { getUserStore } from '@/lib/user-store';
 import type { ProjectTeamMember } from '@/types/team';
 
-function forbiddenManagementResponse() {
-  return Response.json(
-    {
-      status: 'error',
-      error: {
-        code: 'FORBIDDEN',
-        message: 'มีเฉพาะผู้ดูแลระบบหรือผู้จัดการโครงการเท่านั้นที่จัดการทีมได้',
-      },
-    },
-    { status: 403 },
-  );
-}
-
 function badRequestResponse(code: string, message: string) {
   return Response.json(
     { status: 'error', error: { code, message } },
@@ -38,14 +27,8 @@ function badRequestResponse(code: string, message: string) {
   );
 }
 
-function canManageProjectTeam() {
-  const currentUser = getCurrentApiUser();
-
-  if (!currentUser) {
-    return false;
-  }
-
-  return canAccessAdmin(currentUser.role) || currentUser.role === 'Project Manager';
+function canManageProjectTeam(projectId: string) {
+  return canPerformProjectAction(getCurrentApiUser(), projectId, 'manage_team');
 }
 
 function getInviteCandidates(projectId: string) {
@@ -86,8 +69,8 @@ export async function GET(
   const searchParams = new URL(request.url).searchParams;
 
   if (searchParams.get('mode') === 'candidates') {
-    if (!canManageProjectTeam()) {
-      return forbiddenManagementResponse();
+    if (!canManageProjectTeam(params.projectId)) {
+      return forbiddenResponse('manage_team');
     }
 
     return Response.json({ status: 'success', data: getInviteCandidates(params.projectId) });
@@ -129,8 +112,8 @@ export async function POST(
     return denied;
   }
 
-  if (!canManageProjectTeam()) {
-    return forbiddenManagementResponse();
+  if (!canManageProjectTeam(params.projectId)) {
+    return forbiddenResponse('manage_team');
   }
 
   const body = (await request.json()) as { userId?: string };
@@ -176,8 +159,8 @@ export async function DELETE(
     return denied;
   }
 
-  if (!canManageProjectTeam()) {
-    return forbiddenManagementResponse();
+  if (!canManageProjectTeam(params.projectId)) {
+    return forbiddenResponse('manage_team');
   }
 
   const body = (await request.json()) as { userId?: string };

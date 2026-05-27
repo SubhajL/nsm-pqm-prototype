@@ -1,7 +1,10 @@
-import { canAccessAdmin } from '@/lib/auth';
-import { requireProjectAccess } from '@/lib/project-api-access';
-import { getActiveUser } from '@/lib/project-access';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
+import { getActiveUser } from '@/lib/project-access';
 import { cookies } from 'next/headers';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getWbsStore } from '@/lib/wbs-store';
@@ -73,27 +76,8 @@ export async function POST(
 
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
-  if (!currentUser) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
-      },
-      { status: 401 },
-    );
-  }
-
-  if (!canAccessAdmin(currentUser.role) && currentUser.role !== 'Project Manager') {
-    return Response.json(
-      {
-        status: 'error',
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only project managers can create WBS nodes',
-        },
-      },
-      { status: 403 },
-    );
+  if (!canPerformProjectAction(currentUser, params.projectId, 'edit_wbs')) {
+    return forbiddenResponse('edit_wbs');
   }
 
   const body = (await request.json()) as CreateWBSNodeRequest;
