@@ -4,9 +4,9 @@ import { Layout, Badge, Avatar, Breadcrumb, Button, Grid, Space, Typography } fr
 import { BellOutlined, MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
 import { useProject } from '@/hooks/useProjects';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { useNotificationStore } from '@/stores/useNotificationStore';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -42,7 +42,8 @@ export function Header() {
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const toggleMobileSidebar = useAppStore((s) => s.toggleMobileSidebar);
-  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const { data: notifications } = useNotifications();
+  const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
   const currentUser = useAuthStore((s) => s.currentUser);
 
   const segments = pathname.split('/').filter(Boolean);
