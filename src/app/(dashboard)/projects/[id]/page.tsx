@@ -1,32 +1,17 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import {
   Card,
   Col,
-  Empty,
   Row,
   Typography,
-  Tag,
-  Timeline,
-  Steps,
-  Button,
-  Progress,
-  Space,
   Spin,
 } from 'antd';
 import {
   ExclamationCircleOutlined,
-  DollarOutlined,
-  ScheduleOutlined,
-  BugOutlined,
   WarningOutlined,
   CheckCircleOutlined,
-  ArrowUpOutlined,
-  FileTextOutlined,
-  PlusOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
 import { useProject } from '@/hooks/useProjects';
@@ -37,12 +22,10 @@ import { useIssues } from '@/hooks/useIssues';
 import { useRisks } from '@/hooks/useRisks';
 import { useEVM } from '@/hooks/useEVM';
 import { useGantt } from '@/hooks/useGantt';
-import { KPICard } from '@/components/common/KPICard';
-import { StatusBadge } from '@/components/common/StatusBadge';
 import { RidLifecycleGates } from '@/components/rid/RidLifecycleGates';
 import { QualityGatePipeline } from '@/components/quality/QualityGatePipeline';
 import { useQualityGates } from '@/hooks/useQuality';
-import { formatBahtCurrency, formatBahtShort, formatThaiDateShort } from '@/lib/date-utils';
+import { formatThaiDateShort } from '@/lib/date-utils';
 import {
   deriveCurrentMilestoneNumber,
 } from '@/lib/project-milestone-derivations';
@@ -55,25 +38,19 @@ import {
 import { deriveEvmMetrics } from '@/lib/evm-metrics';
 import { COLORS } from '@/theme/antd-theme';
 import {
-  CONTRACTING_MODEL_LABELS,
-  DELIVERY_METHOD_LABELS,
   getProjectDeliveryMethod,
-  PROJECT_TYPE_LABELS,
   type ProjectStatus,
 } from '@/types/project';
 
-const { Title, Text } = Typography;
+import { ProjectHeaderCard } from './_components/ProjectHeaderCard';
+import { ProjectKPICards } from './_components/ProjectKPICards';
+import { ActivityTimelineCard } from './_components/ActivityTimelineCard';
+import { MilestonesCard } from './_components/MilestonesCard';
+import { QuickActionsCard } from './_components/QuickActionsCard';
 
-const CircularProgress = dynamic(
-  () =>
-    import('@/components/charts/CircularProgress').then(
-      (mod) => mod.CircularProgress,
-    ),
-  { ssr: false, loading: () => <Spin /> },
-);
+const { Text } = Typography;
 
 export default function ProjectOverviewPage() {
-  const router = useRouter();
   const projectId = useRouteProjectId() ?? 'proj-001';
   const { data: project, isLoading: loadingProject } = useProject(projectId);
   const { data: milestones, isLoading: loadingMilestones } =
@@ -270,206 +247,38 @@ export default function ProjectOverviewPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* ====== 1. Project Header Card ====== */}
-      <Card
-        style={{
-          borderRadius: 8,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-        }}
-      >
-        <Row align="middle" justify="space-between" gutter={[24, 16]}>
-          <Col flex="auto">
-            <Title level={3} style={{ marginBottom: 4 }}>
-              {projectName}
-            </Title>
-            <Space size="middle" wrap>
-              <Text type="secondary" style={{ fontSize: 14 }}>
-                {projectCode}
-              </Text>
-              <Tag color="blue">{PROJECT_TYPE_LABELS[projectType].th}</Tag>
-              <Tag color={deliveryMethod === 'outsourced' ? 'gold' : 'cyan'}>
-                {DELIVERY_METHOD_LABELS[deliveryMethod].th}
-              </Tag>
-              {contractingModel ? (
-                <Tag color="geekblue">
-                  {CONTRACTING_MODEL_LABELS[contractingModel].th} (
-                  {CONTRACTING_MODEL_LABELS[contractingModel].en})
-                </Tag>
-              ) : null}
-              <StatusBadge status={projectStatus} type="project" />
-              {projectStatus === 'in_progress' ? (
-                <StatusBadge status={projectScheduleHealth} type="project" />
-              ) : null}
-            </Space>
-            <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-              สถานะโครงการหลักคำนวณอัตโนมัติจากความคืบหน้าในแผนงาน Gantt
-            </Text>
-          </Col>
-          <Col>
-            <CircularProgress percent={projectProgressPercent} size={140} />
-          </Col>
-        </Row>
-      </Card>
+      <ProjectHeaderCard
+        projectName={projectName}
+        projectCode={projectCode}
+        projectType={projectType}
+        deliveryMethod={deliveryMethod}
+        contractingModel={contractingModel}
+        projectStatus={projectStatus}
+        projectScheduleHealth={projectScheduleHealth}
+        projectProgressPercent={projectProgressPercent}
+      />
 
-      {/* ====== 2. Six Mini KPI Cards ====== */}
-      <Row gutter={[16, 16]}>
-        <Col xs={12} md={8} xl={4}>
-          <KPICard
-            title="งบประมาณ"
-            value={formatBahtShort(budget)}
-            icon={<DollarOutlined />}
-            color={COLORS.info}
-            onClick={() => router.push(`/projects/${projectId}/s-curve`)}
-            extraContent={
-              <>
-                <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 6 }}>
-                  {budgetSpentLabel}
-                </div>
-                <Progress
-                  percent={budget > 0 ? Number(((budgetSpent / budget) * 100).toFixed(1)) : 0}
-                  size="small"
-                  strokeColor={COLORS.info}
-                  format={() => formatBahtCurrency(budgetSpent)}
-                />
-              </>
-            }
-          />
-        </Col>
-        <Col xs={12} md={8} xl={4}>
-          <KPICard
-            title="SPI"
-            value={spi.toFixed(2)}
-            icon={<WarningOutlined />}
-            color={COLORS.warning}
-            subtitle="Schedule Performance Index"
-            onClick={() => router.push(`/projects/${projectId}/s-curve`)}
-          />
-        </Col>
-        <Col xs={12} md={8} xl={4}>
-          <KPICard
-            title={deliveryMethod === 'outsourced' ? 'จ่ายแล้ว' : 'CPI'}
-            value={
-              deliveryMethod === 'outsourced'
-                ? formatBahtShort(budgetSpent)
-                : evmMetrics?.mode === 'in_house'
-                  ? evmMetrics.cpi.toFixed(2)
-                  : '0.00'
-            }
-            icon={<CheckCircleOutlined />}
-            color={COLORS.success}
-            subtitle={
-              deliveryMethod === 'outsourced'
-                ? 'Paid to Date'
-                : 'Cost Performance Index'
-            }
-            onClick={() => router.push(`/projects/${projectId}/s-curve`)}
-          />
-        </Col>
-        <Col xs={12} md={8} xl={4}>
-          <KPICard
-            title="งวดปัจจุบัน"
-            value={`${currentMilestone}/${totalMilestones}`}
-            icon={<ScheduleOutlined />}
-            color={COLORS.info}
-          />
-        </Col>
-        <Col xs={12} md={8} xl={4}>
-          <KPICard
-            title="ปัญหาเปิด"
-            value={openIssues}
-            icon={<BugOutlined />}
-            color={COLORS.error}
-            onClick={() => router.push(`/projects/${projectId}/issues`)}
-          />
-        </Col>
-        <Col xs={12} md={8} xl={4}>
-          <KPICard
-            title="ความเสี่ยงสูง"
-            value={highRisks}
-            icon={<WarningOutlined />}
-            color={COLORS.warning}
-            onClick={() => router.push(`/projects/${projectId}/risk`)}
-          />
-        </Col>
-      </Row>
+      <ProjectKPICards
+        projectId={projectId}
+        budget={budget}
+        budgetSpent={budgetSpent}
+        budgetSpentLabel={budgetSpentLabel}
+        spi={spi}
+        deliveryMethod={deliveryMethod}
+        evmMetrics={evmMetrics}
+        currentMilestone={currentMilestone}
+        totalMilestones={totalMilestones}
+        openIssues={openIssues}
+        highRisks={highRisks}
+      />
 
       {/* ====== 3. Two Columns: Activity & Milestones ====== */}
       <Row gutter={[24, 24]}>
-        {/* Left — Recent Activity */}
         <Col xs={24} lg={12}>
-          <Card
-            title="กิจกรรมล่าสุด (Recent Activity)"
-            style={{
-              borderRadius: 8,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-              height: '100%',
-            }}
-          >
-            {activityItems.length > 0 ? (
-              <Timeline items={activityItems} />
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="ยังไม่มีกิจกรรมล่าสุดสำหรับโครงการนี้"
-              />
-            )}
-          </Card>
+          <ActivityTimelineCard items={activityItems} />
         </Col>
-
-        {/* Right — Payment Milestones */}
         <Col xs={24} lg={12}>
-          <Card
-            title="งวดงาน (Payment Milestones)"
-            style={{
-              borderRadius: 8,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-              height: '100%',
-            }}
-          >
-            <Steps
-              direction="vertical"
-              current={currentStep}
-              items={milestoneViews.map((ms) => {
-                const isCompleted = ms.status === 'completed';
-                const showProgress = !isCompleted && ms.progressPercent > 0;
-
-                return {
-                  title: (
-                    <Space>
-                      <Text strong>{ms.name}</Text>
-                      <StatusBadge
-                        status={ms.displayStatus}
-                        type={ms.displayStatus === 'completed' ? 'milestone' : 'project'}
-                      />
-                    </Space>
-                  ),
-                  description: (
-                    <div style={{ paddingTop: 4 }}>
-                      <Text>
-                        {formatBahtCurrency(ms.amount)} &middot; กำหนด{' '}
-                        {formatThaiDateShort(ms.dueDate)}
-                      </Text>
-                      {isCompleted && (
-                        <div style={{ marginTop: 4 }}>
-                          <Tag color="success">ตรวจรับแล้ว</Tag>
-                        </div>
-                      )}
-                      {showProgress && (
-                        <div style={{ marginTop: 8, maxWidth: 240 }}>
-                          <Progress
-                            percent={ms.progressPercent}
-                            size="small"
-                            strokeColor={COLORS.info}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ),
-                  icon: ms.icon,
-                };
-              })}
-            />
-          </Card>
+          <MilestonesCard currentStep={currentStep} milestoneViews={milestoneViews} />
         </Col>
       </Row>
 
@@ -489,36 +298,7 @@ export default function ProjectOverviewPage() {
         </Card>
       ) : null}
 
-      {/* ====== 4. Quick Action Buttons ====== */}
-      <Card
-        style={{
-          borderRadius: 8,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-        }}
-      >
-        <Space size="middle" wrap>
-          <Button
-            type="primary"
-            icon={<FileTextOutlined />}
-            href={`/projects/${projectId}/daily-report`}
-            style={{ backgroundColor: COLORS.accentTeal, borderColor: COLORS.accentTeal }}
-          >
-            สร้างรายงานประจำวัน
-          </Button>
-          <Button
-            icon={<ArrowUpOutlined />}
-            href={`/projects/${projectId}/progress`}
-          >
-            อัปเดต Progress
-          </Button>
-          <Button
-            icon={<PlusOutlined />}
-            href={`/projects/${projectId}/issues`}
-          >
-            เพิ่มปัญหา
-          </Button>
-        </Space>
-      </Card>
+      <QuickActionsCard projectId={projectId} />
     </div>
   );
 }

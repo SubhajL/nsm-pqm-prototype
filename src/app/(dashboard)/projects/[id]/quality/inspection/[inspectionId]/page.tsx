@@ -3,76 +3,28 @@
 import { useParams } from 'next/navigation';
 import {
   Alert,
-  Button,
   Card,
-  Col,
-  Descriptions,
-  Row,
-  Space,
   Skeleton,
-  Table,
+  Space,
   Tag,
   Typography,
-  message,
 } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import {
-  CameraOutlined,
-  CheckCircleOutlined,
-  EditOutlined,
-  EnvironmentOutlined,
-  SafetyCertificateOutlined,
-  SaveOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
+import { WarningOutlined } from '@ant-design/icons';
 
 import { useInspection, useResolveChecklistItem, useUpdateInspectionStatus } from '@/hooks/useQuality';
 import { useRouteProjectId } from '@/hooks/useRouteProjectId';
 import { canAccessAdmin } from '@/lib/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { formatThaiDate } from '@/lib/date-utils';
 import { COLORS } from '@/theme/antd-theme';
-import type { InspectionChecklistItem, WorkflowStatus } from '@/types/quality';
+import type { WorkflowStatus } from '@/types/quality';
+
+import { WORKFLOW_LABELS } from './_components/constants';
+import { InspectionDetailsCard } from './_components/InspectionDetailsCard';
+import { ChecklistCard } from './_components/ChecklistCard';
+import { PhotoSection } from './_components/PhotoSection';
+import { WorkflowButtonsCard } from './_components/WorkflowButtonsCard';
 
 const { Title, Text } = Typography;
-
-/* Photo placeholders for the inspection */
-const PHOTO_PLACEHOLDERS = [
-  {
-    id: 'ph-1',
-    filename: 'IMG_20690715_093012.jpg',
-    label: 'ภาพก่อนเท (Before pour)',
-    gpsLat: 13.7563,
-    gpsLng: 100.5018,
-  },
-  {
-    id: 'ph-2',
-    filename: 'IMG_20690715_094530.jpg',
-    label: 'ตรวจเหล็กเสริม (Rebar check)',
-    gpsLat: 13.7563,
-    gpsLng: 100.5019,
-  },
-  {
-    id: 'ph-3',
-    filename: 'IMG_20690715_100215.jpg',
-    label: 'Slump Test',
-    gpsLat: 13.7564,
-    gpsLng: 100.5018,
-  },
-  {
-    id: 'ph-4',
-    filename: 'IMG_20690715_101045.jpg',
-    label: 'วัดอุณหภูมิ (Temp check)',
-    gpsLat: 13.7563,
-    gpsLng: 100.5020,
-  },
-];
-
-const WORKFLOW_LABELS: Record<WorkflowStatus, { label: string; color: string }> = {
-  draft: { label: 'ร่าง (Draft)', color: 'default' },
-  confirmed: { label: 'ยืนยันแล้ว (Confirmed)', color: 'processing' },
-  signed: { label: 'ลงนามแล้ว (Signed)', color: 'success' },
-};
 
 export default function QCInspectionPage() {
   const params = useParams<{ inspectionId: string }>();
@@ -130,81 +82,6 @@ export default function QCInspectionPage() {
     : 'ผ่าน (PASS)';
   const resultPanelColor = isConditional ? COLORS.error : COLORS.success;
 
-  const checklistColumns: ColumnsType<InspectionChecklistItem> = [
-    {
-      title: '#',
-      key: 'index',
-      width: 50,
-      align: 'center',
-      render: (_: unknown, __: InspectionChecklistItem, index: number) =>
-        index + 1,
-    },
-    {
-      title: 'รายการ (Item)',
-      dataIndex: 'item',
-      key: 'item',
-    },
-    {
-      title: 'เกณฑ์ (Criteria)',
-      dataIndex: 'criteria',
-      key: 'criteria',
-    },
-    {
-      title: 'ผลตรวจ (Result)',
-      dataIndex: 'result',
-      key: 'result',
-      width: 150,
-      align: 'center',
-      render: (result: string) => {
-        if (result === 'pass') {
-          return <Tag color="green">ผ่าน (PASS)</Tag>;
-        }
-        return <Tag color="red">ไม่ผ่าน (FAIL)</Tag>;
-      },
-    },
-    {
-      title: 'หมายเหตุ (Note)',
-      dataIndex: 'note',
-      key: 'note',
-      width: 200,
-    },
-    ...(canResolve && workflowStatus !== 'signed'
-      ? [
-          {
-            title: 'จัดการ',
-            key: 'actions',
-            width: 140,
-            align: 'center' as const,
-            render: (_: unknown, record: InspectionChecklistItem) => {
-              if (record.result !== 'fail') return null;
-              return (
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<CheckCircleOutlined />}
-                  style={{ backgroundColor: COLORS.success, borderColor: COLORS.success }}
-                  loading={resolveItem.isPending}
-                  onClick={async () => {
-                    try {
-                      await resolveItem.mutateAsync({
-                        id: inspection.id,
-                        checklistItemId: record.id,
-                      });
-                      message.success(`แก้ไข "${record.item}" เป็นผ่านแล้ว — แจ้ง PM เรียบร้อย`);
-                    } catch (error) {
-                      message.error(error instanceof Error ? error.message : 'ไม่สามารถแก้ไขได้');
-                    }
-                  }}
-                >
-                  แก้ไขเป็นผ่าน
-                </Button>
-              );
-            },
-          },
-        ]
-      : []),
-  ];
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* 1. Hold Point Alert Banner */}
@@ -239,36 +116,7 @@ export default function QCInspectionPage() {
         </Text>
       </div>
 
-      {/* 3. Inspection Info */}
-      <Card
-        title="ข้อมูลการตรวจ (Inspection Details)"
-        style={{
-          borderRadius: 8,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-        }}
-      >
-        <Descriptions bordered column={{ xs: 1, sm: 2, md: 2 }} size="middle">
-          <Descriptions.Item label="วันที่ (Date)">
-            {formatThaiDate(inspection.date)}
-          </Descriptions.Item>
-          <Descriptions.Item label="เวลา (Time)">
-            {inspection.time}
-          </Descriptions.Item>
-          <Descriptions.Item label="ผู้ตรวจสอบ (Inspectors)">
-            {inspection.inspectors.join(', ')}
-          </Descriptions.Item>
-          <Descriptions.Item label="กิจกรรม (Activity)">
-            {inspection.wbsLink}
-          </Descriptions.Item>
-          <Descriptions.Item label="มาตรฐาน (Standards)" span={2}>
-            {inspection.standards.map((s) => (
-              <Tag key={s} color="blue" style={{ marginBottom: 4 }}>
-                {s}
-              </Tag>
-            ))}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
+      <InspectionDetailsCard inspection={inspection} />
 
       {/* 4. Quick Tip */}
       <Alert
@@ -277,34 +125,19 @@ export default function QCInspectionPage() {
         message="Hold Point (H): งานต้องหยุด — ห้ามดำเนินการต่อจนกว่าจะได้รับอนุมัติจากวิศวกร"
       />
 
-      {/* 5. Checklist Table */}
-      <Card
-        title="รายการตรวจสอบ (Checklist)"
-        style={{
-          borderRadius: 8,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+      <ChecklistCard
+        inspectionId={inspection.id}
+        checklist={inspection.checklist}
+        workflowStatus={workflowStatus}
+        canResolve={canResolve}
+        resolveItemPending={resolveItem.isPending}
+        onResolve={async (checklistItemId) => {
+          await resolveItem.mutateAsync({
+            id: inspection.id,
+            checklistItemId,
+          });
         }}
-        styles={{ body: { padding: '16px 24px' } }}
-      >
-        <Table<InspectionChecklistItem>
-          columns={checklistColumns}
-          dataSource={inspection.checklist}
-          rowKey="id"
-          pagination={false}
-          size="middle"
-          rowClassName={(record) =>
-            record.result === 'fail' ? 'inspection-fail-row' : ''
-          }
-          onRow={(record) => ({
-            style: {
-              backgroundColor:
-                record.result === 'fail'
-                  ? 'rgba(231, 76, 60, 0.08)'
-                  : undefined,
-            },
-          })}
-        />
-      </Card>
+      />
 
       {/* 6. Result Summary Strip */}
       <div
@@ -323,66 +156,7 @@ export default function QCInspectionPage() {
         </Text>
       </div>
 
-      {/* 7. Photo Section */}
-      <Card
-        title="ภาพถ่ายประกอบ (Site Photos)"
-        style={{
-          borderRadius: 8,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-        }}
-      >
-        <Row gutter={16}>
-          {PHOTO_PLACEHOLDERS.map((photo) => (
-            <Col key={photo.id} xs={12} sm={8} md={6}>
-              <div
-                style={{
-                  backgroundColor: COLORS.tableHeaderBg,
-                  borderRadius: 8,
-                  height: 160,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: `1px dashed ${COLORS.neutralGray}`,
-                  marginBottom: 16,
-                }}
-              >
-                <CameraOutlined
-                  style={{
-                    fontSize: 32,
-                    color: COLORS.textDisabled,
-                    marginBottom: 8,
-                  }}
-                />
-                <Text
-                  type="secondary"
-                  style={{
-                    fontSize: 12,
-                    textAlign: 'center',
-                    padding: '0 8px',
-                  }}
-                  ellipsis
-                >
-                  {photo.filename}
-                </Text>
-                <Tag
-                  color="blue"
-                  style={{ marginTop: 8, fontSize: 11 }}
-                  icon={<EnvironmentOutlined />}
-                >
-                  GPS
-                </Tag>
-                <Text
-                  type="secondary"
-                  style={{ fontSize: 10, marginTop: 4 }}
-                >
-                  {photo.gpsLat.toFixed(4)}, {photo.gpsLng.toFixed(4)}
-                </Text>
-              </div>
-            </Col>
-          ))}
-        </Row>
-      </Card>
+      <PhotoSection />
 
       {/* 8. Overall Result */}
       <Card
@@ -453,70 +227,18 @@ export default function QCInspectionPage() {
         />
       ) : null}
 
-      {/* 11. Bottom Buttons */}
-      <Card
-        style={{
-          borderRadius: 8,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+      <WorkflowButtonsCard
+        inspectionId={inspection.id}
+        workflowStatus={workflowStatus}
+        hasFailItems={hasFailItems}
+        updateStatusPending={updateStatus.isPending}
+        onConfirm={async () => {
+          await updateStatus.mutateAsync({ id: inspection.id, workflowStatus: 'confirmed' });
         }}
-      >
-        <Space size="middle" wrap align="center">
-          {/* Workflow status badge */}
-          <Tag
-            color={WORKFLOW_LABELS[workflowStatus].color}
-            style={{ fontSize: 14, padding: '4px 12px', lineHeight: '24px' }}
-          >
-            {WORKFLOW_LABELS[workflowStatus].label}
-          </Tag>
-
-          <Button
-            icon={<SaveOutlined />}
-            disabled={workflowStatus !== 'draft'}
-            onClick={() => message.success('บันทึกร่างแล้ว')}
-          >
-            บันทึกร่าง
-          </Button>
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            disabled={workflowStatus !== 'draft' || hasFailItems}
-            loading={updateStatus.isPending}
-            style={workflowStatus === 'draft' && !hasFailItems ? {
-              backgroundColor: COLORS.accentTeal,
-              borderColor: COLORS.accentTeal,
-            } : undefined}
-            onClick={async () => {
-              try {
-                await updateStatus.mutateAsync({ id: inspection.id, workflowStatus: 'confirmed' });
-                message.success('ยืนยันผลตรวจเรียบร้อยแล้ว');
-              } catch (error) {
-                message.error(error instanceof Error ? error.message : 'ไม่สามารถยืนยันผลตรวจได้');
-              }
-            }}
-          >
-            ยืนยันผลตรวจ
-          </Button>
-          <Button
-            icon={<SafetyCertificateOutlined />}
-            disabled={workflowStatus !== 'confirmed' || hasFailItems}
-            loading={updateStatus.isPending}
-            style={workflowStatus === 'confirmed' && !hasFailItems ? {
-              color: COLORS.success,
-              borderColor: COLORS.success,
-            } : undefined}
-            onClick={async () => {
-              try {
-                await updateStatus.mutateAsync({ id: inspection.id, workflowStatus: 'signed' });
-                message.success('ลงนามดิจิทัลเรียบร้อยแล้ว');
-              } catch (error) {
-                message.error(error instanceof Error ? error.message : 'ไม่สามารถลงนามได้');
-              }
-            }}
-          >
-            ลงนามดิจิทัล
-          </Button>
-        </Space>
-      </Card>
+        onSign={async () => {
+          await updateStatus.mutateAsync({ id: inspection.id, workflowStatus: 'signed' });
+        }}
+      />
     </div>
   );
 }
