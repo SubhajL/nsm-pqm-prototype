@@ -1,0 +1,157 @@
+'use client';
+
+import { Alert, Button, Card, Empty, Skeleton, Table, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { PlusOutlined } from '@ant-design/icons';
+
+import type { BOQItem } from '@/hooks/useBOQ';
+import { formatBaht, formatBahtCurrency } from '@/lib/date-utils';
+import { COLORS } from '@/theme/antd-theme';
+
+const { Text } = Typography;
+
+export function BoqTablePanel({
+  selectedWbsId,
+  selectedNodeName,
+  isOutsourced,
+  boqLoading,
+  boqItems,
+  boqTotalSum,
+  canCreateBoq,
+  onOpenCreateBoq,
+}: {
+  selectedWbsId: string | undefined;
+  selectedNodeName: string;
+  isOutsourced: boolean;
+  boqLoading: boolean;
+  boqItems: BOQItem[] | undefined;
+  boqTotalSum: number;
+  canCreateBoq: boolean;
+  onOpenCreateBoq: () => void;
+}) {
+  // BOQ table columns
+  const boqColumns: ColumnsType<BOQItem> = [
+    {
+      title: 'ลำดับ',
+      key: 'index',
+      width: 60,
+      align: 'center',
+      render: (_val, _rec, index) => index + 1,
+    },
+    {
+      title: 'รายการ (Description)',
+      dataIndex: 'description',
+      key: 'description',
+    },
+    {
+      title: 'ปริมาณ (Qty)',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 100,
+      align: 'right',
+      render: (qty: number) => formatBaht(qty),
+    },
+    {
+      title: 'หน่วย (Unit)',
+      dataIndex: 'unit',
+      key: 'unit',
+      width: 90,
+      align: 'center',
+    },
+    {
+      title: 'ราคา/หน่วย (Unit Price)',
+      dataIndex: 'unitPrice',
+      key: 'unitPrice',
+      width: 140,
+      align: 'right',
+      render: (price: number) => formatBaht(price),
+    },
+    {
+      title: 'รวม (Total)',
+      dataIndex: 'total',
+      key: 'total',
+      width: 140,
+      align: 'right',
+      render: (total: number) => (
+        <span style={{ fontWeight: 600 }}>{formatBaht(total)}</span>
+      ),
+    },
+  ];
+
+  return (
+    <Card
+      title={
+        selectedWbsId
+          ? `BOQ — ${selectedNodeName}`
+          : 'BOQ'
+      }
+      styles={{ body: { padding: '12px 16px' } }}
+    >
+      {isOutsourced ? (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message="BOQ สำหรับโครงการจ้างภายนอกเป็นแบบอ่านอย่างเดียว"
+          description="การเปลี่ยนแปลง BOQ ต้องผ่านกระบวนการแก้ไขสัญญา ไม่ใช่แก้จากหน้า WBS"
+        />
+      ) : null}
+      {!selectedWbsId ? (
+        <Empty description="เลือก WBS node เพื่อดู BOQ" />
+      ) : boqLoading ? (
+        <Skeleton active paragraph={{ rows: 6 }} />
+      ) : boqItems && boqItems.length > 0 ? (
+        <>
+          <Table<BOQItem>
+            columns={boqColumns}
+            dataSource={boqItems}
+            rowKey="id"
+            pagination={false}
+            size="middle"
+            summary={() => (
+              <Table.Summary fixed>
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0} colSpan={5} align="right">
+                    <Text strong>รวมหมวด:</Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={5} align="right">
+                    <Text
+                      strong
+                      style={{ color: COLORS.primary, fontSize: 15 }}
+                    >
+                      {formatBahtCurrency(boqTotalSum)}
+                    </Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </Table.Summary>
+            )}
+          />
+          {canCreateBoq ? (
+            <Button
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={onOpenCreateBoq}
+              style={{ marginTop: 12, width: '100%' }}
+            >
+              + เพิ่มรายการ BOQ
+            </Button>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <Empty description="ไม่มีรายการ BOQ สำหรับ WBS node นี้" />
+          {canCreateBoq ? (
+            <Button
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={onOpenCreateBoq}
+              style={{ marginTop: 12, width: '100%' }}
+            >
+              + เพิ่มรายการ BOQ
+            </Button>
+          ) : null}
+        </>
+      )}
+    </Card>
+  );
+}
