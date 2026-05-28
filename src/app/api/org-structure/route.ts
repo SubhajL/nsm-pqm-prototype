@@ -1,15 +1,7 @@
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
-import {
-  addOrgUnit,
-  deleteOrgUnit,
-  getOrgStructureStore,
-  getOrgUnitTreeFor,
-  getRootOrgUnit,
-  updateOrgUnit,
-  type RidOrgUnitTreeNode,
-} from '@/lib/org-structure-store';
-import { getUserStore } from '@/lib/user-store';
+import type { RidOrgUnitTreeNode } from '@/lib/org-structure-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { OrgUnit, OrgUnitWithUserCount } from '@/types/admin';
 import {
@@ -45,20 +37,21 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const asTree = searchParams.get('asTree') === 'true';
 
-  const users = getUserStore();
+  const repos = getRepositories();
+  const users = await repos.users.list();
   const countsById = new Map<string, number>();
   for (const user of users) {
     countsById.set(user.departmentId, (countsById.get(user.departmentId) ?? 0) + 1);
   }
 
   if (asTree) {
-    const root = getRootOrgUnit();
-    const tree = root ? getOrgUnitTreeFor(root.id) : null;
+    const root = await repos.orgStructure.getRoot();
+    const tree = root ? await repos.orgStructure.getTreeFor(root.id) : null;
     const decorated = tree ? decorateTreeWithUserCount(tree, countsById) : null;
     return Response.json({ status: 'success', data: decorated });
   }
 
-  const units: OrgUnitWithUserCount[] = getOrgStructureStore().map((unit) => ({
+  const units: OrgUnitWithUserCount[] = (await repos.orgStructure.list()).map((unit) => ({
     ...unit,
     userCount: countsById.get(unit.id) ?? 0,
   }));
@@ -82,7 +75,7 @@ export async function POST(request: Request) {
     id: `dept-${crypto.randomUUID()}`,
   } as OrgUnit;
 
-  addOrgUnit(nextUnit);
+  await getRepositories().orgStructure.create(nextUnit);
   await recordAuditEvent(request, {
     action: 'edit_org_structure',
     resourceType: 'org_unit',
@@ -105,8 +98,9 @@ export async function PATCH(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const beforeUnit = getOrgStructureStore().find((unit) => unit.id === body.id);
-  const updatedUnit = updateOrgUnit(body.id, body.updates);
+  const repos = getRepositories();
+  const beforeUnit = await repos.orgStructure.findById(body.id);
+  const updatedUnit = await repos.orgStructure.update(body.id, body.updates);
 
   if (!updatedUnit) {
     return Response.json(
@@ -137,9 +131,9 @@ export async function DELETE(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const store = getOrgStructureStore();
+  const repos = getRepositories();
 
-  if (store.some((unit) => unit.parentId === body.id)) {
+  if (await repos.orgStructure.hasChildren(body.id)) {
     return Response.json(
       {
         status: 'error',
@@ -149,7 +143,7 @@ export async function DELETE(request: Request) {
     );
   }
 
-  if (getUserStore().some((user) => user.departmentId === body.id)) {
+  if ((await repos.users.listByDepartment(body.id)).length > 0) {
     return Response.json(
       {
         status: 'error',
@@ -159,7 +153,7 @@ export async function DELETE(request: Request) {
     );
   }
 
-  const deletedUnit = deleteOrgUnit(body.id);
+  const deletedUnit = await repos.orgStructure.delete(body.id);
 
   if (!deletedUnit) {
     return Response.json(

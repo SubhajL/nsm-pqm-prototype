@@ -6,7 +6,7 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-import { getIssueStore } from '@/lib/issue-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { Issue } from '@/types/risk';
 import {
@@ -20,7 +20,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getIssueStore();
+  const store = await getRepositories().issues.list();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -42,7 +42,7 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getIssueStore();
+  const store = await getRepositories().issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createIssueRequestSchema, rawBody);
@@ -72,7 +72,7 @@ export async function POST(
     closedAt: null,
   };
 
-  store.push(newIssue);
+  await getRepositories().issues.create(newIssue);
   await persistProjectDemoState();
 
   await recordAuditEvent(request, {
@@ -95,7 +95,7 @@ export async function PATCH(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getIssueStore();
+  const store = await getRepositories().issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateIssueStatusRequestSchema, rawBody);

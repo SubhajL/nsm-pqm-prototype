@@ -5,9 +5,7 @@ import {
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { getBoqStore } from '@/lib/boq-store';
-import { getProjectStore } from '@/lib/project-store';
-import { getWbsStore } from '@/lib/wbs-store';
+import { getRepositories } from '@/lib/repositories';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { parseRequestBody } from '@/lib/validation';
 import { createBoqItemRequestSchema } from '@/types/boq.schema';
@@ -29,9 +27,8 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getBoqStore();
-  const wbsStore = getWbsStore();
-  const wbsNode = wbsStore.find((node) => node.id === params.wbsId);
+  const repos = getRepositories();
+  const wbsNode = await repos.wbs.findById(params.wbsId);
 
   if (!wbsNode) {
     return Response.json(
@@ -46,7 +43,7 @@ export async function GET(
   const forbidden = requireProjectAccess(wbsNode.projectId);
   if (forbidden) return forbidden;
 
-  const filtered = store.filter((item) => item.wbsId === params.wbsId);
+  const filtered = await repos.boq.listByWbs(params.wbsId);
 
   return Response.json({ status: 'success', data: filtered });
 }
@@ -57,16 +54,14 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getBoqStore();
-  const projectStore = getProjectStore();
-  const wbsStore = getWbsStore();
+  const repos = getRepositories();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createBoqItemRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const wbsNode = wbsStore.find((node) => node.id === params.wbsId);
+  const wbsNode = await repos.wbs.findById(params.wbsId);
 
   if (!wbsNode) {
     return Response.json(
@@ -87,7 +82,7 @@ export async function POST(
     return forbiddenResponse('edit_boq');
   }
 
-  const project = projectStore.find((entry) => entry.id === wbsNode.projectId);
+  const project = await repos.projects.findById(wbsNode.projectId);
 
   if (!project) {
     return Response.json(
@@ -125,7 +120,7 @@ export async function POST(
     total: quantity * unitPrice,
   };
 
-  store.push(newItem);
+  await repos.boq.create(newItem);
   await persistProjectDemoState();
 
   await recordAuditEvent(request, {

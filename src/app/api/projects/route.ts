@@ -11,8 +11,7 @@ import {
 import { bootstrapProjectData, inferProjectSizeTier } from '@/lib/project-bootstrap';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
-import { getProjectMembershipStore } from '@/lib/project-membership-store';
-import { getProjectStore } from '@/lib/project-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { Project } from '@/types/project';
 import { createProjectRequestSchema } from '@/types/project.schema';
@@ -20,7 +19,8 @@ import { createProjectRequestSchema } from '@/types/project.schema';
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getProjectStore();
+  const repos = getRepositories();
+  const store = await repos.projects.list();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
   const { searchParams } = new URL(request.url);
@@ -67,8 +67,8 @@ export async function POST(request: Request) {
     rawBody !== null &&
     'sizeTier' in (rawBody as Record<string, unknown>);
 
-  const store = getProjectStore();
-  const membershipStore = getProjectMembershipStore();
+  const repos = getRepositories();
+  const store = await repos.projects.list();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
   // create_project does not target an existing project, so we skip
@@ -124,9 +124,9 @@ export async function POST(request: Request) {
     ],
   };
 
-  store.push(newProject);
+  await repos.projects.create(newProject);
 
-  membershipStore.push({
+  await repos.teamMemberships.add({
     projectId: newProject.id,
     userId: currentUser.id,
     assignmentRole: getAssignmentRoleForUserRole(currentUser.role),

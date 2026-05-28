@@ -1,20 +1,13 @@
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { getSignedDocumentUrl } from '@/lib/mock-upload-storage';
 import {
-  addDocumentFile,
-  addDocumentFolder,
-  deleteDocumentFile,
-  deleteDocumentFolder,
-  getDocumentDataForProject,
-  uploadDocumentVersion,
-} from '@/lib/document-store';
-import {
   canPerformProjectAction,
   forbiddenResponse,
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { DocumentFile, Folder, VersionEntry } from '@/types/document';
 import {
@@ -31,7 +24,8 @@ export async function GET(
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  return Response.json({ status: 'success', data: getDocumentDataForProject(params.projectId) });
+  const data = await getRepositories().documents.getDataForProject(params.projectId);
+  return Response.json({ status: 'success', data });
 }
 
 export async function POST(
@@ -54,6 +48,7 @@ export async function POST(
   }
 
   const body = parsed.data;
+  const repos = getRepositories();
 
   if (body.kind === 'folder') {
     const folder: Folder = {
@@ -63,7 +58,7 @@ export async function POST(
       fileCount: 0,
     };
 
-    addDocumentFolder(params.projectId, folder);
+    await repos.documents.addFolder(params.projectId, folder);
     await persistProjectDemoState();
     await recordAuditEvent(request, {
       action: 'upload_document',
@@ -100,7 +95,7 @@ export async function POST(
       accessPolicy: body.accessPolicy,
     };
 
-    addDocumentFile(params.projectId, file);
+    await repos.documents.addFile(params.projectId, file);
     await persistProjectDemoState();
     await recordAuditEvent(request, {
       action: 'upload_document',
@@ -127,7 +122,7 @@ export async function POST(
     );
   }
 
-  const currentData = getDocumentDataForProject(params.projectId);
+  const currentData = await repos.documents.getDataForProject(params.projectId);
   const currentFile = currentData.files.find((entry) => entry.id === body.fileId);
 
   if (!currentFile) {
@@ -170,7 +165,7 @@ export async function POST(
     versionLocked: false,
   };
 
-  const updatedFile = uploadDocumentVersion(params.projectId, body.fileId, nextVersion);
+  const updatedFile = await repos.documents.uploadVersion(params.projectId, body.fileId, nextVersion);
   if (updatedFile) {
     updatedFile.sha256 = body.sha256 ?? updatedFile.sha256;
     updatedFile.sizeBytes = body.sizeBytes ?? updatedFile.sizeBytes;
@@ -220,9 +215,10 @@ export async function DELETE(
   }
 
   const body = parsed.data;
+  const repos = getRepositories();
 
   if (body.kind === 'folder') {
-    const deletedFolder = deleteDocumentFolder(params.projectId, body.id);
+    const deletedFolder = await repos.documents.deleteFolder(params.projectId, body.id);
 
     if (!deletedFolder) {
       return Response.json(
@@ -246,7 +242,7 @@ export async function DELETE(
     return Response.json({ status: 'success', data: deletedFolder });
   }
 
-  const deletedFile = deleteDocumentFile(params.projectId, body.id);
+  const deletedFile = await repos.documents.deleteFile(params.projectId, body.id);
 
   if (!deletedFile) {
     return Response.json(

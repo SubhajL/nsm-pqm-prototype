@@ -1,6 +1,6 @@
 import { recordAuditEvent } from '@/lib/audit-helpers';
-import { getDocumentDataForProject } from '@/lib/document-store';
 import { getSignedDocumentUrl } from '@/lib/mock-upload-storage';
+import { getRepositories } from '@/lib/repositories';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -35,7 +35,7 @@ export async function GET(
     return forbiddenResponse('view_document');
   }
 
-  const projectData = getDocumentDataForProject(params.projectId);
+  const projectData = await getRepositories().documents.getDataForProject(params.projectId);
   const file = projectData.files.find((entry) => entry.id === params.fileId);
 
   if (!file) {

@@ -8,8 +8,7 @@ import {
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
-import { getProjectStore } from '@/lib/project-store';
-import { getUserStore } from '@/lib/user-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { loginRequestSchema } from '@/types/admin.schema';
 
@@ -20,7 +19,8 @@ export async function POST(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const store = getUserStore();
+  const repos = getRepositories();
+  const store = await repos.users.list();
   const selectedUser = store.find((user) => user.id === body.userId && user.status === 'active');
 
   if (!selectedUser) {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   const assignedProjectCount = getAssignedProjectCountForUser(
     selectedUser,
-    getProjectStore(),
+    await repos.projects.list(),
   );
 
   if (requiresProjectDuty(selectedUser.role) && assignedProjectCount === 0) {
