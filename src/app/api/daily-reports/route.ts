@@ -6,7 +6,7 @@ import {
   getVisibleProjectIdsForCurrentUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { getDailyReportStore } from '@/lib/daily-report-store';
+import { getRepositories } from '@/lib/repositories';
 import type { DailyReport } from '@/types/daily-report';
 import { persistMockUpload } from '@/lib/mock-upload-storage';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
@@ -16,7 +16,7 @@ import { createDailyReportRequestSchema } from '@/types/daily-report.schema';
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getDailyReportStore();
+  const store = await getRepositories().dailyReports.list();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getDailyReportStore();
+  const store = await getRepositories().dailyReports.list();
 
   const contentType = request.headers.get('content-type') ?? '';
   const isMultipart = contentType.includes('multipart/form-data');
@@ -261,7 +261,7 @@ export async function POST(request: Request) {
     ],
   };
 
-  store.push(newReport);
+  await getRepositories().dailyReports.create(newReport);
   await persistProjectDemoState();
 
   await recordAuditEvent(request, {

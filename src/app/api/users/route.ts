@@ -1,8 +1,7 @@
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
-import { getProjectStore } from '@/lib/project-store';
+import { getRepositories } from '@/lib/repositories';
 import { recordAuditEvent } from '@/lib/audit-helpers';
-import { addUser, getUserStore, updateUser } from '@/lib/user-store';
 import { parseRequestBody } from '@/lib/validation';
 import type { User } from '@/types/admin';
 import {
@@ -17,8 +16,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const department = searchParams.get('department');
 
-  const projects = getProjectStore();
-  let filtered = [...getUserStore()].map((user) => ({
+  const repos = getRepositories();
+  const projects = await repos.projects.list();
+  let filtered = [...(await repos.users.list())].map((user) => ({
     ...user,
     projectCount: getAssignedProjectCountForUser(user, projects),
   }));
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     projectCount: 0,
   };
 
-  addUser(nextUser);
+  await getRepositories().users.create(nextUser);
   await recordAuditEvent(request, {
     action: 'edit_user',
     resourceType: 'user',
@@ -67,8 +67,9 @@ export async function PATCH(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const beforeUser = getUserStore().find((entry) => entry.id === body.id);
-  const updatedUser = updateUser(body.id, body.updates);
+  const repos = getRepositories();
+  const beforeUser = await repos.users.findById(body.id);
+  const updatedUser = await repos.users.update(body.id, body.updates);
 
   if (!updatedUser) {
     return Response.json(

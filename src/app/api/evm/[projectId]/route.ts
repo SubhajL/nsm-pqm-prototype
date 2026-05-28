@@ -6,8 +6,7 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-import { getEvmStore } from '@/lib/evm-store';
-import { getProjectStore } from '@/lib/project-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { EVMDataPoint } from '@/types/evm';
 import {
@@ -30,14 +29,11 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getEvmStore();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  return Response.json({
-    status: 'success',
-    data: store.filter((point) => point.projectId === params.projectId),
-  });
+  const data = await getRepositories().evm.listByProject(params.projectId);
+  return Response.json({ status: 'success', data });
 }
 
 export async function POST(
@@ -46,8 +42,7 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getEvmStore();
-  const projectStore = getProjectStore();
+  const repos = getRepositories();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createEvmDataPointRequestSchema, rawBody);
@@ -61,7 +56,7 @@ export async function POST(
     return forbiddenResponse('edit_evm');
   }
 
-  const project = projectStore.find((entry) => entry.id === params.projectId);
+  const project = await repos.projects.findById(params.projectId);
 
   if (!project) {
     return Response.json(
@@ -104,9 +99,7 @@ export async function POST(
 
   const ac = Number(rawAmount);
 
-  const duplicate = store.find(
-    (point) => point.projectId === params.projectId && point.month === month,
-  );
+  const duplicate = await repos.evm.findByProjectAndMonth(params.projectId, month);
 
   if (duplicate) {
     return Response.json(
@@ -131,8 +124,7 @@ export async function POST(
     cpi: ac > 0 ? ev / ac : 0,
   };
 
-  store.push(newPoint);
-  store.sort((a, b) => a.month.localeCompare(b.month));
+  await repos.evm.create(newPoint);
   await persistProjectDemoState();
 
   await recordAuditEvent(request, {
@@ -155,7 +147,7 @@ export async function DELETE(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getEvmStore();
+  const repos = getRepositories();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(deleteEvmDataPointRequestSchema, rawBody);
@@ -169,11 +161,9 @@ export async function DELETE(
     return forbiddenResponse('edit_evm');
   }
 
-  const index = store.findIndex(
-    (point) => point.id === body.id && point.projectId === params.projectId,
-  );
+  const existing = await repos.evm.findById(body.id);
 
-  if (index === -1) {
+  if (!existing || existing.projectId !== params.projectId) {
     return Response.json(
       {
         status: 'error',
@@ -183,7 +173,16 @@ export async function DELETE(
     );
   }
 
-  const [deleted] = store.splice(index, 1);
+  const deleted = await repos.evm.delete(body.id);
+  if (!deleted) {
+    return Response.json(
+      {
+        status: 'error',
+        error: { code: 'NOT_FOUND', message: 'EVM snapshot not found' },
+      },
+      { status: 404 },
+    );
+  }
   await persistProjectDemoState();
 
   await recordAuditEvent(request, {

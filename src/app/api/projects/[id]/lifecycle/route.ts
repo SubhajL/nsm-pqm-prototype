@@ -8,8 +8,7 @@ import {
   ensureProjectDemoStateHydrated,
   persistProjectDemoState,
 } from '@/lib/project-demo-state';
-import { getDocumentDataForProject } from '@/lib/document-store';
-import { getProjectStore } from '@/lib/project-store';
+import { getRepositories } from '@/lib/repositories';
 import { canEnterStage } from '@/lib/rid/lifecycle-artifacts';
 import { parseRequestBody } from '@/lib/validation';
 import { advanceLifecycleStageRequestSchema } from '@/types/project.schema';
@@ -53,8 +52,8 @@ export async function PATCH(
     return forbiddenResponse('advance_lifecycle_stage');
   }
 
-  const store = getProjectStore();
-  const project = store.find((candidate) => candidate.id === params.id);
+  const repos = getRepositories();
+  const project = await repos.projects.findById(params.id);
 
   if (!project) {
     return Response.json(
@@ -66,7 +65,7 @@ export async function PATCH(
     );
   }
 
-  const documents = getDocumentDataForProject(params.id).files;
+  const documents = (await repos.documents.getDataForProject(params.id)).files;
   const gateDecision = canEnterStage(
     parsed.data.targetStage,
     parsed.data.artifactDocIds,

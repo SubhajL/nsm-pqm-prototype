@@ -5,7 +5,7 @@ import { canPerformProjectAction, forbiddenResponse } from '@/lib/project-api-ac
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { canUserAccessProject, getActiveUser } from '@/lib/project-access';
-import { getProjectStore } from '@/lib/project-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { updateProjectStatusRequestSchema } from '@/types/project.schema';
 
@@ -15,7 +15,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getProjectStore();
+  const store = await getRepositories().projects.list();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
   if (!canUserAccessProject(currentUser, params.id, store)) {
@@ -55,7 +55,7 @@ export async function PATCH(
   const parsed = parseRequestBody(updateProjectStatusRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
 
-  const store = getProjectStore();
+  const store = await getRepositories().projects.list();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
   if (!canPerformProjectAction(currentUser, params.id, 'edit_basic')) {

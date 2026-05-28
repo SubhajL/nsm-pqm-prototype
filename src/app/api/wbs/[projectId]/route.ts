@@ -8,7 +8,7 @@ import {
 import { getActiveUser } from '@/lib/project-access';
 import { cookies } from 'next/headers';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-import { getWbsStore } from '@/lib/wbs-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { createWbsNodeRequestSchema } from '@/types/wbs.schema';
 
@@ -53,7 +53,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getWbsStore();
+  const store = await getRepositories().wbs.list();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -68,7 +68,7 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getWbsStore();
+  const store = await getRepositories().wbs.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createWbsNodeRequestSchema, rawBody);

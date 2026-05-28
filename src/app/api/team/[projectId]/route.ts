@@ -7,18 +7,11 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import {
-  addProjectMembership,
-  getProjectMembershipStore,
-  hasProjectMembership,
-  removeProjectMembership,
-} from '@/lib/project-membership-store';
-import {
   getAssignedProjectCountForUser,
   getAssignmentRoleForUserRole,
 } from '@/lib/project-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-import { getProjectStore } from '@/lib/project-store';
-import { getUserStore } from '@/lib/user-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { ProjectTeamMember } from '@/types/team';
 import {
@@ -37,15 +30,13 @@ function canManageProjectTeam(projectId: string) {
   return canPerformProjectAction(getCurrentApiUser(), projectId, 'manage_team');
 }
 
-function getInviteCandidates(projectId: string) {
-  const projects = getProjectStore();
-  const memberIds = new Set(
-    getProjectMembershipStore()
-      .filter((membership) => membership.projectId === projectId)
-      .map((membership) => membership.userId),
-  );
+async function getInviteCandidates(projectId: string) {
+  const repos = getRepositories();
+  const projects = await repos.projects.list();
+  const memberships = await repos.teamMemberships.listByProject(projectId);
+  const memberIds = new Set(memberships.map((membership) => membership.userId));
 
-  return getUserStore()
+  return (await repos.users.list())
     .filter(
       (user) =>
         user.status === 'active' &&
@@ -79,14 +70,13 @@ export async function GET(
       return forbiddenResponse('manage_team');
     }
 
-    return Response.json({ status: 'success', data: getInviteCandidates(params.projectId) });
+    return Response.json({ status: 'success', data: await getInviteCandidates(params.projectId) });
   }
 
-  const memberships = getProjectMembershipStore().filter(
-    (membership) => membership.projectId === params.projectId,
-  );
-  const projects = getProjectStore();
-  const userStore = getUserStore();
+  const repos = getRepositories();
+  const memberships = await repos.teamMemberships.listByProject(params.projectId);
+  const projects = await repos.projects.list();
+  const userStore = await repos.users.list();
 
   const members: ProjectTeamMember[] = memberships
     .map((membership) => {
@@ -126,7 +116,8 @@ export async function POST(
     return forbiddenResponse('manage_team');
   }
 
-  const userStore = getUserStore();
+  const repos = getRepositories();
+  const userStore = await repos.users.list();
   const user = userStore.find(
     (candidate) => candidate.id === body.userId && candidate.status === 'active',
   );
@@ -142,7 +133,7 @@ export async function POST(
     );
   }
 
-  if (hasProjectMembership(params.projectId, user.id)) {
+  if (await repos.teamMemberships.has(params.projectId, user.id)) {
     return badRequestResponse('DUPLICATE_TEAM_MEMBER', 'ผู้ใช้นี้อยู่ในทีมโครงการแล้ว');
   }
 
@@ -151,7 +142,7 @@ export async function POST(
     userId: user.id,
     assignmentRole: getAssignmentRoleForUserRole(user.role),
   };
-  addProjectMembership(membership);
+  await repos.teamMemberships.add(membership);
   await persistProjectDemoState();
 
   await recordAuditEvent(request, {
@@ -188,14 +179,15 @@ export async function DELETE(
     return forbiddenResponse('manage_team');
   }
 
-  const userStore = getUserStore();
+  const repos = getRepositories();
+  const userStore = await repos.users.list();
   const user = userStore.find((candidate) => candidate.id === body.userId);
 
   if (!user) {
     return badRequestResponse('INVALID_TEAM_MEMBER', 'ไม่พบผู้ใช้งานที่ต้องการนำออก');
   }
 
-  const project = getProjectStore().find((candidate) => candidate.id === params.projectId);
+  const project = await repos.projects.findById(params.projectId);
 
   if (project && project.managerId === user.id) {
     return badRequestResponse(
@@ -204,10 +196,8 @@ export async function DELETE(
     );
   }
 
-  const beforeMembership = getProjectMembershipStore().find(
-    (membership) => membership.projectId === params.projectId && membership.userId === user.id,
-  );
-  const removed = removeProjectMembership(params.projectId, user.id);
+  const beforeMembership = await repos.teamMemberships.find(params.projectId, user.id);
+  const removed = await repos.teamMemberships.remove(params.projectId, user.id);
 
   if (!removed) {
     return badRequestResponse('TEAM_MEMBER_NOT_FOUND', 'ผู้ใช้นี้ไม่ได้อยู่ในทีมโครงการ');
@@ -229,7 +219,7 @@ export async function DELETE(
     status: 'success',
     data: {
       userId: user.id,
-      remainingAssignedProjects: getAssignedProjectCountForUser(user, getProjectStore()),
+      remainingAssignedProjects: getAssignedProjectCountForUser(user, await repos.projects.list()),
     },
   });
 }

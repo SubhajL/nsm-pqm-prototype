@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
-import { getNotificationStore } from '@/lib/notification-store';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { filterNotificationsForUser, getActiveUser } from '@/lib/project-access';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { Notification } from '@/types/notification';
 import { markNotificationsReadRequestSchema } from '@/types/notification.schema';
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const isReadParam = searchParams.get('isRead');
 
-  let filtered = filterNotificationsForUser(currentUser, getNotificationStore());
+  let filtered = filterNotificationsForUser(currentUser, await getRepositories().notifications.list());
 
   if (isReadParam !== null) {
     const isRead = isReadParam === 'true';
@@ -37,11 +37,11 @@ export async function PATCH(request: Request) {
   const { ids } = parsed.data;
 
   const updated: Notification[] = [];
+  const repos = getRepositories();
 
   for (const id of ids) {
-    const notification = getNotificationStore().find((n) => n.id === id);
+    const notification = await repos.notifications.markRead(id);
     if (notification) {
-      notification.isRead = true;
       updated.push(notification);
     }
   }

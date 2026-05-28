@@ -1,6 +1,6 @@
-import { appendAuditEvent } from '@/lib/audit-log-store';
 import { getCurrentApiUser } from '@/lib/project-api-access';
 import { persistProjectDemoState } from '@/lib/project-demo-state';
+import { getRepositories } from '@/lib/repositories';
 import type { AuditEvent } from '@/types/audit';
 import type { User } from '@/types/admin';
 
@@ -81,7 +81,7 @@ export async function recordAuditEvent(
   const actor = input.actor === undefined ? getCurrentApiUser() : input.actor;
   const requestId = getRequestId(request) ?? `evt-req-${crypto.randomUUID()}`;
 
-  const event = appendAuditEvent({
+  const event = await getRepositories().auditEvents.append({
     requestId,
     actorId: actor?.id ?? null,
     actorRole: actor?.role ?? null,

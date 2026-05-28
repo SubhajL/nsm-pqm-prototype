@@ -6,8 +6,7 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-import { getIssueStore } from '@/lib/issue-store';
-import { getRiskStore } from '@/lib/risk-store';
+import { getRepositories } from '@/lib/repositories';
 import { synchronizeMitigatingRiskIssues } from '@/lib/risk-issue-consistency';
 import { parseRequestBody } from '@/lib/validation';
 import type { Risk } from '@/types/risk';
@@ -19,7 +18,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getRiskStore();
+  const store = await getRepositories().risks.list();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -41,8 +40,9 @@ export async function POST(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getRiskStore();
-  const issueStore = getIssueStore();
+  const repos = getRepositories();
+  const store = await repos.risks.list();
+  const issueStore = await repos.issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createRiskRequestSchema, rawBody);
@@ -77,7 +77,7 @@ export async function POST(
     mitigation: body.mitigation?.trim() || '',
   };
 
-  store.push(newRisk);
+  await repos.risks.create(newRisk);
   synchronizeMitigatingRiskIssues(issueStore, [newRisk]);
   await persistProjectDemoState();
 

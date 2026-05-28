@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-import { getGanttDataForProject, getNextGanttTaskId } from '@/lib/gantt-store';
+import { getRepositories } from '@/lib/repositories';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import {
   canPerformProjectAction,
@@ -10,7 +10,7 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { parseRequestBody } from '@/lib/validation';
-import type { GanttLinkType, GanttTask } from '@/types/gantt';
+import type { GanttData, GanttLinkType, GanttTask } from '@/types/gantt';
 import {
   createGanttTaskRequestSchema,
   deleteGanttTaskRequestSchema,
@@ -159,7 +159,7 @@ function validatePredecessors(
 }
 
 function replaceIncomingLinks(
-  store: ReturnType<typeof getGanttDataForProject>,
+  store: GanttData,
   targetId: number,
   predecessors: ParsedPredecessor[],
 ) {
@@ -219,7 +219,8 @@ export async function GET(
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const store = getGanttDataForProject(params.projectId);
+  const repos = getRepositories();
+  const store = await repos.gantt.getProjectData(params.projectId);
 
   return Response.json({ status: 'success', data: store });
 }
@@ -244,7 +245,8 @@ export async function POST(
   const parsed = validateTaskInput(body);
   if (parsed.error) return parsed.error;
 
-  const store = getGanttDataForProject(params.projectId);
+  const repos = getRepositories();
+  const store = await repos.gantt.getProjectData(params.projectId);
   const parent = parsed.value.parent;
   if (parent !== 0 && !store.data.some((task) => task.id === parent)) {
     return badRequest('parent task not found');
@@ -258,7 +260,7 @@ export async function POST(
   if (predecessorError) return predecessorError;
 
   const newTask: GanttTask = {
-    id: getNextGanttTaskId(params.projectId),
+    id: await repos.gantt.nextTaskId(params.projectId),
     text: parsed.value.text,
     owner: parsed.value.owner,
     start_date: parsed.value.start_date,
@@ -310,7 +312,8 @@ export async function PATCH(
   const parsed = validateTaskInput(body);
   if (parsed.error) return parsed.error;
 
-  const store = getGanttDataForProject(params.projectId);
+  const repos = getRepositories();
+  const store = await repos.gantt.getProjectData(params.projectId);
   const task = store.data.find((entry) => entry.id === body.id);
 
   if (!task) {
@@ -385,7 +388,8 @@ export async function DELETE(
   const cannotManage = ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
 
-  const store = getGanttDataForProject(params.projectId);
+  const repos = getRepositories();
+  const store = await repos.gantt.getProjectData(params.projectId);
   const task = store.data.find((entry) => entry.id === body.id);
 
   if (!task) {

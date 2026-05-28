@@ -1,6 +1,5 @@
-import { getChangeRequestStore } from '@/lib/change-request-store';
 import { recordAuditEvent } from '@/lib/audit-helpers';
-import { addChangeRequest, updateChangeRequest } from '@/lib/change-request-store';
+import { getRepositories } from '@/lib/repositories';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -19,7 +18,7 @@ import {
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store: ChangeRequest[] = getChangeRequestStore();
+  const store: ChangeRequest[] = await getRepositories().changeRequests.list();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -85,7 +84,7 @@ export async function POST(request: Request) {
     ],
   };
 
-  addChangeRequest(nextChangeRequest);
+  await getRepositories().changeRequests.create(nextChangeRequest);
   await persistProjectDemoState();
 
   await recordAuditEvent(request, {
@@ -106,7 +105,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store: ChangeRequest[] = getChangeRequestStore();
+  const store: ChangeRequest[] = await getRepositories().changeRequests.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(decideChangeRequestRequestSchema, rawBody);
@@ -172,7 +171,7 @@ export async function PATCH(request: Request) {
   });
 
   const beforeChangeRequest = structuredClone(changeRequest);
-  const updatedChangeRequest = updateChangeRequest(body.id, {
+  const updatedChangeRequest = await getRepositories().changeRequests.update(body.id, {
     status: nextStatus,
     approvedBy: body.action === 'approve' ? currentUser.name : null,
     approvedAt: body.action === 'approve' ? new Date().toISOString() : null,

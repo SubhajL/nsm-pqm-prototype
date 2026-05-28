@@ -7,13 +7,12 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
-import { getIssueStore } from '@/lib/issue-store';
 import {
   removeAutoNcrIssuesForInspection,
   synchronizeAutoNcrIssues,
   synchronizeItpStatuses,
 } from '@/lib/quality-consistency';
-import { getQualityStore } from '@/lib/quality-store';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import {
   createInspectionRequestSchema,
@@ -24,7 +23,7 @@ import {
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getQualityStore();
+  const store = await getRepositories().qualityInspections.getData();
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -55,8 +54,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getQualityStore();
-  const issueStore = getIssueStore();
+  const repos = getRepositories();
+  const store = await repos.qualityInspections.getData();
+  const issueStore = await repos.issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createInspectionRequestSchema, rawBody);
@@ -158,8 +158,9 @@ const VALID_TRANSITIONS: Record<string, string> = {
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getQualityStore();
-  const issueStore = getIssueStore();
+  const repos = getRepositories();
+  const store = await repos.qualityInspections.getData();
+  const issueStore = await repos.issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateInspectionRequestSchema, rawBody);
@@ -298,8 +299,9 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   await ensureProjectDemoStateHydrated();
-  const store = getQualityStore();
-  const issueStore = getIssueStore();
+  const repos = getRepositories();
+  const store = await repos.qualityInspections.getData();
+  const issueStore = await repos.issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(deleteInspectionRequestSchema, rawBody);

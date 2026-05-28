@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
-import { getUserStore } from '@/lib/user-store';
+import { getRepositories } from '@/lib/repositories';
 
 export async function GET() {
   const cookieStore = cookies();
@@ -11,7 +11,9 @@ export async function GET() {
   }
 
   const currentUser =
-    getUserStore().find((user) => user.id === userId && user.status === 'active') ?? null;
+    (await getRepositories().users.list()).find(
+      (user) => user.id === userId && user.status === 'active',
+    ) ?? null;
 
   return Response.json({
     status: 'success',

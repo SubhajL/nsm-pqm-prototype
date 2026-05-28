@@ -1,5 +1,5 @@
-import { getAuditEventStore } from '@/lib/audit-log-store';
 import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
+import { getRepositories } from '@/lib/repositories';
 import type { AuditEvent } from '@/types/audit';
 
 /**
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
   const to = searchParams.get('to');
   const projectId = searchParams.get('projectId');
 
-  let events: AuditEvent[] = [...getAuditEventStore()];
+  let events: AuditEvent[] = [...(await getRepositories().auditEvents.list())];
 
   if (from) {
     events = events.filter((event) => event.timestamp >= from);
