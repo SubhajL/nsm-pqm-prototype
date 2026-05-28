@@ -10,3 +10,5 @@ public/mock-uploads
 .data/
 .DS_Store
 .codex/
+.pglite-dev/
+

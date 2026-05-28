@@ -1,0 +1,31 @@
+/**
+ * PR-19 — DatabaseXxxRepository barrel.
+ *
+ * Every InMemoryXxxRepository in `src/lib/repositories/` has a matching
+ * Drizzle-backed implementation here. The contract test runner
+ * (`__tests__/database-contract.test.ts`) wires PR-18's reusable contract
+ * functions against these impls to prove behavioural equivalence.
+ *
+ * These impls are NOT wired into API routes by this PR — that happens in
+ * PR-20 (dual-write) and PR-21 (cutover). The repository registry continues
+ * to return InMemory impls until then.
+ */
+
+export { DatabaseAuditEventRepository } from './audit-event.repository';
+export { DatabaseBoqRepository } from './boq.repository';
+export { DatabaseChangeRequestRepository } from './change-request.repository';
+export { DatabaseDailyReportRepository } from './daily-report.repository';
+export { DatabaseDocumentRepository } from './document.repository';
+export { DatabaseEvmRepository } from './evm.repository';
+export { DatabaseGanttRepository } from './gantt.repository';
+export { DatabaseIssueRepository } from './issue.repository';
+export { DatabaseMilestoneRepository } from './milestone.repository';
+export { DatabaseNotificationRepository } from './notification.repository';
+export { DatabaseOrgStructureRepository } from './org-structure.repository';
+export { DatabaseProjectRepository } from './project.repository';
+export { DatabaseQualityGateRepository } from './quality-gate.repository';
+export { DatabaseQualityInspectionRepository } from './quality-inspection.repository';
+export { DatabaseRiskRepository } from './risk.repository';
+export { DatabaseTeamMembershipRepository } from './team-membership.repository';
+export { DatabaseUserRepository } from './user.repository';
+export { DatabaseWbsRepository } from './wbs.repository';
