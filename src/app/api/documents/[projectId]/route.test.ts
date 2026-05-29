@@ -1,10 +1,7 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// PR-06 route-level coverage:
+// PR-06 route-level coverage (post-PR-21 rewrite — blob snapshot retired):
 //   - File too large -> 413 (PAYLOAD_TOO_LARGE)
 //   - Disallowed mime -> 415 (UNSUPPORTED_MEDIA_TYPE)
 //   - New version on a locked (approved) version -> 409 (VERSION_LOCKED)
@@ -18,45 +15,19 @@ vi.mock('next/headers', () => ({
 }));
 
 interface GlobalState {
-  __nsmProjectDemoStateHydrated: boolean | undefined;
-  __nsmProjectDemoStateHydrationPromise: Promise<void> | undefined;
-  __nsmProjectDemoStatePersistPromise: Promise<void> | undefined;
   __nsmDocumentStore: unknown;
-  __nsmAuditLogStore: unknown;
+  __nsmAuditEventStore: unknown;
 }
 
-function resetGlobalDemoState() {
+function resetGlobalStores() {
   const g = globalThis as unknown as GlobalState;
-  g.__nsmProjectDemoStateHydrated = undefined;
-  g.__nsmProjectDemoStateHydrationPromise = undefined;
-  g.__nsmProjectDemoStatePersistPromise = undefined;
   g.__nsmDocumentStore = undefined;
-  g.__nsmAuditLogStore = undefined;
+  g.__nsmAuditEventStore = undefined;
 }
-
-let tempDir: string;
-let originalPersistFile: string | undefined;
-
-beforeAll(async () => {
-  tempDir = await mkdtemp(path.join(tmpdir(), 'pr06-documents-route-'));
-  originalPersistFile = process.env.PROJECT_DEMO_STATE_FILE;
-  process.env.PROJECT_DEMO_STATE_FILE = path.join(tempDir, 'project-demo-state.json');
-  delete process.env.BLOB_READ_WRITE_TOKEN;
-});
-
-afterAll(async () => {
-  if (originalPersistFile === undefined) {
-    delete process.env.PROJECT_DEMO_STATE_FILE;
-  } else {
-    process.env.PROJECT_DEMO_STATE_FILE = originalPersistFile;
-  }
-  await rm(tempDir, { recursive: true, force: true });
-});
 
 beforeEach(async () => {
-  resetGlobalDemoState();
+  resetGlobalStores();
   vi.resetModules();
-  await rm(path.join(tempDir, 'project-demo-state.json'), { force: true });
 });
 
 afterEach(() => {

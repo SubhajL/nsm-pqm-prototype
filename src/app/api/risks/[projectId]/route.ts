@@ -5,7 +5,6 @@ import {
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { synchronizeMitigatingRiskIssues } from '@/lib/risk-issue-consistency';
 import { parseRequestBody } from '@/lib/validation';
@@ -17,7 +16,6 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().risks.list();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
@@ -39,7 +37,6 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
   const store = await repos.risks.list();
   const issueStore = await repos.issues.list();
@@ -79,8 +76,6 @@ export async function POST(
 
   await repos.risks.create(newRisk);
   synchronizeMitigatingRiskIssues(issueStore, [newRisk]);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_risk',
     resourceType: 'risk',

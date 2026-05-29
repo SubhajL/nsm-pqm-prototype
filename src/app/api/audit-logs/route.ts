@@ -1,4 +1,3 @@
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import type { AuditEvent } from '@/types/audit';
 
@@ -86,7 +85,6 @@ function withLegacyAliases(event: AuditEvent, userNamesById: Map<string, string>
  */
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
   const store: AuditEvent[] = [...(await repos.auditEvents.list())];
 

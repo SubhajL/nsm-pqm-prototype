@@ -9,7 +9,6 @@ import {
   getVisibleProjectsForUser,
 } from '@/lib/project-access';
 import { bootstrapProjectData, inferProjectSizeTier } from '@/lib/project-bootstrap';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
@@ -18,7 +17,6 @@ import { createProjectRequestSchema } from '@/types/project.schema';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
   const store = await repos.projects.list();
   const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
@@ -53,7 +51,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createProjectRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -136,8 +133,6 @@ export async function POST(request: Request) {
     project: newProject,
     milestones,
   });
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'create_project',
     resourceType: 'project',

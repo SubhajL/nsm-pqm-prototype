@@ -1,26 +1,33 @@
 /**
- * PR-20 — Operator tool: cross-backend parity check.
+ * Operator tool: cross-backend parity check.
  *
- * Compares the current InMemory state (rehydrated from JSON seeds +
- * `project-demo-state.ts` if blob storage is configured) against the
- * Database state for every domain. Exits with code 0 if both backends
- * match, code 1 on any drift. Suitable for nightly cron + CI gating
- * during the PR-20 soak window.
+ * Post-PR-21 the InMemory backend is no longer the canonical persistence —
+ * Database is. This script now compares two Database instances against
+ * each other, which is the relevant operator workflow for future
+ * blue/green DB migrations (e.g. validating a new Postgres before
+ * promoting it).
  *
  * Usage:
- *   npm run db:parity-check                 # uses pglite if no DATABASE_URL
- *   DATABASE_URL=postgres://... npm run db:parity-check
+ *   npm run db:parity-check    # primary = DATABASE_URL, secondary = DATABASE_URL_SECONDARY
  *
- * What it does:
- *   1. Build an InMemory registry (seed-hydrated).
- *   2. Build a Database registry (run migrations if needed).
- *   3. For each domain: call `assertParity(in, db)` and log the result.
- *   4. Audit-emit a `dual_write_parity_ok|drift` event per domain.
- *   5. Print a summary + exit non-zero on any drift.
+ * Exits with code 0 if both backends match, code 1 on any drift. Each
+ * domain comparison emits a `dual_write_parity_ok|drift` audit event so
+ * the trend can be tracked over time.
+ *
+ * If `DATABASE_URL_SECONDARY` is unset, the script reports an error and
+ * exits with code 2 (no comparison possible). Operators running this
+ * locally for a sanity check can set both URLs to ephemeral pglite by
+ * leaving them unset — see the script source for details.
  */
 
-import { getDb } from '@/lib/db/client';
+import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
+import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
+import { PGlite } from '@electric-sql/pglite';
+import postgres from 'postgres';
+
 import { runMigrations } from '@/lib/db/migrate';
+import type { Db } from '@/lib/db/client';
+import * as schema from '@/lib/db/schema';
 import {
   DatabaseAuditEventRepository,
   DatabaseBoqRepository,
@@ -42,26 +49,6 @@ import {
   DatabaseWbsRepository,
 } from '@/lib/db/repositories';
 import {
-  InMemoryAuditEventRepository,
-  InMemoryBoqRepository,
-  InMemoryChangeRequestRepository,
-  InMemoryDailyReportRepository,
-  InMemoryDocumentRepository,
-  InMemoryEvmRepository,
-  InMemoryGanttRepository,
-  InMemoryIssueRepository,
-  InMemoryMilestoneRepository,
-  InMemoryNotificationRepository,
-  InMemoryOrgStructureRepository,
-  InMemoryProjectRepository,
-  InMemoryQualityGateRepository,
-  InMemoryQualityInspectionRepository,
-  InMemoryRiskRepository,
-  InMemoryTeamMembershipRepository,
-  InMemoryUserRepository,
-  InMemoryWbsRepository,
-} from '@/lib/repositories';
-import {
   assertParity,
   recordParityCheck,
   type ParityResult,
@@ -69,152 +56,175 @@ import {
 
 interface DomainSpec {
   name: string;
-  build: (db: Awaited<ReturnType<typeof getDb>>) => {
-    primary: object;
-    secondary: object;
-  };
+  build: (
+    primary: Db,
+    secondary: Db,
+  ) => { primary: object; secondary: object };
 }
 
 const DOMAINS: DomainSpec[] = [
   {
     name: 'projects',
-    build: (db) => ({
-      primary: new InMemoryProjectRepository(),
-      secondary: new DatabaseProjectRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseProjectRepository(p),
+      secondary: new DatabaseProjectRepository(s),
     }),
   },
   {
     name: 'wbs',
-    build: (db) => ({
-      primary: new InMemoryWbsRepository(),
-      secondary: new DatabaseWbsRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseWbsRepository(p),
+      secondary: new DatabaseWbsRepository(s),
     }),
   },
   {
     name: 'boq',
-    build: (db) => ({
-      primary: new InMemoryBoqRepository(),
-      secondary: new DatabaseBoqRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseBoqRepository(p),
+      secondary: new DatabaseBoqRepository(s),
     }),
   },
   {
     name: 'milestones',
-    build: (db) => ({
-      primary: new InMemoryMilestoneRepository(),
-      secondary: new DatabaseMilestoneRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseMilestoneRepository(p),
+      secondary: new DatabaseMilestoneRepository(s),
     }),
   },
   {
     name: 'gantt',
-    build: (db) => ({
-      primary: new InMemoryGanttRepository(),
-      secondary: new DatabaseGanttRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseGanttRepository(p),
+      secondary: new DatabaseGanttRepository(s),
     }),
   },
   {
     name: 'dailyReports',
-    build: (db) => ({
-      primary: new InMemoryDailyReportRepository(),
-      secondary: new DatabaseDailyReportRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseDailyReportRepository(p),
+      secondary: new DatabaseDailyReportRepository(s),
     }),
   },
   {
     name: 'qualityInspections',
-    build: (db) => ({
-      primary: new InMemoryQualityInspectionRepository(),
-      secondary: new DatabaseQualityInspectionRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseQualityInspectionRepository(p),
+      secondary: new DatabaseQualityInspectionRepository(s),
     }),
   },
   {
     name: 'qualityGates',
-    build: (db) => ({
-      primary: new InMemoryQualityGateRepository(),
-      secondary: new DatabaseQualityGateRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseQualityGateRepository(p),
+      secondary: new DatabaseQualityGateRepository(s),
     }),
   },
   {
     name: 'risks',
-    build: (db) => ({
-      primary: new InMemoryRiskRepository(),
-      secondary: new DatabaseRiskRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseRiskRepository(p),
+      secondary: new DatabaseRiskRepository(s),
     }),
   },
   {
     name: 'issues',
-    build: (db) => ({
-      primary: new InMemoryIssueRepository(),
-      secondary: new DatabaseIssueRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseIssueRepository(p),
+      secondary: new DatabaseIssueRepository(s),
     }),
   },
   {
     name: 'documents',
-    build: (db) => ({
-      primary: new InMemoryDocumentRepository(),
-      secondary: new DatabaseDocumentRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseDocumentRepository(p),
+      secondary: new DatabaseDocumentRepository(s),
     }),
   },
   {
     name: 'changeRequests',
-    build: (db) => ({
-      primary: new InMemoryChangeRequestRepository(),
-      secondary: new DatabaseChangeRequestRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseChangeRequestRepository(p),
+      secondary: new DatabaseChangeRequestRepository(s),
     }),
   },
   {
     name: 'teamMemberships',
-    build: (db) => ({
-      primary: new InMemoryTeamMembershipRepository(),
-      secondary: new DatabaseTeamMembershipRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseTeamMembershipRepository(p),
+      secondary: new DatabaseTeamMembershipRepository(s),
     }),
   },
   {
     name: 'evm',
-    build: (db) => ({
-      primary: new InMemoryEvmRepository(),
-      secondary: new DatabaseEvmRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseEvmRepository(p),
+      secondary: new DatabaseEvmRepository(s),
     }),
   },
   {
     name: 'users',
-    build: (db) => ({
-      primary: new InMemoryUserRepository(),
-      secondary: new DatabaseUserRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseUserRepository(p),
+      secondary: new DatabaseUserRepository(s),
     }),
   },
   {
     name: 'orgStructure',
-    build: (db) => ({
-      primary: new InMemoryOrgStructureRepository(),
-      secondary: new DatabaseOrgStructureRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseOrgStructureRepository(p),
+      secondary: new DatabaseOrgStructureRepository(s),
     }),
   },
   {
     name: 'auditEvents',
-    build: (db) => ({
-      primary: new InMemoryAuditEventRepository(),
-      secondary: new DatabaseAuditEventRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseAuditEventRepository(p),
+      secondary: new DatabaseAuditEventRepository(s),
     }),
   },
   {
     name: 'notifications',
-    build: (db) => ({
-      primary: new InMemoryNotificationRepository(),
-      secondary: new DatabaseNotificationRepository(db),
+    build: (p, s) => ({
+      primary: new DatabaseNotificationRepository(p),
+      secondary: new DatabaseNotificationRepository(s),
     }),
   },
 ];
 
-async function main(): Promise<void> {
-  const db = getDb();
-  console.log('[parity-check] running migrations (idempotent)...');
-  await runMigrations(db);
+function makeDb(url: string | undefined): Db {
+  if (url) {
+    return drizzlePg(postgres(url), { schema });
+  }
+  return drizzlePglite(new PGlite(), { schema });
+}
 
-  const auditRepo = new InMemoryAuditEventRepository();
+async function main(): Promise<void> {
+  const primaryUrl = process.env.DATABASE_URL;
+  const secondaryUrl = process.env.DATABASE_URL_SECONDARY;
+
+  if (!primaryUrl && !secondaryUrl) {
+    console.log(
+      '[parity-check] No DATABASE_URL / DATABASE_URL_SECONDARY set — running self-comparison against two ephemeral pglite instances (sanity check only).',
+    );
+  } else if (!secondaryUrl) {
+    console.error(
+      '[parity-check] DATABASE_URL_SECONDARY is required to run a real parity check. Set it to the connection string of the OTHER Postgres you want to compare against the primary.',
+    );
+    process.exit(2);
+  }
+
+  const primary = makeDb(primaryUrl);
+  const secondary = makeDb(secondaryUrl);
+  console.log('[parity-check] running migrations on both backends (idempotent)...');
+  await runMigrations(primary);
+  await runMigrations(secondary);
+
+  const auditRepo = new DatabaseAuditEventRepository(primary);
   const results: Array<{ domain: string; result: ParityResult }> = [];
 
   for (const spec of DOMAINS) {
-    const { primary, secondary } = spec.build(db);
-    const result = await assertParity(primary, secondary, { domain: spec.name });
+    const { primary: pRepo, secondary: sRepo } = spec.build(primary, secondary);
+    const result = await assertParity(pRepo, sRepo, { domain: spec.name });
     results.push({ domain: spec.name, result });
     await recordParityCheck(auditRepo, spec.name, result);
     if (result.parity) {

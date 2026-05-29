@@ -1,5 +1,4 @@
 import { getCurrentApiUser } from '@/lib/project-api-access';
-import { persistProjectDemoState } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import type { AuditEvent } from '@/types/audit';
 import type { User } from '@/types/admin';
@@ -65,14 +64,11 @@ export interface RecordAuditEventInput {
  *      middleware was bypassed (unit tests).
  *   3. Reads client IP from `x-forwarded-for` (Vercel) / `x-real-ip` and
  *      user agent from `user-agent`.
- *   4. Appends to the append-only store.
- *   5. Persists the snapshot durably via `persistProjectDemoState` so the
- *      event survives a server restart.
+ *   4. Appends to the audit-events repository (Database is canonical
+ *      post-PR-21). The repository handles durability.
  *
- * MUST be called AFTER `persistProjectDemoState()` for the underlying
- * entity write has succeeded — an audit event must reflect committed
- * state. Calling this helper itself triggers a second persist pass that
- * also captures the new event.
+ * MUST be called AFTER the underlying entity write has succeeded — an
+ * audit event must reflect committed state.
  */
 export async function recordAuditEvent(
   request: Request,
@@ -97,7 +93,6 @@ export async function recordAuditEvent(
     userAgent: getUserAgent(request),
   });
 
-  await persistProjectDemoState();
   return event;
 }
 

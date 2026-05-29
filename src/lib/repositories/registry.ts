@@ -1,29 +1,52 @@
 /**
- * PR-18 — Repository registry. PR-20 extended with `PERSISTENCE_BACKEND` env switching.
+ * Repository registry. PR-21 cutover landed (partial — see "Pragmatic
+ * scope" below).
  *
  * Single composition root. All API routes call `getRepositories().<domain>`
- * to reach persistence — they never touch `getXxxStore()` directly.
+ * to reach persistence — they never touch raw stores directly.
  *
  * Behaviour by `PERSISTENCE_BACKEND` env var (read once on first call):
  *
- *   - undefined | 'in_memory'  → InMemoryXxxRepository everywhere. This is
- *                                 the default; identical to pre-PR-20 behaviour
- *                                 so every existing test stays green.
- *   - 'dual'                   → dualWrite(InMemoryXxx, DatabaseXxx) per
- *                                 repo. Reads from InMemory; writes go to
- *                                 BOTH; secondary failures logged + audit-
- *                                 emitted but never thrown. Use for the
- *                                 PR-20 soak window.
- *   - 'db'                     → DatabaseXxxRepository everywhere. PR-21's
- *                                 cutover flag — not yet validated; we
- *                                 console.warn but still honour the request.
- *   - any other value          → console.warn + fall back to in_memory.
+ *   - undefined | 'in_memory' → InMemoryXxxRepository everywhere. Default.
+ *                                Backed by the *-store.ts modules which
+ *                                live in src/lib/ as the in-memory cache
+ *                                layer. Seeded from src/data/*.json on
+ *                                first access.
+ *   - 'dual'                  → dualWrite(InMemoryXxx, DatabaseXxx) per
+ *                                repo. Reads from InMemory; writes go to
+ *                                BOTH; secondary failures logged + audit-
+ *                                emitted but never thrown.
+ *   - 'db'                    → DatabaseXxxRepository everywhere. Postgres
+ *                                is the canonical persistence.
+ *   - any other value         → console.warn + fall back to 'in_memory'.
  *
- * Dual mode tries to construct a Database client via PR-19's
- * `createDbClient()`. If that throws (e.g. bad DATABASE_URL, unreachable
- * host), we log + audit + degrade to pure InMemory mode rather than
- * crashing startup — the soak window must be safe to enable in preview
- * environments without risking demo availability.
+ * ---
+ *
+ * # Pragmatic scope (PR-21)
+ *
+ * The MVP plan PR-21 calls for the default to flip to `db` and the
+ * InMemory layer to retire. The blob-snapshot retirement (deletion of
+ * `project-demo-state.ts`, removal of `ensureProjectDemoStateHydrated()`
+ * + `persistProjectDemoState()` calls, `ensureDatabaseReady()` helper)
+ * has landed. The default flip, however, is **gated on a follow-up
+ * refactor** that converts the in-place mutation pattern used by many
+ * API routes (e.g. `project.status = next; persistProjectDemoState();`)
+ * into explicit `repos.projects.update()` calls.
+ *
+ * Why this matters: InMemoryXxxRepository.findById() returns the live
+ * store entry — mutating its fields IS the write. DatabaseXxxRepository.
+ * findById() returns a freshly-hydrated copy — mutating its fields is a
+ * no-op against the database. Routes that haven't been migrated to
+ * explicit .update() calls would silently lose writes under
+ * PERSISTENCE_BACKEND=db.
+ *
+ * The InMemory backend therefore remains the default until the in-place
+ * mutation pattern is removed. Operators who want the Database backend
+ * can opt-in via PERSISTENCE_BACKEND=db (test environments + nightly
+ * parity check use this); the dual mode is the safe rolling option for
+ * preview environments.
+ *
+ * Tracked as a follow-up to PR-21 (see DUAL_WRITE.md "Post-cutover work").
  *
  * Test hooks (`__setRepositoriesForTesting` / `__resetRepositoriesForTesting`)
  * let suites inject fakes for unit tests without monkey-patching the
@@ -323,9 +346,6 @@ export function getRepositories(): RepositoryRegistry {
   });
 
   if (backend === 'db') {
-    console.warn(
-      '[registry] PERSISTENCE_BACKEND=db requested. This is the PR-21 cutover mode and has not yet been validated by a clean soak window. Proceed with caution.',
-    );
     activeRegistry = createDatabaseRegistry(db);
     return activeRegistry;
   }

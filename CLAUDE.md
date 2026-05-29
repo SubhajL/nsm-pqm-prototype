@@ -136,28 +136,49 @@ All dates displayed to users use Buddhist Era (BE = CE + 543):
 
 ---
 
-## Mock API Pattern
+## Persistence Pattern (post-PR-21)
 
-All API routes live in `src/app/api/`. Pattern:
+All API routes live in `src/app/api/` and reach persistence through the
+repository registry — never the raw stores. Pattern:
+
 ```typescript
 // src/app/api/projects/route.ts
-import projects from '@/data/projects.json';
+import { getRepositories } from '@/lib/repositories';
 
-let store = [...projects]; // In-memory — resets on restart
-
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  return Response.json({ status: 'success', data: store });
+export async function GET() {
+  const repos = getRepositories();
+  const projects = await repos.projects.list();
+  return Response.json({ status: 'success', data: projects });
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
-  store.push({ id: crypto.randomUUID(), ...body });
-  return Response.json({ status: 'success', data: body }, { status: 201 });
+  const created = await getRepositories().projects.create({
+    id: crypto.randomUUID(),
+    ...body,
+  });
+  return Response.json({ status: 'success', data: created }, { status: 201 });
 }
 ```
 
-**Key rule**: Data persists durably via Vercel Blob in production and a local JSON file in development — see `src/lib/project-demo-state.ts`. In-memory stores in `src/lib/*-store.ts` are hydrated from this snapshot on cold start.
+**Persistence backend** is selected by the `PERSISTENCE_BACKEND` env var:
+
+- `in_memory` (default) — in-memory stores in `src/lib/*-store.ts`,
+  seeded from `src/data/*.json` on first read. Data resets on server
+  restart. Used for the demo + local dev.
+- `db` — Drizzle-backed Postgres (Neon in production; pglite when
+  `DATABASE_URL` is unset, for dev + tests). Data is durable. Operators
+  must run `npm run db:migrate && npm run db:seed` once before serving
+  traffic on a fresh deployment.
+- `dual` — writes mirror to both backends (InMemory primary, Database
+  secondary); reads from primary. Used for soak windows + future
+  blue/green DB migrations.
+
+The blob-snapshot infrastructure that previously bridged in-memory state
+across server restarts (`src/lib/project-demo-state.ts`) was retired in
+PR-21. See `src/lib/repositories/DUAL_WRITE.md` for the operator
+playbook, including the post-cutover refactor work required before the
+default can flip from `in_memory` to `db`.
 
 ### Mock Data Reference
 

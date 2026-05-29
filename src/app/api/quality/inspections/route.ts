@@ -6,7 +6,6 @@ import {
   getVisibleProjectIdsForCurrentUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import {
   removeAutoNcrIssuesForInspection,
   synchronizeAutoNcrIssues,
@@ -22,7 +21,6 @@ import {
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().qualityInspections.getData();
 
   const { searchParams } = new URL(request.url);
@@ -53,7 +51,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
   const store = await repos.qualityInspections.getData();
   const issueStore = await repos.issues.list();
@@ -134,8 +131,6 @@ export async function POST(request: Request) {
   store.inspectionRecords.push(newRecord);
   synchronizeItpStatuses(store);
   synchronizeAutoNcrIssues(issueStore, [newRecord]);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_quality_inspection',
     resourceType: 'quality_inspection',
@@ -157,7 +152,6 @@ const VALID_TRANSITIONS: Record<string, string> = {
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
   const store = await repos.qualityInspections.getData();
   const issueStore = await repos.issues.list();
@@ -217,8 +211,6 @@ export async function PATCH(request: Request) {
     }
 
     synchronizeItpStatuses(store);
-    await persistProjectDemoState();
-
     await recordAuditEvent(request, {
       action: 'edit_quality_inspection',
       resourceType: 'quality_inspection',
@@ -279,8 +271,6 @@ export async function PATCH(request: Request) {
   }
 
   record.workflowStatus = body.workflowStatus;
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_quality_inspection',
     resourceType: 'quality_inspection',
@@ -298,7 +288,6 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
   const store = await repos.qualityInspections.getData();
   const issueStore = await repos.issues.list();
@@ -335,8 +324,6 @@ export async function DELETE(request: Request) {
   removeAutoNcrIssuesForInspection(issueStore, record.id);
 
   synchronizeItpStatuses(store);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_quality_inspection',
     resourceType: 'quality_inspection',

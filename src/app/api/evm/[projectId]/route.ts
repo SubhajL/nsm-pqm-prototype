@@ -5,7 +5,6 @@ import {
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { EVMDataPoint } from '@/types/evm';
@@ -28,7 +27,6 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -41,7 +39,6 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
 
   const rawBody: unknown = await request.json().catch(() => null);
@@ -125,8 +122,6 @@ export async function POST(
   };
 
   await repos.evm.create(newPoint);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_evm',
     resourceType: 'evm_data_point',
@@ -146,7 +141,6 @@ export async function DELETE(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
 
   const rawBody: unknown = await request.json().catch(() => null);
@@ -183,8 +177,6 @@ export async function DELETE(
       { status: 404 },
     );
   }
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_evm',
     resourceType: 'evm_data_point',

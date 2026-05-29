@@ -186,12 +186,12 @@ export function appendAuditEvent(
 }
 
 // ---------------------------------------------------------------------------
-// Re-exports for legacy call-sites and snapshot back-compat.
+// Re-exports for legacy call-sites.
 //
-// `getAuditLogStore` is preserved so `project-demo-state.ts` and any
-// remaining external code keep working until they migrate to the new name.
-// The return type is widened to `AuditEvent[]` — callers that expected the
-// old `AuditLog` shape now see structured events instead.
+// `getAuditLogStore` is preserved so any remaining external code keeps
+// working until callers migrate to `getAuditEventStore`. The return type
+// is widened to `AuditEvent[]` — callers that expected the old `AuditLog`
+// shape now see structured events instead.
 // ---------------------------------------------------------------------------
 
 export const getAuditLogStore = getAuditEventStore;

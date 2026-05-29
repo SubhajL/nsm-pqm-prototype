@@ -2,13 +2,9 @@ import { NextResponse } from 'next/server';
 import { AUTH_COOKIE_ROLE, AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { getCurrentApiUser } from '@/lib/project-api-access';
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
-
 export async function POST(request: Request) {
   // Capture the actor BEFORE clearing the cookie so the audit event
-  // correctly attributes the logout. Hydration is required before
-  // recordAuditEvent → persistProjectDemoState.
-  await ensureProjectDemoStateHydrated();
+  // correctly attributes the logout.
   const actor = getCurrentApiUser();
 
   const response = NextResponse.json({
