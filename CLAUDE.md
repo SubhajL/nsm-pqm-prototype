@@ -260,6 +260,32 @@ Inside individual pages, prefer semantic regions (`<section>`,
   the `Thai (English)` format already used by the rest of the shell).
 - **New `<nav>` region** → must carry a bilingual `aria-label`.
 
+### Shared UX primitives (PR-A3)
+
+Bilingual primitives in `src/components/common/` that downstream PRs
+(B3, C2, D1) will adopt. Pure helpers live in sibling `.ts` files so
+they can be unit-tested under vitest's node env (no JSX).
+
+| Primitive | Source | Use when |
+|---|---|---|
+| `EmptyState` | `EmptyState.tsx` | A list, table, or panel would otherwise render nothing |
+| `SearchBar` | `SearchBar.tsx` + `search-utils.ts` | Any text search field — uses `caseInsensitiveIncludes()` for the filter predicate |
+| `FilterBar` | `FilterBar.tsx` + `filter-utils.ts` | Wrap any filter-chip row; the `<section role="region">` makes it a landmark. `hasAnyActiveFilter()` / `resetFilters()` drive the Reset chip |
+| `FormSection` | `FormSection.tsx` | Group related controls in a `<fieldset>` + `<legend>` per W3C-WAI |
+| `StatusIndicator` | `StatusIndicator.tsx` + `status-visual.ts` | Generic status chip (success/warning/error/info/neutral). Always color **and** icon **and** text — never color alone. Reach for `StatusBadge` instead for domain statuses (project/milestone/risk/issue) |
+| `LoadingSkeleton` | `LoadingSkeleton.tsx` | Any "data not yet loaded" state. `role="status"` + `aria-busy` makes it AT-announceable |
+
+**Status-color invariant.** `resolveStatusVisual()` is locked by
+`StatusIndicator.test.ts` against the AA-compliant `*Text` variants
+from PR-A1. Adding a new `Status` value requires extending the lookup
+**and** the test.
+
+**Authoring rule:** prefer these primitives over bespoke per-screen
+copies. The pure helpers (`caseInsensitiveIncludes`,
+`hasAnyActiveFilter`, `resetFilters`, `resolveStatusVisual`) are the
+single source of truth — duplicating their logic per screen is the
+G6/G7/G8 anti-pattern this PR exists to retire.
+
 ---
 
 ## Thai Buddhist Calendar
