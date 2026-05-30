@@ -103,16 +103,77 @@ src/
 
 ## Design System Tokens
 
-### Colors (defined in `src/theme/antd-theme.ts` and `tailwind.config.ts`)
+Sources of truth (PR-A1):
+- **Colors** → `src/theme/antd-theme.ts` → `COLORS`
+- **Type scale + spacing scale** → `src/theme/scales.ts` → `TYPE_SCALE`, `SPACING`
+- **Contrast helpers** → `src/theme/contrast.ts` (WCAG 2.x math + `auditPaletteContrast()`)
+- **Lock-in test** → `src/theme/palette-contrast.test.ts` (CI gate on AA compliance)
+- `tailwind.config.ts` mirrors the above; do not let it drift.
+
+### Colors
+
 | Token | Hex | Usage |
 |---|---|---|
 | `colorPrimary` | `#1E3A5F` | Sidebar, headers, primary buttons |
-| `--accent-teal` | `#00B894` | Active nav, progress bars, success actions |
-| `colorInfo` | `#2D6BFF` | Links, informational badges |
-| `colorWarning` | `#F39C12` | Warnings, amber status |
-| `colorError` | `#E74C3C` | Errors, danger, late status |
-| `colorSuccess` | `#27AE60` | Success, completed, on-track |
+| `accentTeal` | `#00B894` | **Brand identity only** (filled chips, large headings, tinted bg fills). Below AA on white — use `accentTealText` for normal body text |
+| `colorInfo` | `#1D5EE6` | Links, informational badges. PR-A1 darkened from `#2D6BFF` (passed AA on white only) so it now also passes on `bgLayout` (≈5.16:1) |
+| `colorWarning` | `#F39C12` | Brand only — use `warningText` for normal body text |
+| `colorError` | `#E74C3C` | Brand only — use `errorText` for normal body text |
+| `colorSuccess` | `#27AE60` | Brand only — use `successText` for normal body text |
 | `colorBgLayout` | `#F5F7FA` | Main content background |
+| `textMuted` | `#595959` | Secondary text. PR-A1 raised from `#8C8C8C` to satisfy AA (≈6.69:1 on white) |
+| `accentTealText` | `#00755C` | Teal as normal text on white (≈5.56:1) |
+| `warningText` | `#A05E00` | Warning as normal text on white (≈5.13:1) |
+| `successText` | `#1B7A45` | Success as normal text on white (≈5.72:1) |
+| `errorText` | `#B7341C` | Error as normal text on white (≈5.10:1) |
+
+**Contrast policy:** every COLORS token used as normal body text on its
+intended background must satisfy WCAG-AA (≥4.5:1) — enforced by
+`palette-contrast.test.ts`. The four brand status colors are explicitly
+exempt because they encode visual identity; route reading-load through
+the matching `*Text` variant instead. Do not silence the lock-in test —
+darken the offending token.
+
+### Type scale
+
+Defined in `src/theme/scales.ts` → `TYPE_SCALE`. Mirrored in both
+`antdTheme.token.fontSize*` and `tailwind.config.ts` → `fontSize`.
+
+| Token | Size | Line-height | Intended use |
+|---|---|---|---|
+| `xs` | 12 px | 16 px | Captions, badges, decorative chips (Latin only) |
+| `sm` | 13 px | 18 px | Secondary text |
+| `base` | 14 px | 22 px | **Body floor for Thai** — AntD default |
+| `lg` | 16 px | 24 px | Preferred Thai body when density permits |
+| `xl` | 18 px | 26 px | Section sub-headings |
+| `2xl` | 20 px | 28 px | Section headings |
+| `3xl` | 24 px | 32 px | H3 |
+| `4xl` | 32 px | 40 px | H2 / page titles |
+| `5xl` | 40 px | 48 px | Display |
+
+**Thai body-size floor.** Per Punsongserm & Suvakunta 2024 (peer-reviewed
+Thai typography research), Thai body text should respect a minimum
+glyph size derived from a 1.3 mm Bo Baimai (บ) loop height. Mapped to
+web at 96 DPI with Noto Sans Thai metrics, this becomes a conservative
+**14 px floor** (`TYPE_SCALE.base`). Anything smaller is reserved for
+short Latin tokens or decorative chips. The `withThaiMinSize(px)`
+helper in `scales.ts` clamps variable inputs.
+
+### Spacing scale
+
+Defined in `src/theme/scales.ts` → `SPACING`. Tailwind exposes the
+named tokens as `tk-xs` through `tk-6xl` alongside its numeric scale.
+
+| Token | px | Common use |
+|---|---|---|
+| `xs` | 4 | Tight gaps within compound icons |
+| `sm` | 8 | Form input padding, badge gaps |
+| `md` | 12 | Tag/chip vertical padding |
+| `lg` | 16 | Card body padding, KPI inner spacing |
+| `xl` | 20 | Section spacing on dense panels |
+| `2xl` | 24 | **AntD default Row/Col gutter** |
+| `3xl` | 32 | Inter-section spacing |
+| `4xl–6xl` | 40 / 48 / 64 | Page-level vertical rhythm |
 
 ### Typography
 - Latin text: Inter (via `next/font/google`)
@@ -123,6 +184,16 @@ src/
 - Border radius: `8px` globally via antd theme token
 - Card shadows: `0 2px 10px rgba(0,0,0,0.08)`
 - Minimum touch target: `44px` for mobile screens
+
+### Authoring rules (PR-A1)
+- Prefer `TYPE_SCALE['<token>'].size` and `SPACING['<token>']` over inline
+  `fontSize: 16` / `marginTop: 24` magic numbers. Tailwind classes
+  `text-base`, `p-tk-lg`, etc. are equivalent.
+- Adding a new color token: extend `COLORS` AND add an entry to
+  `palette-contrast.test.ts` declaring the background it must pass AA
+  on (or document the exemption inline).
+- Bumping a token (e.g. accessibility raise): update both `COLORS` and
+  the Tailwind mirror; do not let them drift.
 
 ---
 
