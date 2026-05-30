@@ -12,7 +12,7 @@
 const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
 
 /**
- * Default allowlist covering the documents an อพวช./RID construction
+ * Default allowlist covering the documents a RID construction
  * project needs to upload: contracts (PDF), drawings (DWG), spreadsheets
  * (XLSX/CSV), site photos (JPG/PNG/WebP), Office docs (DOCX/PPT/PPTX),
  * plain text (TXT).

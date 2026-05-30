@@ -27,7 +27,7 @@ export function NewProjectHeader({
         onClick={onDemoFill}
         style={{ borderColor: COLORS.accentTeal, color: COLORS.accentTeal }}
       >
-        Demo: Scenario 1 ก่อสร้างครบวงจร
+        เติมข้อมูลตัวอย่าง (Demo Fill)
       </Button>
     </div>
   );

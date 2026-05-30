@@ -14,6 +14,7 @@ import {
 import { useProjects } from '@/hooks/useProjects';
 import { KPICard } from '@/components/common/KPICard';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { getAgencyBrand } from '@/lib/branding';
 import { buildExecutiveExportDocument } from '@/lib/export-documents';
 import { formatBahtShort } from '@/lib/date-utils';
 import { openPrintableReport } from '@/lib/export-utils';
@@ -273,7 +274,7 @@ export default function ExecutiveDashboardPage() {
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
             <Card size="small">
-              <Text strong>ปรับปรุงนิทรรศการดาราศาสตร์</Text>
+              <Text strong>ก่อสร้างฝายทดน้ำห้วยขุนแก้ว ตอน 1</Text>
               <div style={{ marginTop: 8 }}>
                 <div style={{ marginBottom: 4 }}>
                   <Text type="secondary">SPI: </Text>
@@ -297,7 +298,7 @@ export default function ExecutiveDashboardPage() {
           </Col>
           <Col xs={24} lg={12}>
             <Card size="small">
-              <Text strong>พัฒนาระบบจองกิจกรรม</Text>
+              <Text strong>ระบบติดตามสถานการณ์น้ำลุ่มน้ำเจ้าพระยา</Text>
               <div style={{ marginTop: 8 }}>
                 <div style={{ marginBottom: 4 }}>
                   <Text type="secondary">Sprint velocity: </Text>
@@ -328,7 +329,7 @@ export default function ExecutiveDashboardPage() {
           สร้างรายงาน PDF (Generate PDF)
         </Button>
         <Button icon={<SendOutlined />} type="default">
-          ส่ง Dashboard ไปยัง อพวช. DSC
+          {`ส่ง Dashboard ไปยัง ${getAgencyBrand().name} DSC`}
         </Button>
         <Button icon={<TeamOutlined />} type="default">
           นัดประชุมทีม

@@ -258,14 +258,14 @@ export default function NewProjectPage() {
 
   const handleDemoFill = () => {
     form.setFieldsValue({
-      name: 'โครงการปรับปรุงอาคารนิทรรศการ อาคาร C',
+      name: 'โครงการก่อสร้างประตูระบายน้ำคลองรังสิตประยูรศักดิ์ ตอน 2',
       projectClass: 'construction' as ProjectClass,
       deliveryMethod: 'outsourced' as DeliveryMethod,
       contractingModel: 'lump_sum' as ContractingModel,
       objectives:
-        'ปรับปรุงอาคารนิทรรศการ อาคาร C เพื่อรองรับนิทรรศการเทคโนโลยีอวกาศและดาราศาสตร์ รวมถึงงานโครงสร้าง ระบบ M&E งานตกแต่งภายใน และระบบมัลติมีเดีย',
+        'ก่อสร้างประตูระบายน้ำคอนกรีตเสริมเหล็กพร้อมระบบเครื่องกลและไฟฟ้า เพื่อควบคุมการระบายน้ำลุ่มน้ำเจ้าพระยาตอนล่างและบรรเทาอุทกภัยในพื้นที่กรุงเทพฯ ตอนเหนือ–ปทุมธานี',
       description:
-        'โครงการก่อสร้างครบวงจร ตาม Scenario 1 (SSO → WBS → BOQ → Gantt → EVM) สำหรับสาธิตระบบ PQM',
+        'โครงการก่อสร้างครบวงจร (สำรวจ–ออกแบบ–ก่อสร้าง–ส่งมอบ) สำหรับสาธิตเส้นทาง WBS → BOQ → Gantt → EVM ของระบบ PQM',
       startDate: dayjs('2026-08-01'),
       endDate: dayjs('2027-01-31'),
       budget: 18500000,
@@ -273,12 +273,12 @@ export default function NewProjectPage() {
       progressMethod: 'evm',
     });
     setMilestones([
-      { key: 1, milestone: 1, amount: 2775000, percentage: 15, deliverable: 'แบบรายละเอียด (Detail Design) + BOQ + แผนงาน' },
-      { key: 2, milestone: 2, amount: 6475000, percentage: 35, deliverable: 'งานโครงสร้างหลัก + ระบบไฟฟ้า/สุขาภิบาล' },
-      { key: 3, milestone: 3, amount: 6475000, percentage: 35, deliverable: 'งานตกแต่งภายใน + ระบบมัลติมีเดีย + ระบบ IT' },
-      { key: 4, milestone: 4, amount: 2775000, percentage: 15, deliverable: 'ทดสอบระบบ + ตรวจรับ + ส่งมอบ' },
+      { key: 1, milestone: 1, amount: 2775000, percentage: 15, deliverable: 'งานสำรวจ + แบบรายละเอียด (Detail Design) + BOQ + แผนงาน' },
+      { key: 2, milestone: 2, amount: 6475000, percentage: 35, deliverable: 'งานโครงสร้างประตูระบายน้ำ + ฐานราก + เสาเข็ม' },
+      { key: 3, milestone: 3, amount: 6475000, percentage: 35, deliverable: 'งานติดตั้งบานประตู + ระบบเครื่องกล/ไฟฟ้า/SCADA' },
+      { key: 4, milestone: 4, amount: 2775000, percentage: 15, deliverable: 'ทดสอบเดินเครื่อง + ตรวจรับ + ส่งมอบ' },
     ]);
-    message.success('เติมข้อมูลตัวอย่าง Scenario 1 แล้ว');
+    message.success('เติมข้อมูลตัวอย่างโครงการสาธิตแล้ว');
   };
 
   return (

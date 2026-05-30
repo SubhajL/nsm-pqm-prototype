@@ -24,6 +24,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { memo, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { apiPost } from '@/lib/api-client';
+import { getAgencyBrand } from '@/lib/branding';
 import { useProjects } from '@/hooks/useProjects';
 import { canAccessMenuItem, isProjectScopedMenuItem, type AppMenuKey } from '@/lib/project-access-pure';
 import { useAppStore } from '@/stores/useAppStore';
@@ -174,7 +175,7 @@ export const Sidebar = memo(function Sidebar() {
         </div>
         {(!collapsed || isMobile) && (
           <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginLeft: 8 }}>
-            อพวช.
+            {getAgencyBrand().name}
           </span>
         )}
       </div>
