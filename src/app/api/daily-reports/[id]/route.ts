@@ -6,7 +6,6 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { parseRequestBody } from '@/lib/validation';
 import { updateDailyReportStatusRequestSchema } from '@/types/daily-report.schema';
 import type { Notification } from '@/types/notification';
@@ -16,7 +15,6 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().dailyReports.list();
 
   const report = store.find((r) => r.id === params.id);
@@ -42,7 +40,6 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().dailyReports.list();
 
   const rawText = await request.text();
@@ -205,8 +202,6 @@ export async function PATCH(
   if (notification) {
     await getRepositories().notifications.push(notification);
   }
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: requiredAction,
     resourceType: 'daily_report',

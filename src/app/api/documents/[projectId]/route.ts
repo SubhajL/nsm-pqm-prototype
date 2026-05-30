@@ -6,7 +6,6 @@ import {
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { DocumentFile, Folder, VersionEntry } from '@/types/document';
@@ -20,7 +19,6 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -33,7 +31,6 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(documentWriteRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -59,7 +56,6 @@ export async function POST(
     };
 
     await repos.documents.addFolder(params.projectId, folder);
-    await persistProjectDemoState();
     await recordAuditEvent(request, {
       action: 'upload_document',
       resourceType: 'document_folder',
@@ -96,7 +92,6 @@ export async function POST(
     };
 
     await repos.documents.addFile(params.projectId, file);
-    await persistProjectDemoState();
     await recordAuditEvent(request, {
       action: 'upload_document',
       resourceType: 'document_file',
@@ -175,7 +170,6 @@ export async function POST(
       ? new Date().toISOString()
       : updatedFile.virusScanCheckedAt ?? null;
   }
-  await persistProjectDemoState();
   await recordAuditEvent(request, {
     action: 'upload_document',
     resourceType: 'document_file',
@@ -200,7 +194,6 @@ export async function DELETE(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(documentDeleteRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -226,8 +219,6 @@ export async function DELETE(
         { status: 404 },
       );
     }
-
-    await persistProjectDemoState();
     await recordAuditEvent(request, {
       action: 'upload_document',
       resourceType: 'document_folder',
@@ -250,8 +241,6 @@ export async function DELETE(
       { status: 404 },
     );
   }
-
-  await persistProjectDemoState();
   await recordAuditEvent(request, {
     action: 'upload_document',
     resourceType: 'document_file',

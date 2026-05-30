@@ -9,13 +9,11 @@ import {
 import { getRepositories } from '@/lib/repositories';
 import type { DailyReport } from '@/types/daily-report';
 import { persistMockUpload } from '@/lib/mock-upload-storage';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { parseRequestBody } from '@/lib/validation';
 import { createDailyReportRequestSchema } from '@/types/daily-report.schema';
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().dailyReports.list();
 
   const { searchParams } = new URL(request.url);
@@ -41,7 +39,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().dailyReports.list();
 
   const contentType = request.headers.get('content-type') ?? '';
@@ -262,8 +259,6 @@ export async function POST(request: Request) {
   };
 
   await getRepositories().dailyReports.create(newReport);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'submit_daily_report',
     resourceType: 'daily_report',

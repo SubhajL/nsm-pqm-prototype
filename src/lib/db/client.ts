@@ -15,6 +15,7 @@
  */
 
 import { PGlite } from '@electric-sql/pglite';
+import { sql } from 'drizzle-orm';
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -63,4 +64,35 @@ export function getDb(): Db {
  */
 export function __setDbForTesting(db: Db | null): void {
   cached = db;
+  databaseReadyPromise = null;
+}
+
+let databaseReadyPromise: Promise<void> | null = null;
+
+/**
+ * Lazily verifies the Database is reachable + responsive. Used by routes
+ * that previously called `ensureProjectDemoStateHydrated()` to surface
+ * connection problems before the first real query.
+ *
+ * Memoised: only the first caller pays the cost. Subsequent calls await
+ * the cached promise. If the probe fails, the promise rejects and the
+ * cache is cleared so the next call retries.
+ *
+ * Schema migrations are NOT this helper's job — `getRepositories()`
+ * schedules them on construction. This is a quick "are you alive?" probe.
+ */
+export async function ensureDatabaseReady(): Promise<void> {
+  if (databaseReadyPromise) return databaseReadyPromise;
+
+  databaseReadyPromise = (async () => {
+    const db = getDb();
+    try {
+      await db.execute(sql.raw('SELECT 1'));
+    } catch (err) {
+      databaseReadyPromise = null;
+      throw err;
+    }
+  })();
+
+  return databaseReadyPromise;
 }

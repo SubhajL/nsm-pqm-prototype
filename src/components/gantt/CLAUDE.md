@@ -27,7 +27,7 @@ No Gantt npm package is installed (verify with `grep -i gantt package.json`). Th
 
 ### 4. Progress Propagation via `project-execution-sync.ts`
 - When a user edits a leaf task's progress in the Gantt, the change is written through `src/lib/project-execution-sync.ts` rather than directly to the WBS store.
-- `project-execution-sync.ts` recomputes parent/phase progress as a weighted average of child progress, then persists the updated WBS snapshot via `project-demo-state.ts`.
+- `project-execution-sync.ts` recomputes parent/phase progress as a weighted average of child progress and mutates the in-memory WBS store; the underlying repository (Postgres in `db` mode, in-memory cache in `in_memory` mode) is the authoritative persistence.
 - This keeps Gantt, WBS tree, and EVM views in sync without each view needing its own propagation logic.
 
 ## What This Does Not Have

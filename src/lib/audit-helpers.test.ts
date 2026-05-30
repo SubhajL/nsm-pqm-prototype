@@ -20,24 +20,9 @@ import type { AuditEvent } from '@/types/audit';
 //      attaches it to the persisted event.
 //   4. recordAuditEvent attaches ip + user agent from request headers.
 //
-// We mock the heavy persistence path (`persistProjectDemoState`) and the
-// cookie-bound `getCurrentApiUser()` so tests stay hermetic and don't
-// touch the local .data/ snapshot.
+// Post-PR-21: blob snapshot retired. We mock the cookie-bound
+// `getCurrentApiUser()` so tests stay hermetic.
 // ---------------------------------------------------------------------------
-
-vi.mock('@/lib/project-demo-state', async () => {
-  // Keep `ensureProjectDemoStateHydrated` real-ish (it's a no-op once hydrated)
-  // but make `persistProjectDemoState` a noop so we don't write to disk.
-  const actual = await vi.importActual<
-    typeof import('@/lib/project-demo-state')
-  >('@/lib/project-demo-state');
-  return {
-    ...actual,
-    persistProjectDemoState: vi.fn(async () => {
-      // intentional noop in tests
-    }),
-  };
-});
 
 vi.mock('@/lib/project-api-access', async () => {
   const actual = await vi.importActual<

@@ -1,5 +1,4 @@
 import { recordAuditEvent } from '@/lib/audit-helpers';
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import type { RidOrgUnitTreeNode } from '@/lib/org-structure-store';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
@@ -32,8 +31,6 @@ function decorateTreeWithUserCount(
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
-
   const { searchParams } = new URL(request.url);
   const asTree = searchParams.get('asTree') === 'true';
 
@@ -61,7 +58,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createOrgUnitRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -92,7 +88,6 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateOrgUnitRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -125,7 +120,6 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(deleteOrgUnitRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;

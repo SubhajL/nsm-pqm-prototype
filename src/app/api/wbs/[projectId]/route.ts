@@ -7,7 +7,6 @@ import {
 } from '@/lib/project-api-access';
 import { getActiveUser } from '@/lib/project-access';
 import { cookies } from 'next/headers';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { createWbsNodeRequestSchema } from '@/types/wbs.schema';
@@ -52,7 +51,6 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().wbs.list();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
@@ -67,7 +65,6 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().wbs.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
@@ -116,8 +113,6 @@ export async function POST(
   };
 
   store.push(newNode);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_wbs',
     resourceType: 'wbs',

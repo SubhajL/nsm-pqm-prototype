@@ -1,22 +1,23 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// PR-07 smoke test
+// PR-07 smoke test (post-PR-21 rewrite)
 //
-// Confirms that POST /api/users + PATCH /api/users:
-//   1. mutate the in-memory user store
-//   2. call persistProjectDemoState() — the bug this PR fixes
-//   3. round-trip through the persistence file: a "cold restart" simulated by
-//      wiping module-global state and re-hydrating from the on-disk snapshot
-//      surfaces the created user
-//   4. emit an audit-log entry on each successful mutation
+// Original PR-07 verified that POST /api/users + PATCH /api/users wrote to
+// the blob snapshot so admin mutations survived a server restart. PR-21
+// retired the blob snapshot — durability now comes from the underlying
+// repository (Postgres in `db` mode; in-memory store seeded from JSON in
+// `in_memory` mode, the default). This rewritten test verifies the route
+// still:
 //
-// The cookies() call inside `getCurrentApiUser()` is mocked to return a System
-// Admin user id (middleware already gates /api/users to System Admin in
-// production, so this is the realistic auth context for these routes).
+//   1. Mutates the user store via the repository.
+//   2. Returns the created/updated user envelope.
+//   3. Emits a structured `edit_user` audit event.
+//   4. Rejects unknown user ids with 404.
+//
+// We exercise the route against the default `in_memory` registry; the
+// pglite-backed `database-contract.test.ts` covers the same surface
+// against the Database backend so both paths are proven.
 // ---------------------------------------------------------------------------
 
 vi.mock('next/headers', () => ({
@@ -26,49 +27,21 @@ vi.mock('next/headers', () => ({
 }));
 
 interface GlobalState {
-  __nsmProjectDemoStateHydrated: boolean | undefined;
-  __nsmProjectDemoStateHydrationPromise: Promise<void> | undefined;
-  __nsmProjectDemoStatePersistPromise: Promise<void> | undefined;
   __nsmUserStore: unknown;
   __nsmOrgStructureStore: unknown;
-  __nsmAuditLogStore: unknown;
+  __nsmAuditEventStore: unknown;
 }
 
-function resetGlobalDemoState() {
+function resetGlobalStores() {
   const g = globalThis as unknown as GlobalState;
-  g.__nsmProjectDemoStateHydrated = undefined;
-  g.__nsmProjectDemoStateHydrationPromise = undefined;
-  g.__nsmProjectDemoStatePersistPromise = undefined;
   g.__nsmUserStore = undefined;
   g.__nsmOrgStructureStore = undefined;
-  g.__nsmAuditLogStore = undefined;
+  g.__nsmAuditEventStore = undefined;
 }
 
-let tempDir: string;
-let originalPersistFile: string | undefined;
-
-beforeAll(async () => {
-  tempDir = await mkdtemp(path.join(tmpdir(), 'pr07-users-route-'));
-  originalPersistFile = process.env.PROJECT_DEMO_STATE_FILE;
-  process.env.PROJECT_DEMO_STATE_FILE = path.join(tempDir, 'project-demo-state.json');
-  // Defensively ensure no blob token sneaks in.
-  delete process.env.BLOB_READ_WRITE_TOKEN;
-});
-
-afterAll(async () => {
-  if (originalPersistFile === undefined) {
-    delete process.env.PROJECT_DEMO_STATE_FILE;
-  } else {
-    process.env.PROJECT_DEMO_STATE_FILE = originalPersistFile;
-  }
-  await rm(tempDir, { recursive: true, force: true });
-});
-
 beforeEach(async () => {
-  resetGlobalDemoState();
+  resetGlobalStores();
   vi.resetModules();
-  // Start each test with no on-disk snapshot.
-  await rm(path.join(tempDir, 'project-demo-state.json'), { force: true });
 });
 
 afterEach(() => {
@@ -86,14 +59,14 @@ const NEW_USER_PAYLOAD = {
   phone: '02-000-0000',
 };
 
-describe('POST /api/users persistence (PR-07)', () => {
-  it('persists a newly created user so it survives a simulated cold restart', async () => {
+describe('POST /api/users (PR-07 / post-PR-21)', () => {
+  it('creates a user via the repository and emits an audit event', async () => {
     const { POST } = await import('./route');
-    const { getUserStore } = await import('@/lib/user-store');
-    const { getAuditLogStore } = await import('@/lib/audit-log-store');
+    const { getRepositories } = await import('@/lib/repositories');
 
-    const before = getUserStore().length;
-    const beforeAuditCount = getAuditLogStore().length;
+    const repos = getRepositories();
+    const before = (await repos.users.list()).length;
+    const beforeAuditCount = (await repos.auditEvents.list()).length;
 
     const response = await POST(
       new Request('http://localhost/api/users', {
@@ -103,53 +76,36 @@ describe('POST /api/users persistence (PR-07)', () => {
       }),
     );
     expect(response.status).toBe(201);
-    const body = (await response.json()) as { status: string; data: { id: string; name: string } };
+    const body = (await response.json()) as {
+      status: string;
+      data: { id: string; name: string };
+    };
     expect(body.status).toBe('success');
     expect(body.data.name).toBe(NEW_USER_PAYLOAD.name);
 
-    // In-memory store has the new user.
-    expect(getUserStore().length).toBe(before + 1);
-    expect(getUserStore().some((u) => u.id === body.data.id)).toBe(true);
+    // Repository round-trip — the new user is queryable.
+    const after = await repos.users.list();
+    expect(after.length).toBe(before + 1);
+    expect(after.some((u) => u.id === body.data.id)).toBe(true);
+    expect(await repos.users.findById(body.data.id)).not.toBeNull();
 
-    // Audit log records the mutation as a structured AuditEvent (PR-05).
-    expect(getAuditLogStore().length).toBe(beforeAuditCount + 1);
-    const newEvent = getAuditLogStore().at(-1);
+    // Audit event was emitted as a structured AuditEvent (PR-05).
+    const auditAfter = await repos.auditEvents.list();
+    expect(auditAfter.length).toBe(beforeAuditCount + 1);
+    const newEvent = auditAfter.at(-1);
     expect(newEvent?.action).toBe('edit_user');
     expect(newEvent?.resourceType).toBe('user');
     expect(newEvent?.resourceId).toBe(body.data.id);
-
-    // On-disk snapshot includes the new user + new audit event.
-    const persistedRaw = await readFile(process.env.PROJECT_DEMO_STATE_FILE!, 'utf8');
-    const persisted = JSON.parse(persistedRaw) as {
-      users: Array<{ id: string; name: string }>;
-      auditLogs: Array<{ action: string; resourceId?: string; resourceType?: string }>;
-    };
-    expect(persisted.users.some((u) => u.id === body.data.id)).toBe(true);
-    expect(
-      persisted.auditLogs.some(
-        (log) => log.action === 'edit_user' && log.resourceId === body.data.id,
-      ),
-    ).toBe(true);
-
-    // Simulate cold restart: wipe in-memory state + hydration flags, then
-    // re-hydrate from the persisted file. The user must still be there.
-    resetGlobalDemoState();
-    vi.resetModules();
-    const { ensureProjectDemoStateHydrated } = await import('@/lib/project-demo-state');
-    const { getUserStore: getUserStoreAfter } = await import('@/lib/user-store');
-    await ensureProjectDemoStateHydrated();
-    expect(getUserStoreAfter().some((u) => u.id === body.data.id)).toBe(true);
   });
 });
 
-describe('PATCH /api/users persistence (PR-07)', () => {
-  it('persists a user update so it survives a simulated cold restart', async () => {
+describe('PATCH /api/users (PR-07 / post-PR-21)', () => {
+  it('updates a user via the repository and emits an audit event', async () => {
     const { PATCH } = await import('./route');
-    const { getUserStore } = await import('@/lib/user-store');
-    const { ensureProjectDemoStateHydrated } = await import('@/lib/project-demo-state');
+    const { getRepositories } = await import('@/lib/repositories');
 
-    await ensureProjectDemoStateHydrated();
-    const target = getUserStore()[0];
+    const repos = getRepositories();
+    const target = (await repos.users.list())[0];
     expect(target).toBeDefined();
     const originalStatus = target.status;
     const newStatus = originalStatus === 'active' ? 'suspended' : 'active';
@@ -166,34 +122,15 @@ describe('PATCH /api/users persistence (PR-07)', () => {
     );
     expect(response.status).toBe(200);
 
-    // Verify file written.
-    const persistedRaw = await readFile(process.env.PROJECT_DEMO_STATE_FILE!, 'utf8');
-    const persisted = JSON.parse(persistedRaw) as {
-      users: Array<{ id: string; status: string }>;
-    };
-    expect(persisted.users.find((u) => u.id === target.id)?.status).toBe(newStatus);
+    // Repository now reflects the update.
+    const updated = await repos.users.findById(target.id);
+    expect(updated?.status).toBe(newStatus);
 
-    // Simulate cold restart and confirm the change survived.
-    resetGlobalDemoState();
-    vi.resetModules();
-    const { ensureProjectDemoStateHydrated: hydrate2 } = await import('@/lib/project-demo-state');
-    const { getUserById: getUserByIdAfter } = await import('@/lib/user-store');
-    await hydrate2();
-    expect(getUserByIdAfter(target.id)?.status).toBe(newStatus);
-
-    // Restore the test fixture state for isolation against other tests in this
-    // suite that share the same persistence file path.
-    const { PATCH: patchAgain } = await import('./route');
-    await patchAgain(
-      new Request('http://localhost/api/users', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: target.id, updates: { status: originalStatus } }),
-      }),
-    );
+    // Restore for isolation.
+    await repos.users.update(target.id, { status: originalStatus });
   });
 
-  it('returns 404 + does NOT persist when the user is missing', async () => {
+  it('returns 404 when the user is missing', async () => {
     const { PATCH } = await import('./route');
     const response = await PATCH(
       new Request('http://localhost/api/users', {
@@ -206,27 +143,5 @@ describe('PATCH /api/users persistence (PR-07)', () => {
       }),
     );
     expect(response.status).toBe(404);
-
-    // No snapshot file should have been created by the failed branch — but
-    // hydration itself may have created an empty file with default contents.
-    // Either way the user must not be present.
-    try {
-      const persistedRaw = await readFile(process.env.PROJECT_DEMO_STATE_FILE!, 'utf8');
-      const persisted = JSON.parse(persistedRaw) as {
-        users: Array<{ id: string }>;
-      };
-      expect(persisted.users.some((u) => u.id === 'user-does-not-exist')).toBe(false);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        'code' in error &&
-        (error as NodeJS.ErrnoException).code === 'ENOENT'
-      ) {
-        // No file written at all — also a valid outcome since the early-return
-        // branch never reached persistProjectDemoState().
-        return;
-      }
-      throw error;
-    }
   });
 });

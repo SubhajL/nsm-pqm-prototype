@@ -1,4 +1,3 @@
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import type { AuditEvent } from '@/types/audit';
 
@@ -58,8 +57,6 @@ function buildFilename(format: 'json' | 'csv'): string {
 }
 
 export async function GET(request: Request) {
-  await ensureProjectDemoStateHydrated();
-
   const { searchParams } = new URL(request.url);
   const formatParam = (searchParams.get('format') ?? 'json').toLowerCase();
   const format: 'json' | 'csv' = formatParam === 'csv' ? 'csv' : 'json';

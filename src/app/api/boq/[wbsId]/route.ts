@@ -6,7 +6,6 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { parseRequestBody } from '@/lib/validation';
 import { createBoqItemRequestSchema } from '@/types/boq.schema';
 import { isOutsourcedProject } from '@/types/project';
@@ -26,7 +25,6 @@ export async function GET(
   { params }: { params: { wbsId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
   const wbsNode = await repos.wbs.findById(params.wbsId);
 
@@ -53,7 +51,6 @@ export async function POST(
   { params }: { params: { wbsId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const repos = getRepositories();
 
   const rawBody: unknown = await request.json().catch(() => null);
@@ -121,8 +118,6 @@ export async function POST(
   };
 
   await repos.boq.create(newItem);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_boq',
     resourceType: 'boq',

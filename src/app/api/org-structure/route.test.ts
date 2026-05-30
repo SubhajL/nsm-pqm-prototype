@@ -1,14 +1,16 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// PR-07 smoke test for /api/org-structure
+// PR-07 smoke test for /api/org-structure (post-PR-21 rewrite)
 //
-// Same shape as the /api/users persistence test: the route handlers must call
-// persistProjectDemoState() after every successful mutation so that admin
-// writes to the org tree survive a cold restart / blob re-hydration.
+// Original PR-07 verified blob-snapshot persistence. PR-21 retired the
+// blob snapshot — durability now comes from the underlying repository.
+// This rewritten test verifies the route still:
+//
+//   1. Mutates the org-structure store via the repository (CREATE / PATCH /
+//      DELETE).
+//   2. Emits a structured `edit_org_structure` audit event per mutation.
+//   3. Supports both the flat-list GET and the asTree GET (PR-17).
 // ---------------------------------------------------------------------------
 
 vi.mock('next/headers', () => ({
@@ -18,47 +20,21 @@ vi.mock('next/headers', () => ({
 }));
 
 interface GlobalState {
-  __nsmProjectDemoStateHydrated: boolean | undefined;
-  __nsmProjectDemoStateHydrationPromise: Promise<void> | undefined;
-  __nsmProjectDemoStatePersistPromise: Promise<void> | undefined;
   __nsmUserStore: unknown;
   __nsmOrgStructureStore: unknown;
-  __nsmAuditLogStore: unknown;
+  __nsmAuditEventStore: unknown;
 }
 
-function resetGlobalDemoState() {
+function resetGlobalStores() {
   const g = globalThis as unknown as GlobalState;
-  g.__nsmProjectDemoStateHydrated = undefined;
-  g.__nsmProjectDemoStateHydrationPromise = undefined;
-  g.__nsmProjectDemoStatePersistPromise = undefined;
   g.__nsmUserStore = undefined;
   g.__nsmOrgStructureStore = undefined;
-  g.__nsmAuditLogStore = undefined;
+  g.__nsmAuditEventStore = undefined;
 }
 
-let tempDir: string;
-let originalPersistFile: string | undefined;
-
-beforeAll(async () => {
-  tempDir = await mkdtemp(path.join(tmpdir(), 'pr07-org-route-'));
-  originalPersistFile = process.env.PROJECT_DEMO_STATE_FILE;
-  process.env.PROJECT_DEMO_STATE_FILE = path.join(tempDir, 'project-demo-state.json');
-  delete process.env.BLOB_READ_WRITE_TOKEN;
-});
-
-afterAll(async () => {
-  if (originalPersistFile === undefined) {
-    delete process.env.PROJECT_DEMO_STATE_FILE;
-  } else {
-    process.env.PROJECT_DEMO_STATE_FILE = originalPersistFile;
-  }
-  await rm(tempDir, { recursive: true, force: true });
-});
-
 beforeEach(async () => {
-  resetGlobalDemoState();
+  resetGlobalStores();
   vi.resetModules();
-  await rm(path.join(tempDir, 'project-demo-state.json'), { force: true });
 });
 
 afterEach(() => {
@@ -66,9 +42,7 @@ afterEach(() => {
 });
 
 // PR-17: the org-unit body now follows the `RidOrgUnit` discriminated union
-// (PR-13 vocabulary). Persistence-test payload uses `kind: 'bureau'` to mimic
-// the existing flat seed entries; `costCenter: null` matches the post-PR-17
-// seed default (real codes pending RID-IT confirmation).
+// (PR-13 vocabulary).
 const NEW_ORG_UNIT_PAYLOAD = {
   kind: 'bureau' as const,
   name: 'หน่วยทดสอบความคงทน',
@@ -77,14 +51,14 @@ const NEW_ORG_UNIT_PAYLOAD = {
   costCenter: null,
 };
 
-describe('POST /api/org-structure persistence (PR-07)', () => {
-  it('persists a newly created org unit so it survives a simulated cold restart', async () => {
+describe('POST /api/org-structure (PR-07 / post-PR-21)', () => {
+  it('creates an org unit via the repository and emits an audit event', async () => {
     const { POST } = await import('./route');
-    const { getOrgStructureStore } = await import('@/lib/org-structure-store');
-    const { getAuditLogStore } = await import('@/lib/audit-log-store');
+    const { getRepositories } = await import('@/lib/repositories');
 
-    const before = getOrgStructureStore().length;
-    const beforeAuditCount = getAuditLogStore().length;
+    const repos = getRepositories();
+    const before = (await repos.orgStructure.list()).length;
+    const beforeAuditCount = (await repos.auditEvents.list()).length;
 
     const response = await POST(
       new Request('http://localhost/api/org-structure', {
@@ -94,39 +68,29 @@ describe('POST /api/org-structure persistence (PR-07)', () => {
       }),
     );
     expect(response.status).toBe(201);
-    const body = (await response.json()) as { status: string; data: { id: string; name: string } };
+    const body = (await response.json()) as {
+      status: string;
+      data: { id: string; name: string };
+    };
     expect(body.status).toBe('success');
     expect(body.data.name).toBe(NEW_ORG_UNIT_PAYLOAD.name);
 
-    expect(getOrgStructureStore().length).toBe(before + 1);
-    // Audit log records the mutation as a structured AuditEvent (PR-05).
-    expect(getAuditLogStore().length).toBe(beforeAuditCount + 1);
-    const newEvent = getAuditLogStore().at(-1);
+    const after = await repos.orgStructure.list();
+    expect(after.length).toBe(before + 1);
+
+    const auditAfter = await repos.auditEvents.list();
+    expect(auditAfter.length).toBe(beforeAuditCount + 1);
+    const newEvent = auditAfter.at(-1);
     expect(newEvent?.action).toBe('edit_org_structure');
     expect(newEvent?.resourceType).toBe('org_unit');
     expect(newEvent?.resourceId).toBe(body.data.id);
-
-    const persistedRaw = await readFile(process.env.PROJECT_DEMO_STATE_FILE!, 'utf8');
-    const persisted = JSON.parse(persistedRaw) as {
-      orgStructure: Array<{ id: string; name: string }>;
-    };
-    expect(persisted.orgStructure.some((u) => u.id === body.data.id)).toBe(true);
-
-    // Simulated cold restart.
-    resetGlobalDemoState();
-    vi.resetModules();
-    const { ensureProjectDemoStateHydrated } = await import('@/lib/project-demo-state');
-    const { getOrgStructureStore: getOrgStructureStoreAfter } = await import(
-      '@/lib/org-structure-store'
-    );
-    await ensureProjectDemoStateHydrated();
-    expect(getOrgStructureStoreAfter().some((u) => u.id === body.data.id)).toBe(true);
   });
 });
 
-describe('PATCH /api/org-structure persistence (PR-07)', () => {
-  it('persists org unit updates across a simulated cold restart', async () => {
+describe('PATCH /api/org-structure (PR-07 / post-PR-21)', () => {
+  it('updates an org unit via the repository', async () => {
     const { POST, PATCH } = await import('./route');
+    const { getRepositories } = await import('@/lib/repositories');
 
     const createResponse = await POST(
       new Request('http://localhost/api/org-structure', {
@@ -135,7 +99,8 @@ describe('PATCH /api/org-structure persistence (PR-07)', () => {
         body: JSON.stringify(NEW_ORG_UNIT_PAYLOAD),
       }),
     );
-    const createdId = ((await createResponse.json()) as { data: { id: string } }).data.id;
+    const createdId = ((await createResponse.json()) as { data: { id: string } }).data
+      .id;
 
     const patchResponse = await PATCH(
       new Request('http://localhost/api/org-structure', {
@@ -149,22 +114,9 @@ describe('PATCH /api/org-structure persistence (PR-07)', () => {
     );
     expect(patchResponse.status).toBe(200);
 
-    const persistedRaw = await readFile(process.env.PROJECT_DEMO_STATE_FILE!, 'utf8');
-    const persisted = JSON.parse(persistedRaw) as {
-      orgStructure: Array<{ id: string; nameEn: string }>;
-    };
-    expect(persisted.orgStructure.find((u) => u.id === createdId)?.nameEn).toBe(
-      'Persistence Test Unit (Renamed)',
-    );
-
-    resetGlobalDemoState();
-    vi.resetModules();
-    const { ensureProjectDemoStateHydrated } = await import('@/lib/project-demo-state');
-    const { getOrgStructureStore } = await import('@/lib/org-structure-store');
-    await ensureProjectDemoStateHydrated();
-    expect(getOrgStructureStore().find((u) => u.id === createdId)?.nameEn).toBe(
-      'Persistence Test Unit (Renamed)',
-    );
+    const repos = getRepositories();
+    const updated = await repos.orgStructure.findById(createdId);
+    expect(updated?.nameEn).toBe('Persistence Test Unit (Renamed)');
   });
 });
 
@@ -180,7 +132,6 @@ describe('GET /api/org-structure (PR-17 asTree support)', () => {
     expect(body.status).toBe('success');
     expect(Array.isArray(body.data)).toBe(true);
     expect(body.data.length).toBeGreaterThan(0);
-    // Every entry now carries the discriminator and the derived userCount.
     for (const unit of body.data) {
       expect(typeof unit.kind).toBe('string');
       expect(typeof unit.userCount).toBe('number');
@@ -206,16 +157,16 @@ describe('GET /api/org-structure (PR-17 asTree support)', () => {
     expect(body.data?.unit.kind).toBe('department');
     expect(Array.isArray(body.data?.children)).toBe(true);
     expect(body.data!.children.length).toBeGreaterThan(0);
-    // A known seed grandchild lookup proves recursion.
     const dept001 = body.data!.children.find((node) => node.unit.id === 'dept-001');
     expect(dept001).toBeDefined();
     expect(dept001!.children.length).toBeGreaterThan(0);
   });
 });
 
-describe('DELETE /api/org-structure persistence (PR-07)', () => {
-  it('persists org unit deletions across a simulated cold restart', async () => {
+describe('DELETE /api/org-structure (PR-07 / post-PR-21)', () => {
+  it('deletes an org unit via the repository', async () => {
     const { POST, DELETE } = await import('./route');
+    const { getRepositories } = await import('@/lib/repositories');
 
     const createResponse = await POST(
       new Request('http://localhost/api/org-structure', {
@@ -224,7 +175,8 @@ describe('DELETE /api/org-structure persistence (PR-07)', () => {
         body: JSON.stringify(NEW_ORG_UNIT_PAYLOAD),
       }),
     );
-    const createdId = ((await createResponse.json()) as { data: { id: string } }).data.id;
+    const createdId = ((await createResponse.json()) as { data: { id: string } }).data
+      .id;
 
     const deleteResponse = await DELETE(
       new Request('http://localhost/api/org-structure', {
@@ -235,17 +187,7 @@ describe('DELETE /api/org-structure persistence (PR-07)', () => {
     );
     expect(deleteResponse.status).toBe(200);
 
-    const persistedRaw = await readFile(process.env.PROJECT_DEMO_STATE_FILE!, 'utf8');
-    const persisted = JSON.parse(persistedRaw) as {
-      orgStructure: Array<{ id: string }>;
-    };
-    expect(persisted.orgStructure.some((u) => u.id === createdId)).toBe(false);
-
-    resetGlobalDemoState();
-    vi.resetModules();
-    const { ensureProjectDemoStateHydrated } = await import('@/lib/project-demo-state');
-    const { getOrgStructureStore } = await import('@/lib/org-structure-store');
-    await ensureProjectDemoStateHydrated();
-    expect(getOrgStructureStore().some((u) => u.id === createdId)).toBe(false);
+    const repos = getRepositories();
+    expect(await repos.orgStructure.findById(createdId)).toBeNull();
   });
 });

@@ -1,10 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import {
-  afterAll,
   afterEach,
-  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -13,19 +8,18 @@ import {
 } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// PATCH /api/projects/[id]/lifecycle tests (PR-16)
+// PATCH /api/projects/[id]/lifecycle tests (PR-16, post-PR-21 rewrite)
 //
 // Covers the contract surface that the RidLifecycleGates component talks to:
 //   - 400 VALIDATION_FAILED for malformed body
-//   - 401 UNAUTHORIZED when there's no cookie
 //   - 403 FORBIDDEN for users without `advance_lifecycle_stage`
 //   - 404 NOT_FOUND for unknown project ids
 //   - 409 STAGE_GATE_BLOCKED with `missing` shape when artifacts missing
 //   - 200 success when artifacts satisfy canEnterStage()
 //   - audit-event side effect on success
 //
-// We use a temp persistence file (PROJECT_DEMO_STATE_FILE) so the test
-// suite's writes don't leak into the repo's .data snapshot.
+// Post-PR-21: no temp blob snapshot. Tests exercise the repository
+// directly to verify the mutation happened and the audit event landed.
 // ---------------------------------------------------------------------------
 
 interface CookieContext {
@@ -44,49 +38,20 @@ vi.mock('next/headers', () => ({
 }));
 
 interface GlobalState {
-  __nsmProjectDemoStateHydrated: boolean | undefined;
-  __nsmProjectDemoStateHydrationPromise: Promise<void> | undefined;
-  __nsmProjectDemoStatePersistPromise: Promise<void> | undefined;
   __nsmProjectStore: unknown;
-  __nsmAuditLogStore: unknown;
+  __nsmAuditEventStore: unknown;
 }
 
-function resetGlobalDemoState() {
+function resetGlobalStores() {
   const g = globalThis as unknown as GlobalState;
-  g.__nsmProjectDemoStateHydrated = undefined;
-  g.__nsmProjectDemoStateHydrationPromise = undefined;
-  g.__nsmProjectDemoStatePersistPromise = undefined;
   g.__nsmProjectStore = undefined;
-  g.__nsmAuditLogStore = undefined;
+  g.__nsmAuditEventStore = undefined;
 }
-
-let tempDir: string;
-let originalPersistFile: string | undefined;
-
-beforeAll(async () => {
-  tempDir = await mkdtemp(path.join(tmpdir(), 'pr16-lifecycle-route-'));
-  originalPersistFile = process.env.PROJECT_DEMO_STATE_FILE;
-  process.env.PROJECT_DEMO_STATE_FILE = path.join(
-    tempDir,
-    'project-demo-state.json',
-  );
-  delete process.env.BLOB_READ_WRITE_TOKEN;
-});
-
-afterAll(async () => {
-  if (originalPersistFile === undefined) {
-    delete process.env.PROJECT_DEMO_STATE_FILE;
-  } else {
-    process.env.PROJECT_DEMO_STATE_FILE = originalPersistFile;
-  }
-  await rm(tempDir, { recursive: true, force: true });
-});
 
 beforeEach(async () => {
-  resetGlobalDemoState();
+  resetGlobalStores();
   vi.resetModules();
   cookieCtx.userId = undefined;
-  await rm(path.join(tempDir, 'project-demo-state.json'), { force: true });
 });
 
 afterEach(() => {
@@ -133,13 +98,7 @@ describe('PATCH /api/projects/[id]/lifecycle — auth & validation', () => {
     expect(body.error.code).toBe('FORBIDDEN');
   });
 
-  it('returns 404 NOT_FOUND when project id does not exist (System Admin)', async () => {
-    // user-001 is a System Admin — has advance_lifecycle_stage AND is
-    // assumed to have visibility on any project they request. We craft an
-    // unknown id so the canPerformProjectAction visibility check fails
-    // first (returning 403). To exercise the 404 branch we'd need an
-    // existing-membership-but-missing-row case; we accept 403 here as
-    // the practical equivalent and assert it's NOT a 5xx.
+  it('returns 4xx when project id does not exist (System Admin)', async () => {
     cookieCtx.userId = 'user-001';
     const { PATCH } = await import('./route');
     const response = await PATCH(
@@ -153,7 +112,6 @@ describe('PATCH /api/projects/[id]/lifecycle — auth & validation', () => {
       }),
       { params: { id: 'does-not-exist' } },
     );
-    // Could be 403 (no visibility) or 404 — either is a valid 4xx.
     expect([403, 404]).toContain(response.status);
   });
 });
@@ -197,14 +155,10 @@ describe('PATCH /api/projects/[id]/lifecycle — 200 success path', () => {
     cookieCtx.userId = PM_USER_ID;
 
     const { PATCH } = await import('./route');
-    const { getProjectStore } = await import('@/lib/project-store');
-    const { getAuditLogStore } = await import('@/lib/audit-log-store');
-    const { ensureProjectDemoStateHydrated } = await import(
-      '@/lib/project-demo-state'
-    );
+    const { getRepositories } = await import('@/lib/repositories');
 
-    await ensureProjectDemoStateHydrated();
-    const beforeAuditCount = getAuditLogStore().length;
+    const repos = getRepositories();
+    const beforeAuditCount = (await repos.auditEvents.list()).length;
 
     const response = await PATCH(
       makeRequest({ targetStage: 'land_acquisition', artifactDocIds: [] }),
@@ -226,13 +180,14 @@ describe('PATCH /api/projects/[id]/lifecycle — 200 success path', () => {
       enteredBy: PM_USER_ID,
     });
 
-    // Project in store was mutated.
-    const project = getProjectStore().find((p) => p.id === PROJ_ID);
+    // Repository now reflects the new stage.
+    const project = await repos.projects.findById(PROJ_ID);
     expect(project?.currentLifecycleStage).toBe('land_acquisition');
 
-    // One audit event was recorded for this transition.
-    expect(getAuditLogStore().length).toBe(beforeAuditCount + 1);
-    const evt = getAuditLogStore().at(-1);
+    // One audit event was recorded.
+    const auditAfter = await repos.auditEvents.list();
+    expect(auditAfter.length).toBe(beforeAuditCount + 1);
+    const evt = auditAfter.at(-1);
     expect(evt?.action).toBe('advance_lifecycle_stage');
     expect(evt?.resourceType).toBe('project');
     expect(evt?.resourceId).toBe(PROJ_ID);

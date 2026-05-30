@@ -7,7 +7,6 @@ import {
   getVisibleProjectIdsForCurrentUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { parseRequestBody } from '@/lib/validation';
 import type { ChangeRequest } from '@/types/document';
 import {
@@ -17,7 +16,6 @@ import {
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store: ChangeRequest[] = await getRepositories().changeRequests.list();
 
   const { searchParams } = new URL(request.url);
@@ -40,8 +38,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
-
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createChangeRequestRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -85,8 +81,6 @@ export async function POST(request: Request) {
   };
 
   await getRepositories().changeRequests.create(nextChangeRequest);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'submit_change_request',
     resourceType: 'change_request',
@@ -104,7 +98,6 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store: ChangeRequest[] = await getRepositories().changeRequests.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
@@ -177,8 +170,6 @@ export async function PATCH(request: Request) {
     approvedAt: body.action === 'approve' ? new Date().toISOString() : null,
     workflow: updatedWorkflow,
   });
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'approve_change_request',
     resourceType: 'change_request',

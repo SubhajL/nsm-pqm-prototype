@@ -1,5 +1,4 @@
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { parseRequestBody } from '@/lib/validation';
@@ -11,8 +10,6 @@ import {
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
-
   const { searchParams } = new URL(request.url);
   const department = searchParams.get('department');
 
@@ -32,7 +29,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createUserRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -61,7 +57,6 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateUserRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;

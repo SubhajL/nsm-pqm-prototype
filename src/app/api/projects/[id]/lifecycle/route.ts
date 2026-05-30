@@ -4,10 +4,6 @@ import {
   forbiddenResponse,
   getCurrentApiUser,
 } from '@/lib/project-api-access';
-import {
-  ensureProjectDemoStateHydrated,
-  persistProjectDemoState,
-} from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { canEnterStage } from '@/lib/rid/lifecycle-artifacts';
 import { parseRequestBody } from '@/lib/validation';
@@ -33,15 +29,13 @@ import { advanceLifecycleStageRequestSchema } from '@/types/project.schema';
  *   1. Mutates Project.currentLifecycleStage to `targetStage`
  *   2. Appends an entry to Project.lifecycleStageHistory (actor + ts +
  *      cited artifactDocIds)
- *   3. Persists via persistProjectDemoState()
+ *   3. Persists via the projects repository (Database canonical post-PR-21)
  *   4. Emits an `advance_lifecycle_stage` audit event with before/after snapshot
  */
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } },
 ) {
-  await ensureProjectDemoStateHydrated();
-
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(advanceLifecycleStageRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -103,9 +97,6 @@ export async function PATCH(
     enteredBy: currentUser?.id ?? null,
     artifactDocIds: [...parsed.data.artifactDocIds],
   });
-
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'advance_lifecycle_stage',
     resourceType: 'project',

@@ -10,7 +10,6 @@ import {
   getAssignedProjectCountForUser,
   getAssignmentRoleForUserRole,
 } from '@/lib/project-access';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { ProjectTeamMember } from '@/types/team';
@@ -56,8 +55,6 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
-
   const denied = requireProjectAccess(params.projectId);
   if (denied) {
     return denied;
@@ -101,7 +98,6 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(inviteTeamMemberRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -143,8 +139,6 @@ export async function POST(
     assignmentRole: getAssignmentRoleForUserRole(user.role),
   };
   await repos.teamMemberships.add(membership);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'manage_team',
     resourceType: 'project_membership',
@@ -164,7 +158,6 @@ export async function DELETE(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(removeTeamMemberRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
@@ -202,8 +195,6 @@ export async function DELETE(
   if (!removed) {
     return badRequestResponse('TEAM_MEMBER_NOT_FOUND', 'ผู้ใช้นี้ไม่ได้อยู่ในทีมโครงการ');
   }
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'manage_team',
     resourceType: 'project_membership',

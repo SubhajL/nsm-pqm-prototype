@@ -6,14 +6,12 @@ import {
   requiresProjectDuty,
 } from '@/lib/auth';
 import { recordAuditEvent } from '@/lib/audit-helpers';
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { loginRequestSchema } from '@/types/admin.schema';
 
 export async function POST(request: Request) {
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(loginRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;

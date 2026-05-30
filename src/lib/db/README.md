@@ -1,18 +1,19 @@
-# `src/lib/db` — Postgres persistence layer (PR-19)
+# `src/lib/db` — Postgres persistence layer
 
-This directory contains the Drizzle-ORM Postgres adapter that PR-19 introduces:
+This directory contains the Drizzle-ORM Postgres adapter introduced by PR-19:
 
 - `schema/` — table definitions (one file per domain) and shared `pgEnum`s
 - `repositories/` — `DatabaseXxxRepository` impls satisfying the PR-18
   repository interfaces
 - `client.ts` — singleton DB client (real Postgres when `DATABASE_URL` is set;
-  in-memory pglite otherwise)
+  in-memory pglite otherwise) + `ensureDatabaseReady()` readiness probe
 - `migrate.ts` — SQL migration runner (consumes `drizzle/migrations/*.sql`)
 
-> **Status:** **NOT WIRED INTO ROUTES YET.** Per the MVP execution plan, PR-19
-> adds the Postgres adapter capability; PR-20 introduces dual-write soak;
-> PR-21 cuts reads. Until then `getRepositories()` returns the InMemory
-> implementations.
+> **Status (post-PR-21):** the Database backend is fully functional behind
+> `PERSISTENCE_BACKEND=db` (and `dual`). The blob-snapshot infrastructure
+> (`project-demo-state.ts`) has been retired. **The default backend remains
+> `in_memory`** until the in-place-mutation refactor lands — see
+> `src/lib/repositories/DUAL_WRITE.md` "Post-cutover work" for details.
 
 ## Hosting target (stakeholder decision)
 
@@ -48,8 +49,32 @@ Without `DATABASE_URL`, all of the above target an ephemeral pglite instance
 ## Testing strategy
 
 `repositories/__tests__/database-contract.test.ts` re-uses the PR-18
-`runXxxRepositoryContract` functions against fresh pglite instances. The
-same contracts run against the InMemory impls in
-`src/lib/repositories/__tests__/inmemory.test.ts`. Both runners must pass
-on every PR — this proves the two backends are behaviourally equivalent
-and unblocks the PR-21 cutover.
+`runXxxRepositoryContract` functions against fresh pglite instances. This
+is the authoritative behavioural test for the Database backend.
+
+The old in-memory contract runner (`src/lib/repositories/__tests__/inmemory.test.ts`)
+and the dual-write contract runner (`dual-write-contract.test.ts`) were
+removed in PR-21 — they were redundant once the Database backend became
+the soak target. The CRUD wrapper unit tests
+(`src/lib/repositories/__tests__/dual-write.test.ts`) and the parity
+helper tests (`dual-write-parity.test.ts`) remain useful.
+
+## Readiness probe
+
+Routes that used to call `ensureProjectDemoStateHydrated()` before reading
+from the in-memory stores can now call `ensureDatabaseReady()`:
+
+```ts
+import { ensureDatabaseReady } from '@/lib/db/client';
+
+export async function GET() {
+  await ensureDatabaseReady();
+  const repos = getRepositories();
+  // ...
+}
+```
+
+`ensureDatabaseReady()` issues a memoised `SELECT 1` against the DB
+client. It is a no-op after the first successful call (per process).
+Routes that don't need a startup-time DB check can skip it — Drizzle's
+lazy connection handles the first real query just fine.

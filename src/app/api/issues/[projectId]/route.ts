@@ -5,7 +5,6 @@ import {
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { Issue } from '@/types/risk';
@@ -19,7 +18,6 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().issues.list();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
@@ -41,7 +39,6 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
@@ -73,8 +70,6 @@ export async function POST(
   };
 
   await getRepositories().issues.create(newIssue);
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_issue',
     resourceType: 'issue',
@@ -94,7 +89,6 @@ export async function PATCH(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const store = await getRepositories().issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
@@ -126,8 +120,6 @@ export async function PATCH(
     status: newStatus,
     closedAt: newStatus === 'closed' ? new Date().toISOString().split('T')[0] : store[index].closedAt,
   };
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_issue',
     resourceType: 'issue',

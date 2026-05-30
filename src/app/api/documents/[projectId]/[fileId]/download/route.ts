@@ -7,8 +7,6 @@ import {
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
-
 /**
  * PR-06: Short-lived signed-URL redirect for private document blobs.
  *
@@ -24,8 +22,6 @@ export async function GET(
   request: Request,
   { params }: { params: { projectId: string; fileId: string } },
 ) {
-  await ensureProjectDemoStateHydrated();
-
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 

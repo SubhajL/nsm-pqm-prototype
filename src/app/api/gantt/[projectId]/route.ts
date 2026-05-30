@@ -1,6 +1,5 @@
 import dayjs from 'dayjs';
 import { recordAuditEvent } from '@/lib/audit-helpers';
-import { ensureProjectDemoStateHydrated, persistProjectDemoState } from '@/lib/project-demo-state';
 import { getRepositories } from '@/lib/repositories';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
 import {
@@ -215,7 +214,6 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
@@ -230,7 +228,6 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const schemaParsed = parseRequestBody(createGanttTaskRequestSchema, rawBody);
   if (!schemaParsed.success) return schemaParsed.response;
@@ -276,8 +273,6 @@ export async function POST(
   store.data.push(newTask);
   replaceIncomingLinks(store, newTask.id, parsed.value.predecessors);
   syncProjectExecutionState(params.projectId, { updatedTask: newTask });
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_schedule',
     resourceType: 'gantt_task',
@@ -297,7 +292,6 @@ export async function PATCH(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const schemaParsed = parseRequestBody(updateGanttTaskRequestSchema, rawBody);
   if (!schemaParsed.success) return schemaParsed.response;
@@ -355,8 +349,6 @@ export async function PATCH(
   });
   replaceIncomingLinks(store, task.id, parsed.value.predecessors);
   syncProjectExecutionState(params.projectId, { updatedTask: task });
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_schedule',
     resourceType: 'gantt_task',
@@ -376,7 +368,6 @@ export async function DELETE(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const rawBody: unknown = await request.json().catch(() => null);
   const schemaParsed = parseRequestBody(deleteGanttTaskRequestSchema, rawBody);
   if (!schemaParsed.success) return schemaParsed.response;
@@ -409,8 +400,6 @@ export async function DELETE(
     (link) => !idsToDelete.has(link.source) && !idsToDelete.has(link.target),
   );
   syncProjectExecutionState(params.projectId, { deletedTask });
-  await persistProjectDemoState();
-
   await recordAuditEvent(request, {
     action: 'edit_schedule',
     resourceType: 'gantt_task',

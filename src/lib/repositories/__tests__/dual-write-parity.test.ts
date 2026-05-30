@@ -1,14 +1,16 @@
 /**
- * PR-20 — Dual-write parity assertion tests.
+ * Dual-write parity assertion tests.
  *
- * Proves the `assertParity()` helper catches drift between primary
- * (InMemory) and secondary (Database) repositories.
+ * Proves the `assertParity()` helper catches drift between two
+ * `DatabaseXxxRepository` instances. Post-PR-21 the InMemory backend is no
+ * longer instantiated by the registry, but the parity check remains useful
+ * for future blue/green DB migrations (compare the "old" Postgres against
+ * the "new" Postgres during a migration window).
  *
  * Strategy:
- *   1. Build a fresh pglite + run migrations.
- *   2. Wrap InMemoryProjectRepository + DatabaseProjectRepository with
- *      `dualWrite()` and perform a series of writes.
- *   3. `assertParity(inMemory, database)` → expected `{ parity: true }`.
+ *   1. Build two fresh pglite + run migrations.
+ *   2. Wrap the pair with `dualWrite()` and perform a series of writes.
+ *   3. `assertParity(primary, secondary)` → expected `{ parity: true }`.
  *   4. Mutate ONLY the secondary directly (simulate drift) and re-assert
  *      → expected `{ parity: false }` with non-empty differences.
  */
@@ -24,10 +26,7 @@ import { runMigrations } from '@/lib/db/migrate';
 
 import { dualWrite } from '../dual-write';
 import { assertParity } from '../dual-write-parity';
-import {
-  InMemoryProjectRepository,
-  type ProjectRepository,
-} from '../project.repository';
+import type { ProjectRepository } from '../project.repository';
 import type { Project } from '@/types/project';
 
 function sampleProject(id: string, overrides: Partial<Project> = {}): Project {
@@ -70,10 +69,6 @@ function sampleProject(id: string, overrides: Partial<Project> = {}): Project {
   };
 }
 
-function resetInMemoryProjects() {
-  (globalThis as Record<string, unknown>).__nsmProjectStore = undefined;
-}
-
 async function freshDb(): Promise<Db> {
   const client = new PGlite();
   const db = drizzle(client, { schema });
@@ -81,32 +76,25 @@ async function freshDb(): Promise<Db> {
   return db;
 }
 
-describe('assertParity (Project domain)', () => {
-  let inMemory: InMemoryProjectRepository;
-  let database: DatabaseProjectRepository;
+describe('assertParity (Project domain — DB ↔ DB)', () => {
+  let primary: DatabaseProjectRepository;
+  let secondary: DatabaseProjectRepository;
   let wrapped: ProjectRepository;
 
   beforeEach(async () => {
-    resetInMemoryProjects();
-    inMemory = new InMemoryProjectRepository();
-    database = new DatabaseProjectRepository(await freshDb());
-    wrapped = dualWrite<ProjectRepository>(inMemory, database, {
+    primary = new DatabaseProjectRepository(await freshDb());
+    secondary = new DatabaseProjectRepository(await freshDb());
+    wrapped = dualWrite<ProjectRepository>(primary, secondary, {
       domain: 'projects',
     });
   });
 
   it('after a dual-write sequence, both backends agree → parity:true', async () => {
-    // The InMemory repo is hydrated from JSON seeds. Mirror the seeded
-    // state into the Database so the *starting* state matches.
-    for (const p of await inMemory.list()) {
-      await database.create(p);
-    }
-
     await wrapped.create(sampleProject('parity-new-1'));
     await wrapped.create(sampleProject('parity-new-2', { progress: 10 }));
     await wrapped.update('parity-new-2', { progress: 25 });
 
-    const result = await assertParity(inMemory, database, { domain: 'projects' });
+    const result = await assertParity(primary, secondary, { domain: 'projects' });
     expect(result.parity).toBe(true);
     if (result.parity) {
       expect(result.methodsChecked).toContain('list');
@@ -115,35 +103,31 @@ describe('assertParity (Project domain)', () => {
   });
 
   it('detects drift when ONLY the secondary is mutated', async () => {
-    for (const p of await inMemory.list()) {
-      await database.create(p);
-    }
     await wrapped.create(sampleProject('parity-base'));
 
     // Directly mutate secondary — bypasses the dual-write wrapper.
-    await database.create(sampleProject('drifted-only-in-db'));
+    await secondary.create(sampleProject('drifted-only-in-secondary'));
 
-    const result = await assertParity(inMemory, database, { domain: 'projects' });
+    const result = await assertParity(primary, secondary, { domain: 'projects' });
     expect(result.parity).toBe(false);
     if (!result.parity) {
       const listDiff = result.differences.find((d) => d.method === 'list');
       expect(listDiff).toBeDefined();
-      expect(listDiff!.onlyInSecondary.some(
-        (item) => (item as Project).id === 'drifted-only-in-db',
-      )).toBe(true);
+      expect(
+        listDiff!.onlyInSecondary.some(
+          (item) => (item as Project).id === 'drifted-only-in-secondary',
+        ),
+      ).toBe(true);
       expect(listDiff!.onlyInPrimary).toEqual([]);
     }
   });
 
   it('detects field-level mismatches', async () => {
-    for (const p of await inMemory.list()) {
-      await database.create(p);
-    }
     await wrapped.create(sampleProject('shared-id', { progress: 5 }));
     // Drift the secondary's progress value without going through dual-write.
-    await database.update('shared-id', { progress: 99 });
+    await secondary.update('shared-id', { progress: 99 });
 
-    const result = await assertParity(inMemory, database, { domain: 'projects' });
+    const result = await assertParity(primary, secondary, { domain: 'projects' });
     expect(result.parity).toBe(false);
     if (!result.parity) {
       const listDiff = result.differences.find((d) => d.method === 'list');
@@ -158,9 +142,8 @@ describe('assertParity (Project domain)', () => {
   });
 
   it('detects items present only in primary', async () => {
-    // DO NOT seed the database with the InMemory baseline this time —
-    // the seeded projects exist only in primary.
-    const result = await assertParity(inMemory, database, { domain: 'projects' });
+    await primary.create(sampleProject('only-in-primary'));
+    const result = await assertParity(primary, secondary, { domain: 'projects' });
     expect(result.parity).toBe(false);
     if (!result.parity) {
       const listDiff = result.differences.find((d) => d.method === 'list');
@@ -169,10 +152,8 @@ describe('assertParity (Project domain)', () => {
   });
 
   it('honours an explicit methods override', async () => {
-    for (const p of await inMemory.list()) {
-      await database.create(p);
-    }
-    const result = await assertParity(inMemory, database, {
+    await wrapped.create(sampleProject('override-id'));
+    const result = await assertParity(primary, secondary, {
       domain: 'projects',
       methods: ['list'],
     });

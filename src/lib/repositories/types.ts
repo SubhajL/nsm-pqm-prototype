@@ -14,10 +14,11 @@
  *   - The InMemory implementations are thin wrappers around the existing
  *     `src/lib/*-store.ts` modules — they do NOT replace the stores in PR-18.
  *     Deletion of the underlying stores is PR-21's job (after DB cutover).
- *   - Repository methods return references to the same objects the stores
- *     return; mutations happen in place (matching the pre-PR-18 behavior
- *     where API routes mutated store array entries directly). This is what
- *     keeps `project-demo-state.ts` snapshot/restore working transparently.
+ *   - InMemory repository methods return references to the same objects
+ *     the stores return; mutations happen in place (matching the pre-PR-18
+ *     behavior where API routes mutated store array entries directly).
+ *     Database repository methods return freshly-hydrated copies — callers
+ *     must use explicit `.update()` calls to persist changes there.
  *
  * Standard surface (CRUD) per repository:
  *   findById(id)       returns the entity or null

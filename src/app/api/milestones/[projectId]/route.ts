@@ -1,4 +1,3 @@
-import { ensureProjectDemoStateHydrated } from '@/lib/project-demo-state';
 import { getDerivedMilestonesForProject } from '@/lib/project-milestone-derivations';
 import { requireProjectAccess } from '@/lib/project-api-access';
 import type { Milestone } from '@/types/project';
@@ -8,7 +7,6 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  await ensureProjectDemoStateHydrated();
   const forbidden = requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
