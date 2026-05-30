@@ -42,3 +42,24 @@ body {
 .card-shadow {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
+
+/* PR-A2 — skip-to-content link (WCAG SC 2.4.1).
+   Off-screen until focused; on focus the link slides into the top-left
+   corner of the viewport so keyboard users see exactly where they are
+   about to go. Element stays painted at all times so assistive tech can
+   announce it before it is brought on-screen. */
+.pqm-skip-link:focus,
+.pqm-skip-link:focus-visible {
+  transform: none !important;
+  outline: 3px solid var(--color-accent-teal);
+  outline-offset: 2px;
+}
+
+/* PR-A2 — give a hard focus ring to the main landmark when the
+   skip-link sends focus there. tabIndex=-1 means default browsers do not
+   draw an outline, so we draw one explicitly. */
+#main-content:focus,
+#main-content:focus-visible {
+  outline: 2px dashed var(--color-accent-teal);
+  outline-offset: -2px;
+}

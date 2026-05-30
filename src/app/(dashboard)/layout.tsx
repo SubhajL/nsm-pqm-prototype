@@ -3,6 +3,7 @@
 import { Grid, Layout } from 'antd';
 import { useRouter } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
+import { LiveRegion, SKIP_LINK_TARGET_ID, SkipLink } from '@/components/a11y';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { useAppStore } from '@/stores/useAppStore';
@@ -49,15 +50,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {/* PR-A2 — keyboard users must be able to bypass the sidebar/
+          header on every page. SkipLink is first in tab order. */}
+      <SkipLink />
       <Sidebar />
       <Layout style={{ marginLeft, transition: 'margin-left 0.2s' }}>
         <Header />
         <Content style={{ padding: isMobile ? 12 : 24, background: COLORS.bgLayout, minHeight: 'calc(100vh - 60px)' }}>
-          <Suspense fallback={<DashboardLoading />}>
-            {children}
-          </Suspense>
+          {/* PR-A2 — `<main>` landmark + tabIndex=-1 so the skip-link
+              can programmatically move focus here without making the
+              element a regular tab stop. */}
+          <main id={SKIP_LINK_TARGET_ID} tabIndex={-1} style={{ outline: 'none' }}>
+            <Suspense fallback={<DashboardLoading />}>
+              {children}
+            </Suspense>
+          </main>
         </Content>
       </Layout>
+      {/* PR-A2 — global ARIA live regions; one per politeness. Render
+          AFTER the main shell so they sit at the end of the DOM, the
+          ARIA APG-recommended placement for status announcements. */}
+      <LiveRegion politeness="polite" />
+      <LiveRegion politeness="assertive" />
     </Layout>
   );
 }

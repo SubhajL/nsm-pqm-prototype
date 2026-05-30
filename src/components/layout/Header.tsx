@@ -94,7 +94,12 @@ export function Header() {
             {currentTitle}
           </Text>
         ) : (
-          <Breadcrumb items={breadcrumbItems} />
+          // PR-A2 — breadcrumb is a navigation landmark (WAI-ARIA APG).
+          // `display: contents` keeps the AntD `<Space>` flex centering
+          // intact — the nav adds semantics without an extra box.
+          <nav aria-label="เส้นทาง (Breadcrumb)" style={{ display: 'contents' }}>
+            <Breadcrumb items={breadcrumbItems} />
+          </nav>
         )}
       </Space>
 
@@ -102,6 +107,13 @@ export function Header() {
         <Badge count={unreadCount} size="small">
           <Button
             type="text"
+            // PR-A2 — pronounce the unread count to assistive tech so
+            // the badge isn't a silent visual decoration.
+            aria-label={
+              unreadCount > 0
+                ? `การแจ้งเตือน ${unreadCount} รายการที่ยังไม่อ่าน (Notifications: ${unreadCount} unread)`
+                : 'การแจ้งเตือน (Notifications)'
+            }
             icon={<BellOutlined style={{ fontSize: 18 }} />}
             onClick={() => router.push('/notifications')}
           />
