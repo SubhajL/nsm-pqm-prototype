@@ -286,6 +286,36 @@ copies. The pure helpers (`caseInsensitiveIncludes`,
 single source of truth — duplicating their logic per screen is the
 G6/G7/G8 anti-pattern this PR exists to retire.
 
+### Charts a11y (PR-A4)
+
+ECharts inherits a localized, color-blind-safe baseline through
+`EChartsWrapper`. Authoring rules:
+
+- **New chart** → render through `EChartsWrapper` (not raw
+  `ReactECharts`). The wrapper merges `getChartBaseOption()` under the
+  consumer's option, so the chart picks up `aria.enabled: true`,
+  `aria.decal.show: true` (WCAG 1.4.1 colour-blind texture), the
+  `ACCESSIBLE_CHART_PALETTE` colour cycle (every entry ≥ 3:1 on
+  `bgLayout`), and AA-safe muted axis labels for free.
+- **Number formatting** → import from
+  `@/components/charts/chart-formatters`. Never call
+  `Intl.NumberFormat` inline. `formatBaht`, `formatPercent`,
+  `formatThaiCompact`, and `makeAxisLabelFormatter('baht'|'percent'|'count')`
+  are the only sanctioned formatters; each caches its Intl instance.
+- **Palette tokens** → only the six tokens in
+  `ACCESSIBLE_CHART_PALETTE` (sourced from `COLORS`). Adding a hue
+  means extending the palette AND its 1:1 `DECAL_PATTERNS` entry. The
+  ≥ 3:1 contrast check is locked in `chart-palette.test.ts`.
+- **Today / baseline overlays** → use `todayMarkLine()` and
+  `baselineLegend()` from `chart-helpers` so the bilingual
+  "วันนี้ (Today)" label and `Thai (English)` legend format stay
+  consistent across the S-curve, EVM, and Gantt-overlay charts.
+- **Foundation-only export** → `paletteEntryForIndex(i)` is exposed for
+  future use by `markPoint` / `visualMap` consumers; it has no consumer
+  inside the wrapper itself.
+
+See `src/components/charts/CLAUDE.md` for the local component inventory.
+
 ---
 
 ## Thai Buddhist Calendar
