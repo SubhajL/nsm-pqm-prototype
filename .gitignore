@@ -12,3 +12,6 @@ public/mock-uploads
 .codex/
 .pglite-dev/
 
+
+# Claude Code sub-agent worktrees (transient — never commit)
+.claude/worktrees/
