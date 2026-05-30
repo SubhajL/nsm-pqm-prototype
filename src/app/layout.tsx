@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
+import { getAgencyBrand } from '@/lib/branding';
 import { Providers } from './providers';
 import './globals.css';
 
+const brand = getAgencyBrand();
+
 export const metadata: Metadata = {
-  title: 'PQM System — อพวช.',
+  title: `PQM System — ${brand.name}`,
   description: 'ระบบบริหารจัดการโครงการงาน และการควบคุมคุณภาพ',
 };
 

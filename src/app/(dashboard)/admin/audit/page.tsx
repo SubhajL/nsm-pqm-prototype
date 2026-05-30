@@ -26,6 +26,7 @@ import { useAuditLogs } from '@/hooks/useAuditLogs';
 import type { AuditLog } from '@/types/admin';
 import { MODULE_COLORS } from '@/types/admin';
 import { COLORS } from '@/theme/antd-theme';
+import { getAgencyBrand } from '@/lib/branding';
 import { toBuddhistYear } from '@/lib/date-utils';
 
 const { Title, Text } = Typography;
@@ -44,24 +45,26 @@ const MODULE_OPTIONS = [
   { value: 'Team', label: 'Team' },
 ];
 
+const INTEGRATION_BRAND = getAgencyBrand().name;
+
 const INTEGRATION_ITEMS = [
   {
-    name: 'อพวช. Digital Service Center (SSO)',
+    name: `${INTEGRATION_BRAND} Digital Service Center (SSO)`,
     protocol: 'OpenID Connect',
     lastSync: '15/07/69',
   },
   {
-    name: 'อพวช. Email Gateway (SMTP)',
+    name: `${INTEGRATION_BRAND} Email Gateway (SMTP)`,
     protocol: 'SMTP TLS',
     lastSync: '15/07/69',
   },
   {
-    name: 'อพวช. HR Database',
+    name: `${INTEGRATION_BRAND} HR Database`,
     protocol: 'REST API',
     lastSync: '14/07/69',
   },
   {
-    name: 'อพวช. Notification Push',
+    name: `${INTEGRATION_BRAND} Notification Push`,
     protocol: 'Web Service',
     lastSync: 'Active',
   },

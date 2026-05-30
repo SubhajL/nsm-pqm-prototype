@@ -194,7 +194,7 @@
       "activities": [
         {
           "wbsCode": "2.1",
-          "task": "ทดสอบ API จองกิจกรรมกับฐานข้อมูลจริง",
+          "task": "ทดสอบ API ติดตามสถานการณ์น้ำกับฐานข้อมูล GFMIS",
           "quantity": 8,
           "unit": "ชั่วโมง",
           "cumulativeProgress": 0.55
@@ -332,7 +332,7 @@
     {
       "sequence": 1,
       "item": "Code Review Backend",
-      "standard": "NSM Secure Coding",
+      "standard": "RID IT Secure Coding",
       "inspectionType": "RS",
       "inspector": "Tech Lead",
       "status": "passed"
@@ -363,7 +363,7 @@
       "wbsCode": "WBS 3.1 เชื่อมต่อ Single Sign-On",
       "standards": [
         "OWASP ASVS",
-        "NSM Secure Coding"
+        "RID IT Secure Coding"
       ],
       "overallResult": "conditional",
       "failReason": "ต้องแก้การจัดการ session timeout ก่อน go-live",
