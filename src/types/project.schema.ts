@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   CONTRACTING_MODELS,
   DELIVERY_METHODS,
+  PROJECT_CLASSES,
   PROJECT_SIZE_TIERS,
   RID_LIFECYCLE_STAGES,
 } from '@/types/rid/vocabulary';
@@ -15,13 +16,7 @@ import {
  * (server assigns id/code/derived fields), and may differ from the full entity.
  */
 
-export const projectTypeSchema = z.enum([
-  'construction',
-  'it',
-  'equipment',
-  'academic',
-  'renovation',
-]);
+export const projectClassSchema = z.enum(PROJECT_CLASSES);
 
 export const projectStatusSchema = z.enum([
   'draft',
@@ -99,7 +94,7 @@ export const createProjectRequestSchema = z
   .object({
     name: z.string().min(1, 'name is required'),
     nameEn: z.string().optional(),
-    type: projectTypeSchema,
+    projectClass: projectClassSchema,
     deliveryMethod: deliveryMethodSchema.optional(),
     contractingModel: contractingModelSchema.nullable().optional(),
     sizeTier: projectSizeTierSchema.optional().default('medium'),
@@ -148,7 +143,7 @@ export const projectEntitySchema = z
     code: z.string().min(1),
     name: z.string().min(1),
     nameEn: z.string(),
-    type: projectTypeSchema,
+    projectClass: projectClassSchema,
     deliveryMethod: deliveryMethodSchema,
     contractingModel: contractingModelSchema.nullable(),
     sizeTier: projectSizeTierSchema,

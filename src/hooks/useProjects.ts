@@ -8,14 +8,14 @@ import type { Project } from '@/types/project';
 export function useProjects(filters?: {
   search?: string;
   status?: string;
-  type?: string;
+  projectClass?: string;
 }) {
   const authReady = useAuthStore((s) => s.authReady);
   const currentUserId = useAuthStore((s) => s.currentUser?.id ?? 'anonymous');
   const params = new URLSearchParams();
   if (filters?.search) params.set('search', filters.search);
   if (filters?.status) params.set('status', filters.status);
-  if (filters?.type) params.set('type', filters.type);
+  if (filters?.projectClass) params.set('projectClass', filters.projectClass);
 
   const queryString = params.toString();
   const path = queryString ? `/projects?${queryString}` : '/projects';

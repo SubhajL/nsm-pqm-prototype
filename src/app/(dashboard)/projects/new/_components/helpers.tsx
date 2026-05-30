@@ -4,9 +4,8 @@ import { Popover, Typography } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-import { CONTRACTING_MODEL_LABELS, DELIVERY_METHOD_LABELS, PROJECT_TYPE_LABELS } from '@/types/project';
-import type { ProjectType } from '@/types/project';
-import type { ContractingModel, DeliveryMethod } from '@/types/rid/vocabulary';
+import { CONTRACTING_MODEL_LABELS, DELIVERY_METHOD_LABELS, PROJECT_CLASS_LABELS } from '@/types/project';
+import type { ContractingModel, DeliveryMethod, ProjectClass } from '@/types/rid/vocabulary';
 import { COLORS } from '@/theme/antd-theme';
 
 const { Text } = Typography;
@@ -30,7 +29,7 @@ export interface ProgressMethodInfo {
 export interface DraftFormValues {
   code?: string;
   name?: string;
-  type?: ProjectType;
+  projectClass?: ProjectClass;
   deliveryMethod?: DeliveryMethod;
   contractingModel?: ContractingModel | null;
   objectives?: string;
@@ -51,7 +50,7 @@ export interface DraftPayload {
 export interface SubmittedFormValues {
   code?: string;
   name: string;
-  type: ProjectType;
+  projectClass: ProjectClass;
   deliveryMethod: DeliveryMethod;
   contractingModel?: ContractingModel | null;
   objectives: string;
@@ -73,10 +72,10 @@ export const DEFAULT_MILESTONES: MilestoneRow[] = [
   { key: 4, milestone: 4, amount: 1_875_000, percentage: 15, deliverable: 'ส่งมอบงานงวด 4: ทดสอบและส่งมอบ' },
 ];
 
-/* ---------- project type select options ---------- */
-export const projectTypeOptions = (Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]).map((key) => ({
+/* ---------- project class select options (RID 5-class taxonomy) ---------- */
+export const projectClassOptions = (Object.keys(PROJECT_CLASS_LABELS) as ProjectClass[]).map((key) => ({
   value: key,
-  label: `${PROJECT_TYPE_LABELS[key].th} (${PROJECT_TYPE_LABELS[key].en})`,
+  label: `${PROJECT_CLASS_LABELS[key].th} (${PROJECT_CLASS_LABELS[key].en})`,
 }));
 
 export const deliveryMethodOptions = (Object.keys(DELIVERY_METHOD_LABELS) as DeliveryMethod[]).map((key) => ({

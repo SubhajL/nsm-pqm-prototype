@@ -18,8 +18,8 @@ import type { EVMDataPoint } from '@/types/evm';
 import type { GanttData } from '@/types/gantt';
 import {
   DELIVERY_METHOD_LABELS,
+  PROJECT_CLASS_LABELS,
   PROJECT_STATUS_LABELS,
-  PROJECT_TYPE_LABELS,
   type Project,
 } from '@/types/project';
 import { RISK_LEVEL_LABELS, RISK_STATUS_LABELS, type Risk } from '@/types/risk';
@@ -74,7 +74,7 @@ export function buildExecutiveExportDocument(projects: Project[]): ExportDocumen
         columns: ['โครงการ', 'ประเภท', 'สถานะ', 'ความคืบหน้า', 'งบประมาณ', 'PM'],
         rows: projects.map((project) => [
           project.name,
-          PROJECT_TYPE_LABELS[project.type]?.en ?? project.type,
+          PROJECT_CLASS_LABELS[project.projectClass]?.en ?? project.projectClass,
           PROJECT_STATUS_LABELS[project.status]?.en ?? project.status,
           formatPercent(project.progress),
           `${formatBaht(project.budget)} ฿`,

@@ -1,11 +1,11 @@
 import type {
   ContractingModel,
   DeliveryMethod,
+  ProjectClass,
   ProjectSizeTier,
   RidLifecycleStage,
 } from '@/types/rid/vocabulary';
 
-export type ProjectType = 'construction' | 'it' | 'equipment' | 'academic' | 'renovation';
 export type ProjectStatus = 'draft' | 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
 export type ProjectScheduleHealth = 'on_schedule' | 'watch' | 'delayed';
 
@@ -34,7 +34,13 @@ export interface Project {
   code: string;
   name: string;
   nameEn: string;
-  type: ProjectType;
+  /**
+   * Canonical RID project class (PR-RID-A migration of the legacy
+   * `type: ProjectType` field). Values come from PR-13's
+   * `PROJECT_CLASSES` so the prototype matches RID's actual project
+   * taxonomy (Construction / IT / Consulting / Research / Maintenance).
+   */
+  projectClass: ProjectClass;
   /**
    * Who actually executes the contracted work.
    *
@@ -103,13 +109,7 @@ export interface Milestone {
   status: 'pending' | 'in_progress' | 'review' | 'completed';
 }
 
-export const PROJECT_TYPE_LABELS: Record<ProjectType, { th: string; en: string }> = {
-  construction: { th: 'ก่อสร้าง/ปรับปรุง', en: 'Construction' },
-  it: { th: 'พัฒนาระบบ IT', en: 'IT/Software' },
-  equipment: { th: 'จัดซื้อครุภัณฑ์', en: 'Equipment' },
-  academic: { th: 'วิชาการ', en: 'Academic' },
-  renovation: { th: 'ตกแต่งพื้นที่จัดแสดง', en: 'Renovation' },
-};
+export { PROJECT_CLASS_LABELS } from '@/types/rid/vocabulary';
 
 export const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, { th: string; en: string }> = {
   in_house: { th: 'ดำเนินการเอง', en: 'In-House Project' },

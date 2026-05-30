@@ -40,10 +40,5 @@ export const ridOrgUnitKindEnum = pgEnum(
   RID_ORG_UNIT_KINDS,
 );
 
-// ProjectType in src/types/project.ts is broader than the RID class union
-// (it still includes 'equipment', 'academic', 'renovation' for legacy demo
-// fixtures). Keep it as text rather than an enum to avoid breaking those
-// rows when the DB swap lands.
-
 // ProjectStatus + ProjectScheduleHealth + role labels are stored as text
 // (cheap, easy to extend without ALTER TYPE round-trips for the demo).

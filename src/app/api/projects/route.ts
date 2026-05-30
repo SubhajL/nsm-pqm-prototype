@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search')?.toLowerCase();
   const status = searchParams.get('status');
-  const type = searchParams.get('type');
+  const projectClass = searchParams.get('projectClass');
 
   let filtered = await getVisibleProjectsForUser(currentUser, store);
   await Promise.all(filtered.map((project) => syncProjectExecutionState(project.id)));
@@ -44,8 +44,8 @@ export async function GET(request: Request) {
     filtered = filtered.filter((p) => p.status === status);
   }
 
-  if (type) {
-    filtered = filtered.filter((p) => p.type === type);
+  if (projectClass) {
+    filtered = filtered.filter((p) => p.projectClass === projectClass);
   }
 
   return Response.json({ status: 'success', data: filtered });
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     code: `PJ-2569-${String(store.length + 1).padStart(4, '0')}`,
     name: projectFields.name,
     nameEn: projectFields.nameEn ?? projectFields.name,
-    type: projectFields.type,
+    projectClass: projectFields.projectClass,
     deliveryMethod: projectFields.deliveryMethod ?? 'in_house',
     contractingModel: projectFields.contractingModel ?? null,
     // sizeTier: when the caller did not explicitly supply it, infer from

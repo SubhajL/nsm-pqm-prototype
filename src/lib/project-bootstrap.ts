@@ -10,7 +10,8 @@ import type {
   VersionEntry,
 } from '@/types/document';
 import type { GanttData, GanttTask } from '@/types/gantt';
-import type { Milestone, Project, ProjectType } from '@/types/project';
+import type { Milestone, Project } from '@/types/project';
+import type { ProjectClass } from '@/types/rid/vocabulary';
 import type { ITPItem, QualityGate } from '@/types/quality';
 import {
   classifyProjectSize,
@@ -232,8 +233,12 @@ function buildDocumentData(project: Project): DocumentData {
   };
 }
 
-function getQualityGateTemplates(type: ProjectType): QualityGateTemplate[] {
-  if (type === 'it' || type === 'equipment') {
+function getQualityGateTemplates(projectClass: ProjectClass): QualityGateTemplate[] {
+  // PR-RID-A: `equipment` ↦ `maintenance` and `academic` ↦ `research` per the
+  // class migration mapping. `consulting` is new — route it through the
+  // deliverable-driven academic/research template since consulting work is
+  // structurally closer to research than to construction execution.
+  if (projectClass === 'it' || projectClass === 'maintenance') {
     return [
       { number: 0, name: 'Requirements', nameEn: 'Requirements Review' },
       { number: 1, name: 'Design', nameEn: 'Design Review' },
@@ -243,7 +248,7 @@ function getQualityGateTemplates(type: ProjectType): QualityGateTemplate[] {
     ];
   }
 
-  if (type === 'academic') {
+  if (projectClass === 'research' || projectClass === 'consulting') {
     return [
       { number: 0, name: 'Proposal', nameEn: 'Proposal Approval' },
       { number: 1, name: 'Method', nameEn: 'Method Review' },
@@ -262,8 +267,8 @@ function getQualityGateTemplates(type: ProjectType): QualityGateTemplate[] {
   ];
 }
 
-function getItpTemplates(type: ProjectType): ITPTemplate[] {
-  if (type === 'it') {
+function getItpTemplates(projectClass: ProjectClass): ITPTemplate[] {
+  if (projectClass === 'it') {
     return [
       { item: 'ทบทวนความต้องการระบบ', standard: 'SRS / TOR', inspectionType: 'RS' },
       { item: 'ทดสอบระบบและ Unit Test', standard: 'Test Case Matrix', inspectionType: 'W' },
@@ -272,7 +277,7 @@ function getItpTemplates(type: ProjectType): ITPTemplate[] {
     ];
   }
 
-  if (type === 'equipment') {
+  if (projectClass === 'maintenance') {
     return [
       { item: 'ตรวจสเปกและเอกสารผู้ขาย', standard: 'TOR / Vendor Submittal', inspectionType: 'RS' },
       { item: 'ตรวจรับก่อนติดตั้ง', standard: 'Incoming Inspection Checklist', inspectionType: 'W' },
@@ -281,7 +286,7 @@ function getItpTemplates(type: ProjectType): ITPTemplate[] {
     ];
   }
 
-  if (type === 'academic') {
+  if (projectClass === 'research' || projectClass === 'consulting') {
     return [
       { item: 'ทบทวนแผนการดำเนินงานวิชาการ', standard: 'Approved Proposal', inspectionType: 'RS' },
       { item: 'ตรวจความพร้อมเก็บข้อมูล', standard: 'Fieldwork Checklist', inspectionType: 'W' },
@@ -299,7 +304,7 @@ function getItpTemplates(type: ProjectType): ITPTemplate[] {
 }
 
 function buildQualityGates(project: Project) {
-  return getQualityGateTemplates(project.type).map<QualityGate>((template) => ({
+  return getQualityGateTemplates(project.projectClass).map<QualityGate>((template) => ({
     id: `gate-${project.id}-${template.number}`,
     projectId: project.id,
     number: template.number,
@@ -311,7 +316,7 @@ function buildQualityGates(project: Project) {
 }
 
 function buildItpItems(project: Project) {
-  return getItpTemplates(project.type).map<ITPItem>((template, index) => ({
+  return getItpTemplates(project.projectClass).map<ITPItem>((template, index) => ({
     id: `itp-${project.id}-${index + 1}`,
     projectId: project.id,
     sequence: index + 1,

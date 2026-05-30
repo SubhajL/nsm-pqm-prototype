@@ -557,9 +557,9 @@ function buildDailyReports(project: Project, scenario: ScenarioConfig): DailyRep
     personnel: [
       { type: 'วิศวกร (Engineer)', count: contacts.engineer === contacts.manager ? 1 : 2 },
       { type: 'ผู้ประสานงาน (Coordinator)', count: contacts.coordinator === contacts.manager ? 1 : 2 },
-      { type: project.type === 'academic' ? 'นักวิจัยภาคสนาม (Field Researcher)' : 'คนงานทั่วไป (General)', count: project.type === 'academic' ? 4 : 8 },
+      { type: project.projectClass === 'research' ? 'นักวิจัยภาคสนาม (Field Researcher)' : 'คนงานทั่วไป (General)', count: project.projectClass === 'research' ? 4 : 8 },
     ],
-    totalPersonnel: project.type === 'academic' ? 7 : 12,
+    totalPersonnel: project.projectClass === 'research' ? 7 : 12,
     activities: report.activities.map((activity) => ({
       wbsId: resolveWbsId(project.id, activity.wbsCode),
       task: activity.task,

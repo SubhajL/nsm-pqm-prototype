@@ -214,7 +214,7 @@ export default function ProjectOverviewPage() {
   /* ---- safe-access with demo defaults ---- */
   const projectName = project?.name ?? 'รายละเอียดโครงการ';
   const projectCode = project?.code ?? '-';
-  const projectType = project?.type ?? 'construction';
+  const projectClass = project?.projectClass ?? 'construction';
   const deliveryMethod = getProjectDeliveryMethod(project);
   const contractingModel = project?.contractingModel ?? null;
   const projectProgress = derivedProjectProgress;
@@ -250,7 +250,7 @@ export default function ProjectOverviewPage() {
       <ProjectHeaderCard
         projectName={projectName}
         projectCode={projectCode}
-        projectType={projectType}
+        projectClass={projectClass}
         deliveryMethod={deliveryMethod}
         contractingModel={contractingModel}
         projectStatus={projectStatus}

@@ -11,7 +11,7 @@ import {
 
 const validProject = {
   name: 'โครงการตัวอย่าง',
-  type: 'construction',
+  projectClass: 'construction',
   budget: 12_500_000,
   startDate: '2026-07-15',
   endDate: '2026-12-31',
@@ -53,10 +53,20 @@ describe('createProjectRequestSchema', () => {
     }
   });
 
-  it('rejects an unknown project type', () => {
+  it('rejects an unknown projectClass', () => {
     const result = createProjectRequestSchema.safeParse({
       ...validProject,
-      type: 'mystery',
+      projectClass: 'mystery',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects the pre-PR-RID-A legacy field `type` (strict schema)', () => {
+    const { projectClass, ...rest } = validProject;
+    void projectClass;
+    const result = createProjectRequestSchema.safeParse({
+      ...rest,
+      type: 'construction',
     });
     expect(result.success).toBe(false);
   });

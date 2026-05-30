@@ -28,6 +28,20 @@ export const PROJECT_CLASSES = [
 
 export type ProjectClass = (typeof PROJECT_CLASSES)[number];
 
+/**
+ * Bilingual labels for the 5 RID `ProjectClass` values. Single source of
+ * truth for any UI that needs to render a class as Thai/English text
+ * (form selects, tables, headers, exports). Keep aligned with the
+ * `PROJECT_CLASSES` array above.
+ */
+export const PROJECT_CLASS_LABELS: Record<ProjectClass, { th: string; en: string }> = {
+  construction: { th: 'ก่อสร้าง', en: 'Construction' },
+  it: { th: 'พัฒนาระบบ IT', en: 'IT/Software' },
+  consulting: { th: 'งานที่ปรึกษา', en: 'Consulting' },
+  research: { th: 'งานวิจัย', en: 'Research' },
+  maintenance: { th: 'บำรุงรักษา (O&M)', en: 'Maintenance' },
+};
+
 // ---------------------------------------------------------------------------
 // Delivery method — who actually executes the contracted work.
 //

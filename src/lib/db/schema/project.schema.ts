@@ -3,6 +3,7 @@ import { integer, jsonb, pgTable, real, text } from 'drizzle-orm/pg-core';
 import {
   contractingModelEnum,
   deliveryMethodEnum,
+  projectClassEnum,
   projectSizeTierEnum,
   ridLifecycleStageEnum,
 } from './enums';
@@ -23,7 +24,7 @@ export const projects = pgTable('projects', {
   code: text('code').notNull(),
   name: text('name').notNull(),
   nameEn: text('name_en').notNull(),
-  type: text('type').notNull(), // ProjectType — text (legacy values beyond RID class)
+  projectClass: projectClassEnum('project_class').notNull(),
   deliveryMethod: deliveryMethodEnum('delivery_method').notNull(),
   contractingModel: contractingModelEnum('contracting_model'),
   sizeTier: projectSizeTierEnum('size_tier').notNull(),

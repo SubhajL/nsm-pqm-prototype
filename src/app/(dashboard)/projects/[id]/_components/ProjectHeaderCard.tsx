@@ -7,11 +7,14 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import {
   CONTRACTING_MODEL_LABELS,
   DELIVERY_METHOD_LABELS,
-  PROJECT_TYPE_LABELS,
+  PROJECT_CLASS_LABELS,
   type ProjectStatus,
-  type ProjectType,
 } from '@/types/project';
-import type { ContractingModel, DeliveryMethod } from '@/types/rid/vocabulary';
+import type {
+  ContractingModel,
+  DeliveryMethod,
+  ProjectClass,
+} from '@/types/rid/vocabulary';
 
 const { Title, Text } = Typography;
 
@@ -26,7 +29,7 @@ const CircularProgress = dynamic(
 export function ProjectHeaderCard({
   projectName,
   projectCode,
-  projectType,
+  projectClass,
   deliveryMethod,
   contractingModel,
   projectStatus,
@@ -35,7 +38,7 @@ export function ProjectHeaderCard({
 }: {
   projectName: string;
   projectCode: string;
-  projectType: ProjectType;
+  projectClass: ProjectClass;
   deliveryMethod: DeliveryMethod;
   contractingModel: ContractingModel | null;
   projectStatus: ProjectStatus;
@@ -58,7 +61,7 @@ export function ProjectHeaderCard({
             <Text type="secondary" style={{ fontSize: 14 }}>
               {projectCode}
             </Text>
-            <Tag color="blue">{PROJECT_TYPE_LABELS[projectType].th}</Tag>
+            <Tag color="blue">{PROJECT_CLASS_LABELS[projectClass].th}</Tag>
             <Tag color={deliveryMethod === 'outsourced' ? 'gold' : 'cyan'}>
               {DELIVERY_METHOD_LABELS[deliveryMethod].th}
             </Tag>
