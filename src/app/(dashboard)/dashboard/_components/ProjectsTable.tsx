@@ -8,9 +8,9 @@ import Link from 'next/link';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { formatBaht } from '@/lib/date-utils';
 import { COLORS } from '@/theme/antd-theme';
-import type { Project, ProjectType } from '@/types/project';
-import { DELIVERY_METHOD_LABELS, PROJECT_TYPE_LABELS } from '@/types/project';
-import type { DeliveryMethod } from '@/types/rid/vocabulary';
+import type { Project } from '@/types/project';
+import { DELIVERY_METHOD_LABELS, PROJECT_CLASS_LABELS } from '@/types/project';
+import type { DeliveryMethod, ProjectClass } from '@/types/rid/vocabulary';
 
 import { BilingualTagCell, BilingualTextCell } from './BilingualCells';
 import {
@@ -55,13 +55,13 @@ export function ProjectsTable({
       ),
     },
     {
-      title: 'ประเภท (Type)',
-      dataIndex: 'type',
-      key: 'type',
+      title: 'ประเภท (Class)',
+      dataIndex: 'projectClass',
+      key: 'projectClass',
       width: 170,
-      render: (type: ProjectType) => {
-        const label = PROJECT_TYPE_LABELS[type];
-        return label ? <BilingualTextCell th={label.th} en={label.en} secondary /> : type;
+      render: (projectClass: ProjectClass) => {
+        const label = PROJECT_CLASS_LABELS[projectClass];
+        return label ? <BilingualTextCell th={label.th} en={label.en} secondary /> : projectClass;
       },
     },
     {
@@ -144,12 +144,12 @@ export function ProjectsTable({
         </Col>
         <Col span={6}>
           <Select
-            placeholder="ประเภทโครงการ (Project Type)"
+            placeholder="ประเภทโครงการ (Project Class)"
             value={typeFilter}
             onChange={(val) => onTypeFilterChange(val)}
             allowClear
             style={{ width: '100%' }}
-            options={Object.entries(PROJECT_TYPE_LABELS).map(
+            options={Object.entries(PROJECT_CLASS_LABELS).map(
               ([key, label]) => ({
                 value: key,
                 label: `${label.th} (${label.en})`,

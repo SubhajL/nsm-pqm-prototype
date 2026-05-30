@@ -64,15 +64,15 @@ export default function PortfolioDashboardPage() {
     return projects.filter((project) => project.status === statusFilter);
   }, [projects, statusFilter]);
 
-  // Donut chart data: count by type
+  // Donut chart data: count by project class
   const donutData = useMemo(() => {
     if (!scopedProjects.length) return [];
-    const typeCounts: Record<string, number> = {};
+    const classCounts: Record<string, number> = {};
     scopedProjects.forEach((p) => {
-      typeCounts[p.type] = (typeCounts[p.type] || 0) + 1;
+      classCounts[p.projectClass] = (classCounts[p.projectClass] || 0) + 1;
     });
-    return Object.entries(typeCounts).map(([type, count]) => ({
-      name: TYPE_LABEL_MAP[type] ?? type,
+    return Object.entries(classCounts).map(([projectClass, count]) => ({
+      name: TYPE_LABEL_MAP[projectClass] ?? projectClass,
       value: count,
     }));
   }, [scopedProjects]);
@@ -139,7 +139,7 @@ export default function PortfolioDashboardPage() {
         !search ||
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.code.toLowerCase().includes(search.toLowerCase());
-      const matchType = !typeFilter || p.type === typeFilter;
+      const matchType = !typeFilter || p.projectClass === typeFilter;
       const matchStatus =
         !tableStatusFilter || getProjectDisplayStatus(p) === tableStatusFilter;
       return matchSearch && matchType && matchStatus;

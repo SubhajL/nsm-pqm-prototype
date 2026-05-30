@@ -5,7 +5,7 @@ import { Col, Divider, Form, Input, Row, Select, Typography } from 'antd';
 import {
   contractingModelOptions,
   deliveryMethodOptions,
-  projectTypeOptions,
+  projectClassOptions,
 } from './helpers';
 
 const { Text } = Typography;
@@ -40,13 +40,13 @@ export function BasicInfoSection() {
       <Row gutter={24}>
         <Col xs={24} md={12}>
           <Form.Item
-            label="ประเภทโครงการ (Project Type)"
-            name="type"
+            label="ประเภทโครงการ (Project Class)"
+            name="projectClass"
             rules={[{ required: true, message: 'กรุณาเลือกประเภทโครงการ' }]}
           >
             <Select
               placeholder="เลือกประเภทโครงการ"
-              options={projectTypeOptions}
+              options={projectClassOptions}
             />
           </Form.Item>
         </Col>

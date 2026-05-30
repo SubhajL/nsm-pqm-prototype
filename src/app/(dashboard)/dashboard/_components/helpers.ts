@@ -4,13 +4,19 @@ import type { Project } from '@/types/project';
 export type ProjectDisplayStatus = Project['status'] | 'on_schedule' | 'watch' | 'delayed';
 export type DashboardStatusFilter = 'all' | 'in_progress' | 'planning' | 'completed';
 
-export const TYPE_LABEL_MAP: Record<string, string> = {
-  construction: 'ก่อสร้าง/ปรับปรุง (Construction)',
-  it: 'พัฒนาระบบ IT (IT/Software)',
-  equipment: 'จัดซื้อครุภัณฑ์ (Equipment)',
-  academic: 'วิชาการ (Academic)',
-  renovation: 'ตกแต่งพื้นที่จัดแสดง (Renovation)',
-};
+import { PROJECT_CLASS_LABELS } from '@/types/project';
+
+/**
+ * Labels keyed by `ProjectClass` for dashboard donut-chart legends and
+ * filter chips. Sourced from the canonical RID vocabulary so the dashboard
+ * never drifts from the form / table labels.
+ */
+export const TYPE_LABEL_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(PROJECT_CLASS_LABELS).map(([key, label]) => [
+    key,
+    `${label.th} (${label.en})`,
+  ]),
+);
 
 export const STATUS_FILTER_OPTIONS: Array<{
   value: ProjectDisplayStatus;

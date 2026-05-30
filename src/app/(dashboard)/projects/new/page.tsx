@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import { Card, Form, message } from 'antd';
 
-import type { Project, ProjectType } from '@/types/project';
-import type { ContractingModel, DeliveryMethod } from '@/types/rid/vocabulary';
+import type { Project } from '@/types/project';
+import type { ContractingModel, DeliveryMethod, ProjectClass } from '@/types/rid/vocabulary';
 import { useCreateProject } from '@/hooks/useProjects';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -152,7 +152,7 @@ export default function NewProjectPage() {
       } = {
         name: values.name,
         nameEn: values.name,
-        type: values.type,
+        projectClass: values.projectClass,
         deliveryMethod: values.deliveryMethod,
         contractingModel: values.contractingModel ?? null,
         status: 'planning',
@@ -259,7 +259,7 @@ export default function NewProjectPage() {
   const handleDemoFill = () => {
     form.setFieldsValue({
       name: 'โครงการปรับปรุงอาคารนิทรรศการ อาคาร C',
-      type: 'construction' as ProjectType,
+      projectClass: 'construction' as ProjectClass,
       deliveryMethod: 'outsourced' as DeliveryMethod,
       contractingModel: 'lump_sum' as ContractingModel,
       objectives:

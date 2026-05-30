@@ -106,7 +106,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     code: 'PJ-TEST',
     name: 'Test Project',
     nameEn: 'Test Project',
-    type: 'construction',
+    projectClass: 'construction',
     deliveryMethod: 'in_house',
     contractingModel: null,
     sizeTier: 'medium',

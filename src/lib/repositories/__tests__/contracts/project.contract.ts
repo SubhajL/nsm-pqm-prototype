@@ -28,7 +28,7 @@ export function runProjectRepositoryContract(
         code: `PJ-test-${id}`,
         name: `Test project ${id}`,
         nameEn: `Test project ${id}`,
-        type: 'construction',
+        projectClass: 'construction',
         deliveryMethod: 'in_house',
         contractingModel: null,
         sizeTier: 'medium',

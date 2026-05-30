@@ -85,7 +85,7 @@ describe('Database repository contracts (pglite)', () => {
         code: `CODE-${id}`,
         name: id,
         nameEn: id,
-        type: 'construction',
+        projectClass: 'construction' as const,
         deliveryMethod: 'in_house' as const,
         contractingModel: null,
         sizeTier: 'medium' as const,
