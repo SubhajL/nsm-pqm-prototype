@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { requiresProjectDuty } from '@/lib/auth';
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
@@ -25,8 +27,8 @@ function badRequestResponse(code: string, message: string) {
   );
 }
 
-function canManageProjectTeam(projectId: string) {
-  return canPerformProjectAction(getCurrentApiUser(), projectId, 'manage_team');
+async function canManageProjectTeam(projectId: string) {
+  return canPerformProjectAction(await getCurrentApiUser(), projectId, 'manage_team');
 }
 
 async function getInviteCandidates(projectId: string) {
@@ -35,19 +37,21 @@ async function getInviteCandidates(projectId: string) {
   const memberships = await repos.teamMemberships.listByProject(projectId);
   const memberIds = new Set(memberships.map((membership) => membership.userId));
 
-  return (await repos.users.list())
-    .filter(
-      (user) =>
-        user.status === 'active' &&
-        !memberIds.has(user.id) &&
-        requiresProjectDuty(user.role) &&
-        user.role !== 'Project Manager',
-    )
-    .map((user) => ({
+  const filteredUsers = (await repos.users.list()).filter(
+    (user) =>
+      user.status === 'active' &&
+      !memberIds.has(user.id) &&
+      requiresProjectDuty(user.role) &&
+      user.role !== 'Project Manager',
+  );
+  const augmented = await Promise.all(
+    filteredUsers.map(async (user) => ({
       ...user,
-      projectCount: getAssignedProjectCountForUser(user, projects),
-    }))
-    .sort((left, right) => left.name.localeCompare(right.name, 'th'));
+      projectCount: await getAssignedProjectCountForUser(user, projects),
+    })),
+  );
+  augmented.sort((left, right) => left.name.localeCompare(right.name, 'th'));
+  return augmented;
 }
 
 export async function GET(
@@ -55,7 +59,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const denied = requireProjectAccess(params.projectId);
+  const denied = await requireProjectAccess(params.projectId);
   if (denied) {
     return denied;
   }
@@ -63,7 +67,7 @@ export async function GET(
   const searchParams = new URL(request.url).searchParams;
 
   if (searchParams.get('mode') === 'candidates') {
-    if (!canManageProjectTeam(params.projectId)) {
+    if (!(await canManageProjectTeam(params.projectId))) {
       return forbiddenResponse('manage_team');
     }
 
@@ -75,20 +79,21 @@ export async function GET(
   const projects = await repos.projects.list();
   const userStore = await repos.users.list();
 
-  const members: ProjectTeamMember[] = memberships
-    .map((membership) => {
+  const membersUnfiltered = await Promise.all(
+    memberships.map(async (membership) => {
       const user = userStore.find((candidate) => candidate.id === membership.userId);
-      if (!user) {
-        return null;
-      }
+      if (!user) return null;
 
       return {
         ...user,
-        projectCount: getAssignedProjectCountForUser(user, projects),
+        projectCount: await getAssignedProjectCountForUser(user, projects),
         assignmentRole: membership.assignmentRole,
       };
-    })
-    .filter((member): member is ProjectTeamMember => member !== null);
+    }),
+  );
+  const members: ProjectTeamMember[] = membersUnfiltered.filter(
+    (member): member is ProjectTeamMember => member !== null,
+  );
 
   return Response.json({ status: 'success', data: members });
 }
@@ -103,12 +108,12 @@ export async function POST(
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const denied = requireProjectAccess(params.projectId);
+  const denied = await requireProjectAccess(params.projectId);
   if (denied) {
     return denied;
   }
 
-  if (!canManageProjectTeam(params.projectId)) {
+  if (!(await canManageProjectTeam(params.projectId))) {
     return forbiddenResponse('manage_team');
   }
 
@@ -163,12 +168,12 @@ export async function DELETE(
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const denied = requireProjectAccess(params.projectId);
+  const denied = await requireProjectAccess(params.projectId);
   if (denied) {
     return denied;
   }
 
-  if (!canManageProjectTeam(params.projectId)) {
+  if (!(await canManageProjectTeam(params.projectId))) {
     return forbiddenResponse('manage_team');
   }
 
@@ -210,7 +215,7 @@ export async function DELETE(
     status: 'success',
     data: {
       userId: user.id,
-      remainingAssignedProjects: getAssignedProjectCountForUser(user, await repos.projects.list()),
+      remainingAssignedProjects: await getAssignedProjectCountForUser(user, await repos.projects.list()),
     },
   });
 }

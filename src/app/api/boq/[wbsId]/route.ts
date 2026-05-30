@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
@@ -38,7 +40,7 @@ export async function GET(
     );
   }
 
-  const forbidden = requireProjectAccess(wbsNode.projectId);
+  const forbidden = await requireProjectAccess(wbsNode.projectId);
   if (forbidden) return forbidden;
 
   const filtered = await repos.boq.listByWbs(params.wbsId);
@@ -70,12 +72,12 @@ export async function POST(
     );
   }
 
-  const forbidden = requireProjectAccess(wbsNode.projectId);
+  const forbidden = await requireProjectAccess(wbsNode.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
 
-  if (!canPerformProjectAction(currentUser, wbsNode.projectId, 'edit_boq')) {
+  if (!(await canPerformProjectAction(currentUser, wbsNode.projectId, 'edit_boq'))) {
     return forbiddenResponse('edit_boq');
   }
 

@@ -4,8 +4,8 @@ import type { Db } from '@/lib/db/client';
 import { orgUnits } from '@/lib/db/schema';
 import type {
   OrgStructureRepository,
+  RidOrgUnitTreeNode,
 } from '@/lib/repositories/org-structure.repository';
-import type { RidOrgUnitTreeNode } from '@/lib/org-structure-store';
 import type { OrgUnit } from '@/types/admin';
 import type { RidOrgUnit } from '@/types/rid/vocabulary';
 

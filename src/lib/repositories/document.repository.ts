@@ -1,12 +1,3 @@
-import {
-  addDocumentFile,
-  addDocumentFolder,
-  deleteDocumentFile,
-  deleteDocumentFolder,
-  getDocumentDataForProject,
-  getDocumentStore,
-  uploadDocumentVersion,
-} from '@/lib/document-store';
 import type {
   DocumentData,
   DocumentFile,
@@ -19,6 +10,11 @@ import type {
  * permissions) so the surface is built around `projectId` rather than a flat
  * collection. Version sub-operations include `lockVersion`, which is
  * called by document-security workflows (PR-06) and the upload path.
+ *
+ * PR-21b: added `updateFileMetadata` for routes that need to patch the
+ * jsonb-overlay fields (sha256, sizeBytes, mimeType, virus-scan state)
+ * after an upload — replaces the previous in-place `updatedFile.sha256 = …`
+ * mutation pattern.
  */
 export interface DocumentRepository {
   getDataForProject(projectId: string): Promise<DocumentData>;
@@ -28,6 +24,16 @@ export interface DocumentRepository {
   deleteFolder(projectId: string, folderId: string): Promise<Folder | null>;
 
   addFile(projectId: string, file: DocumentFile): Promise<DocumentFile>;
+  /**
+   * Patches mutable metadata on a file row (sha256, sizeBytes, mimeType,
+   * virusScanStatus, virusScanCheckedAt, status, workflow, retentionPolicy,
+   * accessPolicy). Returns the updated row or null if the file is missing.
+   */
+  updateFileMetadata(
+    projectId: string,
+    fileId: string,
+    patch: Partial<DocumentFile>,
+  ): Promise<DocumentFile | null>;
   deleteFile(projectId: string, fileId: string): Promise<DocumentFile | null>;
 
   uploadVersion(
@@ -43,47 +49,4 @@ export interface DocumentRepository {
    * `VERSION_LOCKED`.
    */
   lockVersion(projectId: string, fileId: string): Promise<VersionEntry | null>;
-}
-
-export class InMemoryDocumentRepository implements DocumentRepository {
-  async getDataForProject(projectId: string): Promise<DocumentData> {
-    return getDocumentDataForProject(projectId);
-  }
-
-  async allByProject(): Promise<Record<string, DocumentData>> {
-    return getDocumentStore();
-  }
-
-  async addFolder(projectId: string, folder: Folder): Promise<Folder> {
-    return addDocumentFolder(projectId, folder);
-  }
-
-  async deleteFolder(projectId: string, folderId: string): Promise<Folder | null> {
-    return deleteDocumentFolder(projectId, folderId);
-  }
-
-  async addFile(projectId: string, file: DocumentFile): Promise<DocumentFile> {
-    return addDocumentFile(projectId, file);
-  }
-
-  async deleteFile(projectId: string, fileId: string): Promise<DocumentFile | null> {
-    return deleteDocumentFile(projectId, fileId);
-  }
-
-  async uploadVersion(
-    projectId: string,
-    fileId: string,
-    nextVersion: VersionEntry,
-  ): Promise<DocumentFile | null> {
-    return uploadDocumentVersion(projectId, fileId, nextVersion);
-  }
-
-  async lockVersion(projectId: string, fileId: string): Promise<VersionEntry | null> {
-    const data = await this.getDataForProject(projectId);
-    const versions = data.versionHistory[fileId];
-    if (!versions || versions.length === 0) return null;
-    const head = versions[0];
-    head.versionLocked = true;
-    return head;
-  }
 }

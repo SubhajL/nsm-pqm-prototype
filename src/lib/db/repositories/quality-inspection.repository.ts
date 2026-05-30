@@ -52,12 +52,44 @@ export class DatabaseQualityInspectionRepository implements QualityInspectionRep
     return rowToInspection(row);
   }
 
+  async updateInspection(
+    id: string,
+    patch: Partial<InspectionRecord>,
+  ): Promise<InspectionRecord | null> {
+    const existing = await this.findInspectionById(id);
+    if (!existing) return null;
+    const merged: InspectionRecord = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(inspectionRecords)
+      .set(inspectionToRow(merged))
+      .where(eq(inspectionRecords.id, id))
+      .returning();
+    return row ? rowToInspection(row) : null;
+  }
+
+  async updateItpStatus(
+    itpItemId: string,
+    status: ITPStatus,
+  ): Promise<ItpItem | null> {
+    const [row] = await this.db
+      .update(itpItems)
+      .set({ status })
+      .where(eq(itpItems.id, itpItemId))
+      .returning();
+    return row ? rowToItp(row) : null;
+  }
+
   async deleteInspection(id: string): Promise<InspectionRecord | null> {
     const [row] = await this.db
       .delete(inspectionRecords)
       .where(eq(inspectionRecords.id, id))
       .returning();
     return row ? rowToInspection(row) : null;
+  }
+
+  async addItpItem(item: ItpItem): Promise<ItpItem> {
+    const [row] = await this.db.insert(itpItems).values(item).returning();
+    return rowToItp(row);
   }
 
   async listItpItems(): Promise<ItpItem[]> {

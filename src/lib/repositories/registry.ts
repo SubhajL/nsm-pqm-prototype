@@ -1,60 +1,36 @@
 /**
- * Repository registry. PR-21 cutover landed (partial — see "Pragmatic
- * scope" below).
+ * Repository registry. PR-21b cutover complete.
  *
  * Single composition root. All API routes call `getRepositories().<domain>`
  * to reach persistence — they never touch raw stores directly.
  *
  * Behaviour by `PERSISTENCE_BACKEND` env var (read once on first call):
  *
- *   - undefined | 'in_memory' → InMemoryXxxRepository everywhere. Default.
- *                                Backed by the *-store.ts modules which
- *                                live in src/lib/ as the in-memory cache
- *                                layer. Seeded from src/data/*.json on
- *                                first access.
- *   - 'dual'                  → dualWrite(InMemoryXxx, DatabaseXxx) per
- *                                repo. Reads from InMemory; writes go to
- *                                BOTH; secondary failures logged + audit-
- *                                emitted but never thrown.
- *   - 'db'                    → DatabaseXxxRepository everywhere. Postgres
- *                                is the canonical persistence.
- *   - any other value         → console.warn + fall back to 'in_memory'.
+ *   - undefined | 'db' | 'dual' → DatabaseXxxRepository everywhere. Postgres
+ *                                  is the canonical persistence. `'dual'` is
+ *                                  retained as a no-op alias for `'db'` so
+ *                                  existing deployments with the env var
+ *                                  already set keep working after PR-21b.
+ *   - 'in_memory'              → REJECTED. The InMemory layer was retired in
+ *                                  PR-21b. Operators who need an ephemeral
+ *                                  store can run without `DATABASE_URL` to
+ *                                  get an in-process pglite — Database repos
+ *                                  on top of that behave like InMemory.
+ *   - any other value          → console.warn + fall back to 'db'.
  *
- * ---
- *
- * # Pragmatic scope (PR-21)
- *
- * The MVP plan PR-21 calls for the default to flip to `db` and the
- * InMemory layer to retire. The blob-snapshot retirement (deletion of
- * `project-demo-state.ts`, removal of `ensureProjectDemoStateHydrated()`
- * + `persistProjectDemoState()` calls, `ensureDatabaseReady()` helper)
- * has landed. The default flip, however, is **gated on a follow-up
- * refactor** that converts the in-place mutation pattern used by many
- * API routes (e.g. `project.status = next; persistProjectDemoState();`)
- * into explicit `repos.projects.update()` calls.
- *
- * Why this matters: InMemoryXxxRepository.findById() returns the live
- * store entry — mutating its fields IS the write. DatabaseXxxRepository.
- * findById() returns a freshly-hydrated copy — mutating its fields is a
- * no-op against the database. Routes that haven't been migrated to
- * explicit .update() calls would silently lose writes under
- * PERSISTENCE_BACKEND=db.
- *
- * The InMemory backend therefore remains the default until the in-place
- * mutation pattern is removed. Operators who want the Database backend
- * can opt-in via PERSISTENCE_BACKEND=db (test environments + nightly
- * parity check use this); the dual mode is the safe rolling option for
- * preview environments.
- *
- * Tracked as a follow-up to PR-21 (see DUAL_WRITE.md "Post-cutover work").
+ * On first call the registry kicks off `ensureDatabaseSeeded(db)` which
+ * runs schema migrations and idempotently loads the fixture + generated
+ * scenario seed data. The returned Database repos are wrapped in a Proxy
+ * that awaits this readiness promise before invoking any method — so
+ * routes never observe an unmigrated DB.
  *
  * Test hooks (`__setRepositoriesForTesting` / `__resetRepositoriesForTesting`)
  * let suites inject fakes for unit tests without monkey-patching the
- * underlying stores. Production code MUST NOT call these.
+ * underlying DB. Production code MUST NOT call these.
  */
 
+import { ensureDatabaseSeeded } from '@/lib/db/bootstrap';
 import { createDbClient, type Db } from '@/lib/db/client';
-import { runMigrations } from '@/lib/db/migrate';
 import {
   DatabaseAuditEventRepository,
   DatabaseBoqRepository,
@@ -76,79 +52,24 @@ import {
   DatabaseWbsRepository,
 } from '@/lib/db/repositories';
 
-import {
-  InMemoryAuditEventRepository,
-  type AuditEventRepository,
-} from './audit-event.repository';
-import {
-  InMemoryBoqRepository,
-  type BoqRepository,
-} from './boq.repository';
-import {
-  InMemoryChangeRequestRepository,
-  type ChangeRequestRepository,
-} from './change-request.repository';
-import {
-  InMemoryDailyReportRepository,
-  type DailyReportRepository,
-} from './daily-report.repository';
-import {
-  InMemoryDocumentRepository,
-  type DocumentRepository,
-} from './document.repository';
-import { dualWrite } from './dual-write';
-import {
-  InMemoryEvmRepository,
-  type EvmRepository,
-} from './evm.repository';
-import {
-  InMemoryGanttRepository,
-  type GanttRepository,
-} from './gantt.repository';
-import {
-  InMemoryIssueRepository,
-  type IssueRepository,
-} from './issue.repository';
-import {
-  InMemoryMilestoneRepository,
-  type MilestoneRepository,
-} from './milestone.repository';
-import {
-  InMemoryNotificationRepository,
-  type NotificationRepository,
-} from './notification.repository';
-import {
-  InMemoryOrgStructureRepository,
-  type OrgStructureRepository,
-} from './org-structure.repository';
-import {
-  InMemoryProjectRepository,
-  type ProjectRepository,
-} from './project.repository';
-import {
-  InMemoryQualityGateRepository,
-  type QualityGateRepository,
-} from './quality-gate.repository';
-import {
-  InMemoryQualityInspectionRepository,
-  type QualityInspectionRepository,
-} from './quality-inspection.repository';
-import {
-  InMemoryRiskRepository,
-  type RiskRepository,
-} from './risk.repository';
-import {
-  InMemoryTeamMembershipRepository,
-  type TeamMembershipRepository,
-} from './team-membership.repository';
-import {
-  InMemoryUserRepository,
-  type UserRepository,
-} from './user.repository';
-import {
-  InMemoryWbsRepository,
-  type WbsRepository,
-} from './wbs.repository';
+import type { AuditEventRepository } from './audit-event.repository';
+import type { BoqRepository } from './boq.repository';
+import type { ChangeRequestRepository } from './change-request.repository';
+import type { DailyReportRepository } from './daily-report.repository';
+import type { DocumentRepository } from './document.repository';
+import type { EvmRepository } from './evm.repository';
+import type { GanttRepository } from './gantt.repository';
+import type { IssueRepository } from './issue.repository';
+import type { MilestoneRepository } from './milestone.repository';
+import type { NotificationRepository } from './notification.repository';
+import type { OrgStructureRepository } from './org-structure.repository';
+import type { ProjectRepository } from './project.repository';
+import type { QualityGateRepository } from './quality-gate.repository';
+import type { QualityInspectionRepository } from './quality-inspection.repository';
+import type { RiskRepository } from './risk.repository';
+import type { TeamMembershipRepository } from './team-membership.repository';
+import type { UserRepository } from './user.repository';
+import type { WbsRepository } from './wbs.repository';
 
 export interface RepositoryRegistry {
   auditEvents: AuditEventRepository;
@@ -171,188 +92,98 @@ export interface RepositoryRegistry {
   wbs: WbsRepository;
 }
 
-export type PersistenceBackend = 'in_memory' | 'dual' | 'db';
-
-function createInMemoryRegistry(): RepositoryRegistry {
-  return {
-    auditEvents: new InMemoryAuditEventRepository(),
-    boq: new InMemoryBoqRepository(),
-    changeRequests: new InMemoryChangeRequestRepository(),
-    dailyReports: new InMemoryDailyReportRepository(),
-    documents: new InMemoryDocumentRepository(),
-    evm: new InMemoryEvmRepository(),
-    gantt: new InMemoryGanttRepository(),
-    issues: new InMemoryIssueRepository(),
-    milestones: new InMemoryMilestoneRepository(),
-    notifications: new InMemoryNotificationRepository(),
-    orgStructure: new InMemoryOrgStructureRepository(),
-    projects: new InMemoryProjectRepository(),
-    qualityGates: new InMemoryQualityGateRepository(),
-    qualityInspections: new InMemoryQualityInspectionRepository(),
-    risks: new InMemoryRiskRepository(),
-    teamMemberships: new InMemoryTeamMembershipRepository(),
-    users: new InMemoryUserRepository(),
-    wbs: new InMemoryWbsRepository(),
-  };
-}
-
-function createDatabaseRegistry(db: Db): RepositoryRegistry {
-  return {
-    auditEvents: new DatabaseAuditEventRepository(db),
-    boq: new DatabaseBoqRepository(db),
-    changeRequests: new DatabaseChangeRequestRepository(db),
-    dailyReports: new DatabaseDailyReportRepository(db),
-    documents: new DatabaseDocumentRepository(db),
-    evm: new DatabaseEvmRepository(db),
-    gantt: new DatabaseGanttRepository(db),
-    issues: new DatabaseIssueRepository(db),
-    milestones: new DatabaseMilestoneRepository(db),
-    notifications: new DatabaseNotificationRepository(db),
-    orgStructure: new DatabaseOrgStructureRepository(db),
-    projects: new DatabaseProjectRepository(db),
-    qualityGates: new DatabaseQualityGateRepository(db),
-    qualityInspections: new DatabaseQualityInspectionRepository(db),
-    risks: new DatabaseRiskRepository(db),
-    teamMemberships: new DatabaseTeamMembershipRepository(db),
-    users: new DatabaseUserRepository(db),
-    wbs: new DatabaseWbsRepository(db),
-  };
-}
-
 /**
- * Wrap an InMemory registry + Database registry into a dual-write registry.
- * Each domain's repo becomes a `dualWrite(inMemory, database)` Proxy. The
- * audit-event repo is special-cased: it carries no secondary auditRepo to
- * avoid infinite recursion if the audit secondary write itself fails.
- */
-function createDualWriteRegistry(
-  primary: RepositoryRegistry,
-  secondary: RepositoryRegistry,
-): RepositoryRegistry {
-  const auditRepo = primary.auditEvents;
-  const wrap = <K extends keyof RepositoryRegistry>(
-    key: K,
-  ): RepositoryRegistry[K] =>
-    dualWrite(primary[key], secondary[key], {
-      domain: key,
-      auditRepo: key === 'auditEvents' ? undefined : auditRepo,
-    }) as RepositoryRegistry[K];
-
-  return {
-    auditEvents: wrap('auditEvents'),
-    boq: wrap('boq'),
-    changeRequests: wrap('changeRequests'),
-    dailyReports: wrap('dailyReports'),
-    documents: wrap('documents'),
-    evm: wrap('evm'),
-    gantt: wrap('gantt'),
-    issues: wrap('issues'),
-    milestones: wrap('milestones'),
-    notifications: wrap('notifications'),
-    orgStructure: wrap('orgStructure'),
-    projects: wrap('projects'),
-    qualityGates: wrap('qualityGates'),
-    qualityInspections: wrap('qualityInspections'),
-    risks: wrap('risks'),
-    teamMemberships: wrap('teamMemberships'),
-    users: wrap('users'),
-    wbs: wrap('wbs'),
-  };
-}
-
-/**
- * Record a one-shot audit event noting that the registry degraded from
- * `dual` to `in_memory` because the Database client could not be built.
+ * Accepted PERSISTENCE_BACKEND values.
+ *   - 'db' (default) — Postgres-backed.
+ *   - 'dual' — alias for 'db' (no-op back-compat with operators who set
+ *     the env var during the PR-20 soak; the InMemory backend is gone).
  *
- * Best-effort: if the audit append itself throws, we just log — startup
- * must never crash because of this.
+ * Operator note: 'in_memory' is no longer accepted; passing it logs a
+ * warning and falls through to 'db'. This is intentional — PR-21b
+ * deleted the InMemory layer.
  */
-function emitDualWriteFallbackAudit(
-  primary: RepositoryRegistry,
-  err: unknown,
-): void {
-  const errorMessage = err instanceof Error ? err.message : String(err);
-  primary.auditEvents
-    .append({
-      requestId: 'system:registry-bootstrap',
-      actorId: null,
-      actorRole: null,
-      action: 'dual_write_fallback_to_in_memory',
-      resourceType: 'persistence_backend',
-      resourceId: 'registry',
-      projectId: null,
-      before: null,
-      after: { errorMessage },
-      decisionReason:
-        'PERSISTENCE_BACKEND=dual requested but Database client could not be built; degraded to in_memory.',
-      authorityBasis: 'MVP_PLAN:PR-20:dual-write-soak',
-      ipAddress: null,
-      userAgent: null,
-    })
-    .catch((auditErr) => {
-      console.error('[registry] fallback audit emission failed', auditErr);
-    });
+export type PersistenceBackend = 'db' | 'dual';
+
+/**
+ * Build a Database-backed registry where every method is gated on
+ * `ensureDatabaseSeeded(db)`. This lets `getRepositories()` stay
+ * synchronous while still guaranteeing schema + seed are in place
+ * before the first repo call returns data.
+ */
+function createDatabaseRegistry(db: Db): RepositoryRegistry {
+  const ready = ensureDatabaseSeeded(db);
+
+  const wrap = <T extends object>(repo: T): T => {
+    return new Proxy(repo, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (typeof value !== 'function') return value;
+        if (typeof prop === 'symbol') {
+          return (value as (...a: unknown[]) => unknown).bind(target);
+        }
+        return async (...args: unknown[]) => {
+          await ready;
+          return (value as (...a: unknown[]) => unknown).apply(target, args);
+        };
+      },
+    }) as T;
+  };
+
+  return {
+    auditEvents: wrap(new DatabaseAuditEventRepository(db)),
+    boq: wrap(new DatabaseBoqRepository(db)),
+    changeRequests: wrap(new DatabaseChangeRequestRepository(db)),
+    dailyReports: wrap(new DatabaseDailyReportRepository(db)),
+    documents: wrap(new DatabaseDocumentRepository(db)),
+    evm: wrap(new DatabaseEvmRepository(db)),
+    gantt: wrap(new DatabaseGanttRepository(db)),
+    issues: wrap(new DatabaseIssueRepository(db)),
+    milestones: wrap(new DatabaseMilestoneRepository(db)),
+    notifications: wrap(new DatabaseNotificationRepository(db)),
+    orgStructure: wrap(new DatabaseOrgStructureRepository(db)),
+    projects: wrap(new DatabaseProjectRepository(db)),
+    qualityGates: wrap(new DatabaseQualityGateRepository(db)),
+    qualityInspections: wrap(new DatabaseQualityInspectionRepository(db)),
+    risks: wrap(new DatabaseRiskRepository(db)),
+    teamMemberships: wrap(new DatabaseTeamMembershipRepository(db)),
+    users: wrap(new DatabaseUserRepository(db)),
+    wbs: wrap(new DatabaseWbsRepository(db)),
+  };
 }
 
 function readBackendFromEnv(): PersistenceBackend {
   const raw = process.env.PERSISTENCE_BACKEND;
-  if (raw === undefined || raw === '' || raw === 'in_memory') return 'in_memory';
-  if (raw === 'dual') return 'dual';
-  if (raw === 'db') return 'db';
+  if (raw === undefined || raw === '' || raw === 'db' || raw === 'dual') return 'db';
+  if (raw === 'in_memory') {
+    console.warn(
+      `[registry] PERSISTENCE_BACKEND='in_memory' is no longer supported (PR-21b retired the InMemory layer). Falling back to 'db'.`,
+    );
+    return 'db';
+  }
   console.warn(
-    `[registry] Unknown PERSISTENCE_BACKEND='${raw}', falling back to in_memory.`,
+    `[registry] Unknown PERSISTENCE_BACKEND='${raw}', falling back to 'db'.`,
   );
-  return 'in_memory';
+  return 'db';
 }
 
 let activeRegistry: RepositoryRegistry | null = null;
 
 /**
  * Returns the active repository registry, lazily constructing it on first
- * call. The choice between InMemory / dual / Database is driven by the
- * `PERSISTENCE_BACKEND` env var (read once on first call).
+ * call. Choice of backend is governed by `PERSISTENCE_BACKEND` (read once).
+ *
+ * Construction failures fall back to a fresh in-process pglite — so the
+ * demo / dev environment stays live even when `DATABASE_URL` is broken.
  */
 export function getRepositories(): RepositoryRegistry {
   if (activeRegistry) return activeRegistry;
 
-  const backend = readBackendFromEnv();
-  const inMemory = createInMemoryRegistry();
+  // Read but ignore (back-compat surface — accepts 'db' and 'dual' both as
+  // canonical Database mode).
+  readBackendFromEnv();
 
-  if (backend === 'in_memory') {
-    activeRegistry = inMemory;
-    return activeRegistry;
-  }
-
-  // For both 'dual' and 'db' we need a Database client. Failures here
-  // degrade to in_memory rather than crashing — the demo must stay live.
-  let db: Db;
-  try {
-    db = createDbClient();
-  } catch (err) {
-    console.error(
-      `[registry] PERSISTENCE_BACKEND='${backend}' but createDbClient() threw; falling back to in_memory.`,
-      err,
-    );
-    activeRegistry = inMemory;
-    emitDualWriteFallbackAudit(inMemory, err);
-    return activeRegistry;
-  }
-
-  // Migrations are best-effort during bootstrap: a fresh pglite (no
-  // DATABASE_URL set) needs them; a migrated Neon instance already has
-  // them. Schedule asynchronously so getRepositories() stays synchronous.
-  runMigrations(db).catch((err) => {
-    console.error('[registry] auto-migration failed (continuing with current schema)', err);
-  });
-
-  if (backend === 'db') {
-    activeRegistry = createDatabaseRegistry(db);
-    return activeRegistry;
-  }
-
-  // dual
-  const database = createDatabaseRegistry(db);
-  activeRegistry = createDualWriteRegistry(inMemory, database);
+  const db = createDbClient();
+  activeRegistry = createDatabaseRegistry(db);
   return activeRegistry;
 }
 

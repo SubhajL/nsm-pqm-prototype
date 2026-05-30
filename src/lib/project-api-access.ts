@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { AUTHZ_MATRIX, type Action } from '@/lib/authz-matrix';
 import { canUserAccessProject, getActiveUser, getVisibleProjectsForUser } from '@/lib/project-access';
-import { getProjectStore } from '@/lib/project-store';
+import { getRepositories } from '@/lib/repositories';
 import type { User } from '@/types/admin';
 
 function unauthorizedResponse() {
@@ -44,36 +44,36 @@ export function forbiddenResponse(action: Action) {
   );
 }
 
-export function getCurrentApiUser() {
+export async function getCurrentApiUser(): Promise<User | null> {
   return getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 }
 
-export function requireProjectAccess(projectId: string) {
-  const currentUser = getCurrentApiUser();
+export async function requireProjectAccess(projectId: string): Promise<Response | null> {
+  const currentUser = await getCurrentApiUser();
 
   if (!currentUser) {
     return unauthorizedResponse();
   }
 
-  const store = getProjectStore();
+  const store = await getRepositories().projects.list();
 
-  if (!canUserAccessProject(currentUser, projectId, store)) {
+  if (!(await canUserAccessProject(currentUser, projectId, store))) {
     return projectForbiddenResponse(projectId);
   }
 
   return null;
 }
 
-export function getVisibleProjectIdsForCurrentUser() {
-  const currentUser = getCurrentApiUser();
+export async function getVisibleProjectIdsForCurrentUser(): Promise<Set<string>> {
+  const currentUser = await getCurrentApiUser();
 
   if (!currentUser) {
     return new Set<string>();
   }
 
-  return new Set(
-    getVisibleProjectsForUser(currentUser, getProjectStore()).map((project) => project.id),
-  );
+  const projects = await getRepositories().projects.list();
+  const visible = await getVisibleProjectsForUser(currentUser, projects);
+  return new Set(visible.map((project) => project.id));
 }
 
 /**
@@ -90,16 +90,16 @@ export function getVisibleProjectIdsForCurrentUser() {
  * the existing visibility check. Middleware path-level RBAC remains the outer
  * ring; this is the action-level inner ring.
  */
-export function canPerformProjectAction(
+export async function canPerformProjectAction(
   user: User | null,
   projectId: string,
   action: Action,
-): boolean {
+): Promise<boolean> {
   if (!user) {
     return false;
   }
 
-  if (!canUserAccessProject(user, projectId)) {
+  if (!(await canUserAccessProject(user, projectId))) {
     return false;
   }
 

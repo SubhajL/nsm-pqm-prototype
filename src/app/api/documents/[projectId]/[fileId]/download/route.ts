@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { getSignedDocumentUrl } from '@/lib/mock-upload-storage';
 import { getRepositories } from '@/lib/repositories';
@@ -22,12 +24,12 @@ export async function GET(
   request: Request,
   { params }: { params: { projectId: string; fileId: string } },
 ) {
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
 
-  if (!canPerformProjectAction(currentUser, params.projectId, 'view_document')) {
+  if (!(await canPerformProjectAction(currentUser, params.projectId, 'view_document'))) {
     return forbiddenResponse('view_document');
   }
 

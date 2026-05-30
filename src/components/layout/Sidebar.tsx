@@ -25,7 +25,7 @@ import { memo, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { apiPost } from '@/lib/api-client';
 import { useProjects } from '@/hooks/useProjects';
-import { canAccessMenuItem, isProjectScopedMenuItem, type AppMenuKey } from '@/lib/project-access';
+import { canAccessMenuItem, isProjectScopedMenuItem, type AppMenuKey } from '@/lib/project-access-pure';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { COLORS } from '@/theme/antd-theme';

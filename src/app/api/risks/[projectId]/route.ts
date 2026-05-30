@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
@@ -6,7 +8,7 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
-import { synchronizeMitigatingRiskIssues } from '@/lib/risk-issue-consistency';
+import { applyMitigatingRiskIssues } from '@/lib/risk-issue-consistency';
 import { parseRequestBody } from '@/lib/validation';
 import type { Risk } from '@/types/risk';
 import { createRiskRequestSchema } from '@/types/risk.schema';
@@ -17,7 +19,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const store = await getRepositories().risks.list();
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const { searchParams } = new URL(request.url);
@@ -46,10 +48,10 @@ export async function POST(
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_risk')) {
+  if (!(await canPerformProjectAction(await getCurrentApiUser(), params.projectId, 'edit_risk'))) {
     return forbiddenResponse('edit_risk');
   }
 
@@ -75,7 +77,10 @@ export async function POST(
   };
 
   await repos.risks.create(newRisk);
-  synchronizeMitigatingRiskIssues(issueStore, [newRisk]);
+  // Apply auto-created mitigation issues + updates via the repo so DB
+  // backend sees the writes (replaces the old in-place `issueStore.push`
+  // pattern that only worked under InMemory).
+  await applyMitigatingRiskIssues(repos, issueStore, [newRisk]);
   await recordAuditEvent(request, {
     action: 'edit_risk',
     resourceType: 'risk',

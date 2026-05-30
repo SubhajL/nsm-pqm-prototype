@@ -2,28 +2,103 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { WBSNode } from '@/hooks/useWBS';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
+import {
+  __resetRepositoriesForTesting,
+  __setRepositoriesForTesting,
+  type RepositoryRegistry,
+} from '@/lib/repositories';
 import type { GanttData, GanttTask } from '@/types/gantt';
 import type { Milestone, Project } from '@/types/project';
 
 // ---------------------------------------------------------------------------
-// Characterization tests for syncProjectExecutionState.
+// Characterization tests for syncProjectExecutionState (PR-21b rewrite).
 //
-// The dependency stores read from `globalThis.__nsm*Store` (lazy singletons).
-// We populate those globals BEFORE the SUT is called so the test owns the world.
+// The implementation is now async + repo-backed. We inject a minimal fake
+// registry that supports just the surface the sync helper needs.
 // ---------------------------------------------------------------------------
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __nsmWbsStore: WBSNode[] | undefined;
-  // eslint-disable-next-line no-var
-  var __nsmProjectStore: Project[] | undefined;
-  // eslint-disable-next-line no-var
-  var __nsmGanttStore: Record<string, GanttData> | undefined;
-  // eslint-disable-next-line no-var
-  var __nsmMilestoneStore: Milestone[] | undefined;
+const PROJECT_ID = 'P-SYNC';
+
+interface FakeState {
+  projects: Project[];
+  wbs: WBSNode[];
+  ganttByProject: Record<string, GanttData>;
+  milestones: Milestone[];
 }
 
-const PROJECT_ID = 'P-SYNC';
+function buildRegistry(state: FakeState): RepositoryRegistry {
+  // Only the methods exercised by syncProjectExecutionState + the milestone
+  // derivation helper need real bodies. The rest are stub-throwers so a
+  // surprise call is caught loudly.
+  const reject = (name: string) =>
+    () => {
+      throw new Error(`unexpected repo call: ${name}`);
+    };
+
+  return {
+    projects: {
+      list: async () => state.projects,
+      findById: async (id: string) =>
+        state.projects.find((p) => p.id === id) ?? null,
+      create: reject('projects.create'),
+      update: async (id: string, patch: Partial<Project>) => {
+        const idx = state.projects.findIndex((p) => p.id === id);
+        if (idx < 0) return null;
+        state.projects[idx] = { ...state.projects[idx], ...patch };
+        return state.projects[idx];
+      },
+      delete: reject('projects.delete'),
+      all: async () => state.projects,
+    },
+    wbs: {
+      list: async () => state.wbs,
+      listByProject: async (pid: string) => state.wbs.filter((n) => n.projectId === pid),
+      findById: async (id: string) => state.wbs.find((n) => n.id === id) ?? null,
+      create: reject('wbs.create'),
+      update: async (id: string, patch: Partial<WBSNode>) => {
+        const idx = state.wbs.findIndex((n) => n.id === id);
+        if (idx < 0) return null;
+        state.wbs[idx] = { ...state.wbs[idx], ...patch };
+        return state.wbs[idx];
+      },
+      delete: reject('wbs.delete'),
+    },
+    gantt: {
+      getProjectData: async (pid: string) =>
+        state.ganttByProject[pid] ?? { data: [], links: [] },
+      nextTaskId: reject('gantt.nextTaskId'),
+      replaceProjectData: async (pid, data) => {
+        state.ganttByProject[pid] = data;
+        return data;
+      },
+      allByProject: async () => state.ganttByProject,
+    },
+    milestones: {
+      list: async () => state.milestones,
+      listByProject: async (pid: string) =>
+        state.milestones.filter((m) => m.projectId === pid),
+      findById: async (id: string) => state.milestones.find((m) => m.id === id) ?? null,
+      create: reject('milestones.create'),
+      update: reject('milestones.update'),
+      delete: reject('milestones.delete'),
+    },
+    // Domains the sync helper never touches.
+    boq: {} as RepositoryRegistry['boq'],
+    changeRequests: {} as RepositoryRegistry['changeRequests'],
+    dailyReports: {} as RepositoryRegistry['dailyReports'],
+    documents: {} as RepositoryRegistry['documents'],
+    evm: {} as RepositoryRegistry['evm'],
+    issues: {} as RepositoryRegistry['issues'],
+    notifications: {} as RepositoryRegistry['notifications'],
+    orgStructure: {} as RepositoryRegistry['orgStructure'],
+    qualityGates: {} as RepositoryRegistry['qualityGates'],
+    qualityInspections: {} as RepositoryRegistry['qualityInspections'],
+    risks: {} as RepositoryRegistry['risks'],
+    teamMemberships: {} as RepositoryRegistry['teamMemberships'],
+    users: {} as RepositoryRegistry['users'],
+    auditEvents: {} as RepositoryRegistry['auditEvents'],
+  };
+}
 
 function makeProject(overrides: Partial<Project> = {}): Project {
   return {
@@ -93,59 +168,59 @@ function makeTask(overrides: Partial<GanttTask>): GanttTask {
   };
 }
 
-function seedStores(args: {
+function seed(args: {
   project?: Project;
   wbs?: WBSNode[];
   gantt?: GanttData;
   milestones?: Milestone[];
-}) {
-  globalThis.__nsmProjectStore = args.project ? [args.project] : [];
-  globalThis.__nsmWbsStore = args.wbs ?? [];
-  globalThis.__nsmGanttStore = {
-    [PROJECT_ID]: args.gantt ?? { data: [], links: [] },
+}): FakeState {
+  return {
+    projects: args.project ? [args.project] : [],
+    wbs: args.wbs ?? [],
+    ganttByProject: { [PROJECT_ID]: args.gantt ?? { data: [], links: [] } },
+    milestones: args.milestones ?? [],
   };
-  globalThis.__nsmMilestoneStore = args.milestones ?? [];
 }
 
+let state: FakeState;
+
 beforeEach(() => {
-  globalThis.__nsmProjectStore = undefined;
-  globalThis.__nsmWbsStore = undefined;
-  globalThis.__nsmGanttStore = undefined;
-  globalThis.__nsmMilestoneStore = undefined;
+  state = seed({});
+  __setRepositoriesForTesting(buildRegistry(state));
 });
 
 afterEach(() => {
-  globalThis.__nsmProjectStore = undefined;
-  globalThis.__nsmWbsStore = undefined;
-  globalThis.__nsmGanttStore = undefined;
-  globalThis.__nsmMilestoneStore = undefined;
+  __resetRepositoriesForTesting();
 });
 
 describe('syncProjectExecutionState — no-op cases', () => {
-  it('returns early without mutation when project is missing from the store', () => {
-    seedStores({ project: undefined, wbs: [], gantt: { data: [], links: [] } });
-    expect(() => syncProjectExecutionState(PROJECT_ID)).not.toThrow();
-    expect(globalThis.__nsmProjectStore).toEqual([]);
+  it('returns early without mutation when project is missing from the store', async () => {
+    state = seed({ project: undefined, wbs: [], gantt: { data: [], links: [] } });
+    __setRepositoriesForTesting(buildRegistry(state));
+    await expect(syncProjectExecutionState(PROJECT_ID)).resolves.toBeUndefined();
+    expect(state.projects).toEqual([]);
   });
 });
 
 describe('syncProjectExecutionState — empty WBS', () => {
-  it('derives progress from average gantt task progress when no WBS nodes exist', () => {
-    const project = makeProject({ progress: 0.1, status: 'planning' });
-    const gantt: GanttData = {
-      data: [
-        makeTask({ id: 1, type: 'task', progress: 0.5 }),
-        makeTask({ id: 2, type: 'task', progress: 0.25 }),
-      ],
-      links: [],
-    };
-    seedStores({ project, gantt });
+  it('derives progress from average gantt task progress when no WBS nodes exist', async () => {
+    state = seed({
+      project: makeProject({ progress: 0.1, status: 'planning' }),
+      gantt: {
+        data: [
+          makeTask({ id: 1, type: 'task', progress: 0.5 }),
+          makeTask({ id: 2, type: 'task', progress: 0.25 }),
+        ],
+        links: [],
+      },
+    });
+    __setRepositoriesForTesting(buildRegistry(state));
 
-    syncProjectExecutionState(PROJECT_ID);
+    await syncProjectExecutionState(PROJECT_ID);
 
-    const updated = globalThis.__nsmProjectStore![0];
+    const updated = state.projects[0];
     expect(updated.progress).toBeCloseTo(0.375, 5);
-    expect(updated.status).toBe('in_progress'); // hasStarted via progressRatio > 0
+    expect(updated.status).toBe('in_progress');
     expect(updated.scheduleHealth).toBe('on_schedule');
     expect(updated.openIssues).toBe(0);
     expect(updated.highRisks).toBe(0);
@@ -153,69 +228,76 @@ describe('syncProjectExecutionState — empty WBS', () => {
     expect(updated.currentMilestone).toBe(0);
   });
 
-  it('preserves project.progress unchanged when WBS is empty AND no executable tasks', () => {
-    const project = makeProject({ progress: 0.42 });
-    seedStores({ project, gantt: { data: [], links: [] } });
+  it('preserves project.progress unchanged when WBS is empty AND no executable tasks', async () => {
+    state = seed({ project: makeProject({ progress: 0.42 }), gantt: { data: [], links: [] } });
+    __setRepositoriesForTesting(buildRegistry(state));
 
-    syncProjectExecutionState(PROJECT_ID);
+    await syncProjectExecutionState(PROJECT_ID);
 
-    expect(globalThis.__nsmProjectStore![0].progress).toBe(0.42);
+    expect(state.projects[0].progress).toBe(0.42);
   });
 });
 
 describe('syncProjectExecutionState — populated WBS', () => {
-  it('derives progress from weighted level-1 WBS nodes and updates root', () => {
-    const project = makeProject();
-    const wbs: WBSNode[] = [
-      makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
-      makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 60, progress: 80 }),
-      makeWbsNode({ id: 'b', code: '1.2', level: 1, parentId: 'r', weight: 40, progress: 50 }),
-    ];
-    seedStores({ project, wbs, gantt: { data: [], links: [] } });
+  it('derives progress from weighted level-1 WBS nodes and updates root', async () => {
+    state = seed({
+      project: makeProject(),
+      wbs: [
+        makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
+        makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 60, progress: 80 }),
+        makeWbsNode({ id: 'b', code: '1.2', level: 1, parentId: 'r', weight: 40, progress: 50 }),
+      ],
+      gantt: { data: [], links: [] },
+    });
+    __setRepositoriesForTesting(buildRegistry(state));
 
-    syncProjectExecutionState(PROJECT_ID);
+    await syncProjectExecutionState(PROJECT_ID);
 
-    const updated = globalThis.__nsmProjectStore![0];
-    // weighted progress = (80*60 + 50*40)/100 = 68 → progressRatio = 0.68
+    const updated = state.projects[0];
     expect(updated.progress).toBeCloseTo(0.68, 5);
     expect(updated.status).toBe('in_progress');
-    // Root node gets weighted progress assigned
-    const root = globalThis.__nsmWbsStore!.find((n) => n.id === 'r');
+    const root = state.wbs.find((n) => n.id === 'r');
     expect(root?.progress).toBeCloseTo(68, 5);
   });
 
-  it('sets status to completed when WBS weighted progress is 100%', () => {
-    const project = makeProject({ status: 'in_progress' });
-    const wbs: WBSNode[] = [
-      makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
-      makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 100 }),
-    ];
-    seedStores({ project, wbs, gantt: { data: [], links: [] } });
+  it('sets status to completed when WBS weighted progress is 100%', async () => {
+    state = seed({
+      project: makeProject({ status: 'in_progress' }),
+      wbs: [
+        makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
+        makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 100 }),
+      ],
+      gantt: { data: [], links: [] },
+    });
+    __setRepositoriesForTesting(buildRegistry(state));
 
-    syncProjectExecutionState(PROJECT_ID);
+    await syncProjectExecutionState(PROJECT_ID);
 
-    expect(globalThis.__nsmProjectStore![0].progress).toBe(1);
-    expect(globalThis.__nsmProjectStore![0].status).toBe('completed');
+    expect(state.projects[0].progress).toBe(1);
+    expect(state.projects[0].status).toBe('completed');
   });
 });
 
 describe('syncProjectExecutionState — updatedTask option', () => {
-  it('applies a matched task progress to a WBS leaf and propagates to ancestors', () => {
-    const project = makeProject();
-    const wbs: WBSNode[] = [
-      makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
-      makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 0 }),
-      makeWbsNode({
-        id: 'a1',
-        code: '1.1.1',
-        level: 2,
-        parentId: 'a',
-        weight: 100,
-        progress: 0,
-        name: 'Pour concrete',
-      }),
-    ];
-    seedStores({ project, wbs, gantt: { data: [], links: [] } });
+  it('applies a matched task progress to a WBS leaf and propagates to ancestors', async () => {
+    state = seed({
+      project: makeProject(),
+      wbs: [
+        makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
+        makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 0 }),
+        makeWbsNode({
+          id: 'a1',
+          code: '1.1.1',
+          level: 2,
+          parentId: 'a',
+          weight: 100,
+          progress: 0,
+          name: 'Pour concrete',
+        }),
+      ],
+      gantt: { data: [], links: [] },
+    });
+    __setRepositoriesForTesting(buildRegistry(state));
 
     const updatedTask = makeTask({
       id: 100,
@@ -224,31 +306,33 @@ describe('syncProjectExecutionState — updatedTask option', () => {
       text: 'Pour concrete',
     });
 
-    syncProjectExecutionState(PROJECT_ID, { updatedTask });
+    await syncProjectExecutionState(PROJECT_ID, { updatedTask });
 
-    const leaf = globalThis.__nsmWbsStore!.find((n) => n.id === 'a1');
+    const leaf = state.wbs.find((n) => n.id === 'a1');
     expect(leaf?.progress).toBe(60);
-    const project1 = globalThis.__nsmProjectStore![0];
-    // Level 1 weighted progress = 60% → progressRatio = 0.6
+    const project1 = state.projects[0];
     expect(project1.progress).toBeCloseTo(0.6, 5);
   });
 
-  it('ignores updatedTask whose type is not "task"', () => {
-    const project = makeProject();
-    const wbs: WBSNode[] = [
-      makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
-      makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 25 }),
-      makeWbsNode({
-        id: 'a1',
-        code: '1.1.1',
-        level: 2,
-        parentId: 'a',
-        weight: 100,
-        progress: 25,
-        name: 'Phase 1',
-      }),
-    ];
-    seedStores({ project, wbs, gantt: { data: [], links: [] } });
+  it('ignores updatedTask whose type is not "task"', async () => {
+    state = seed({
+      project: makeProject(),
+      wbs: [
+        makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
+        makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 25 }),
+        makeWbsNode({
+          id: 'a1',
+          code: '1.1.1',
+          level: 2,
+          parentId: 'a',
+          weight: 100,
+          progress: 25,
+          name: 'Phase 1',
+        }),
+      ],
+      gantt: { data: [], links: [] },
+    });
+    __setRepositoriesForTesting(buildRegistry(state));
 
     const phaseTask = makeTask({
       id: 100,
@@ -257,28 +341,31 @@ describe('syncProjectExecutionState — updatedTask option', () => {
       text: 'Phase 1',
     });
 
-    syncProjectExecutionState(PROJECT_ID, { updatedTask: phaseTask });
+    await syncProjectExecutionState(PROJECT_ID, { updatedTask: phaseTask });
 
-    const leaf = globalThis.__nsmWbsStore!.find((n) => n.id === 'a1');
-    expect(leaf?.progress).toBe(25); // untouched
+    const leaf = state.wbs.find((n) => n.id === 'a1');
+    expect(leaf?.progress).toBe(25);
   });
 
-  it('ignores updatedTask when text does not match any WBS leaf', () => {
-    const project = makeProject();
-    const wbs: WBSNode[] = [
-      makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
-      makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 30 }),
-      makeWbsNode({
-        id: 'a1',
-        code: '1.1.1',
-        level: 2,
-        parentId: 'a',
-        weight: 100,
-        progress: 30,
-        name: 'Existing leaf',
-      }),
-    ];
-    seedStores({ project, wbs, gantt: { data: [], links: [] } });
+  it('ignores updatedTask when text does not match any WBS leaf', async () => {
+    state = seed({
+      project: makeProject(),
+      wbs: [
+        makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
+        makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 30 }),
+        makeWbsNode({
+          id: 'a1',
+          code: '1.1.1',
+          level: 2,
+          parentId: 'a',
+          weight: 100,
+          progress: 30,
+          name: 'Existing leaf',
+        }),
+      ],
+      gantt: { data: [], links: [] },
+    });
+    __setRepositoriesForTesting(buildRegistry(state));
 
     const updatedTask = makeTask({
       id: 200,
@@ -287,30 +374,33 @@ describe('syncProjectExecutionState — updatedTask option', () => {
       text: 'Unrelated task name',
     });
 
-    syncProjectExecutionState(PROJECT_ID, { updatedTask });
+    await syncProjectExecutionState(PROJECT_ID, { updatedTask });
 
-    const leaf = globalThis.__nsmWbsStore!.find((n) => n.id === 'a1');
-    expect(leaf?.progress).toBe(30); // untouched
+    const leaf = state.wbs.find((n) => n.id === 'a1');
+    expect(leaf?.progress).toBe(30);
   });
 });
 
 describe('syncProjectExecutionState — deletedTask option', () => {
-  it('resets the matched WBS leaf progress to 0 and propagates to ancestors', () => {
-    const project = makeProject();
-    const wbs: WBSNode[] = [
-      makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
-      makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 80 }),
-      makeWbsNode({
-        id: 'a1',
-        code: '1.1.1',
-        level: 2,
-        parentId: 'a',
-        weight: 100,
-        progress: 80,
-        name: 'Pour concrete',
-      }),
-    ];
-    seedStores({ project, wbs, gantt: { data: [], links: [] } });
+  it('resets the matched WBS leaf progress to 0 and propagates to ancestors', async () => {
+    state = seed({
+      project: makeProject(),
+      wbs: [
+        makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
+        makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 80 }),
+        makeWbsNode({
+          id: 'a1',
+          code: '1.1.1',
+          level: 2,
+          parentId: 'a',
+          weight: 100,
+          progress: 80,
+          name: 'Pour concrete',
+        }),
+      ],
+      gantt: { data: [], links: [] },
+    });
+    __setRepositoriesForTesting(buildRegistry(state));
 
     const deletedTask = makeTask({
       id: 100,
@@ -319,29 +409,32 @@ describe('syncProjectExecutionState — deletedTask option', () => {
       text: 'Pour concrete',
     });
 
-    syncProjectExecutionState(PROJECT_ID, { deletedTask });
+    await syncProjectExecutionState(PROJECT_ID, { deletedTask });
 
-    const leaf = globalThis.__nsmWbsStore!.find((n) => n.id === 'a1');
+    const leaf = state.wbs.find((n) => n.id === 'a1');
     expect(leaf?.progress).toBe(0);
-    expect(globalThis.__nsmProjectStore![0].progress).toBe(0);
+    expect(state.projects[0].progress).toBe(0);
   });
 
-  it('ignores deletedTask of non-task type', () => {
-    const project = makeProject();
-    const wbs: WBSNode[] = [
-      makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
-      makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 60 }),
-      makeWbsNode({
-        id: 'a1',
-        code: '1.1.1',
-        level: 2,
-        parentId: 'a',
-        weight: 100,
-        progress: 60,
-        name: 'Phase 1',
-      }),
-    ];
-    seedStores({ project, wbs, gantt: { data: [], links: [] } });
+  it('ignores deletedTask of non-task type', async () => {
+    state = seed({
+      project: makeProject(),
+      wbs: [
+        makeWbsNode({ id: 'r', code: '1', level: 0, parentId: null, weight: 100, progress: 0 }),
+        makeWbsNode({ id: 'a', code: '1.1', level: 1, parentId: 'r', weight: 100, progress: 60 }),
+        makeWbsNode({
+          id: 'a1',
+          code: '1.1.1',
+          level: 2,
+          parentId: 'a',
+          weight: 100,
+          progress: 60,
+          name: 'Phase 1',
+        }),
+      ],
+      gantt: { data: [], links: [] },
+    });
+    __setRepositoriesForTesting(buildRegistry(state));
 
     const deletedPhase = makeTask({
       id: 100,
@@ -350,9 +443,9 @@ describe('syncProjectExecutionState — deletedTask option', () => {
       text: 'Phase 1',
     });
 
-    syncProjectExecutionState(PROJECT_ID, { deletedTask: deletedPhase });
+    await syncProjectExecutionState(PROJECT_ID, { deletedTask: deletedPhase });
 
-    const leaf = globalThis.__nsmWbsStore!.find((n) => n.id === 'a1');
-    expect(leaf?.progress).toBe(60); // untouched
+    const leaf = state.wbs.find((n) => n.id === 'a1');
+    expect(leaf?.progress).toBe(60);
   });
 });

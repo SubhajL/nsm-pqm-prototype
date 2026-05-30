@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { requiresProjectDuty } from '@/lib/auth';
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { getRepositories } from '@/lib/repositories';
@@ -11,18 +13,19 @@ export async function GET() {
   await new Promise((resolve) => setTimeout(resolve, 120));
   const repos = getRepositories();
   const projects = await repos.projects.list();
-  const activeUsers = (await repos.users.list())
-    .filter((user) => user.status === 'active')
-    .map((user) => {
-      const projectCount = getAssignedProjectCountForUser(user, projects);
+  const users = (await repos.users.list()).filter((user) => user.status === 'active');
+  const activeUsers = await Promise.all(
+    users.map(async (user) => {
+      const projectCount = await getAssignedProjectCountForUser(user, projects);
 
       return {
         ...user,
         projectCount,
         canLogin: !requiresProjectDuty(user.role) || projectCount > 0,
       };
-    })
-    .sort((left, right) => left.name.localeCompare(right.name, 'th'));
+    }),
+  );
+  activeUsers.sort((left, right) => left.name.localeCompare(right.name, 'th'));
 
   return Response.json({ status: 'success', data: activeUsers });
 }

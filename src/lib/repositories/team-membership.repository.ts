@@ -1,10 +1,15 @@
-import {
-  addProjectMembership,
-  getProjectMembershipStore,
-  hasProjectMembership,
-  removeProjectMembership,
-  type ProjectMembership,
-} from '@/lib/project-membership-store';
+export type ProjectAssignmentRole =
+  | 'manager'
+  | 'engineer'
+  | 'coordinator'
+  | 'team_member'
+  | 'consultant';
+
+export interface ProjectMembership {
+  projectId: string;
+  userId: string;
+  assignmentRole: ProjectAssignmentRole;
+}
 
 /**
  * Team memberships are looked up by the composite `(projectId, userId)`
@@ -19,40 +24,4 @@ export interface TeamMembershipRepository {
   find(projectId: string, userId: string): Promise<ProjectMembership | null>;
   add(membership: ProjectMembership): Promise<boolean>;
   remove(projectId: string, userId: string): Promise<boolean>;
-}
-
-export class InMemoryTeamMembershipRepository implements TeamMembershipRepository {
-  async list(): Promise<ProjectMembership[]> {
-    return getProjectMembershipStore();
-  }
-
-  async listByProject(projectId: string): Promise<ProjectMembership[]> {
-    return getProjectMembershipStore().filter(
-      (membership) => membership.projectId === projectId,
-    );
-  }
-
-  async has(projectId: string, userId: string): Promise<boolean> {
-    return hasProjectMembership(projectId, userId);
-  }
-
-  async find(
-    projectId: string,
-    userId: string,
-  ): Promise<ProjectMembership | null> {
-    return (
-      getProjectMembershipStore().find(
-        (membership) =>
-          membership.projectId === projectId && membership.userId === userId,
-      ) ?? null
-    );
-  }
-
-  async add(membership: ProjectMembership): Promise<boolean> {
-    return addProjectMembership(membership);
-  }
-
-  async remove(projectId: string, userId: string): Promise<boolean> {
-    return removeProjectMembership(projectId, userId);
-  }
 }

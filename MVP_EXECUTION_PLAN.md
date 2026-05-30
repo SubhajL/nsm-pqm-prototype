@@ -233,26 +233,24 @@ The sequencing optimizes for six safety rules:
 - **Risk:** medium (write-amplification cost; race conditions)
 - **Size:** M (1-2d)
 
-#### PR-21 — feat(infra): cut reads to DB; retire stores + blob persistence ✅ (partial)
+#### PR-21 — feat(infra): cut reads to DB; retire stores + blob persistence ✅
 - **Scope:** Flip `PERSISTENCE_BACKEND=db`. Blob retained as cold archive for one release. After soak: delete 18 `*-store.ts` files, delete `project-demo-state.ts`, update CLAUDE.md. The store-factory consolidation comes for free here (no factory ever needed to be built).
 - **Blocked by:** PR-20 (clean soak)
 - **Test plan:** full E2E suite on DB-only backend
 - **Risk:** **HIGH** — biggest single PR; mitigated by flag-based rollback (flip back to `dual`)
 - **Rollback:** flip env var; data parity preserved by dual-write window
 - **Size:** L (2-3d)
-- **Status (2026-05-30):** **Landed in part.** Blob-snapshot retirement
-  (`project-demo-state.ts` deleted; `ensureProjectDemoStateHydrated()` /
-  `persistProjectDemoState()` calls stripped from every API route + audit
-  helpers; `ensureDatabaseReady()` introduced) is complete. Redundant
-  test runners (`inmemory.test.ts`, `dual-write-contract.test.ts`)
-  removed. Parity helper + script re-pointed at DB ↔ DB for future
-  blue/green migrations.
-  **The default backend flip is deferred** to a follow-up PR. Many API
-  routes still rely on the InMemory mutate-in-place pattern (`project.x
-  = next` after `findById()`), which is a no-op against the Database
-  backend. That refactor is the prerequisite for the default flip and
-  for the 18-store deletion. See `src/lib/repositories/DUAL_WRITE.md`
-  "Post-cutover work".
+- **Status (2026-05-30):** **Complete.** Landed in two PRs:
+  - **PR-21 (#28):** blob-snapshot retirement
+    (`project-demo-state.ts` deleted; `ensureProjectDemoStateHydrated()`
+    / `persistProjectDemoState()` calls stripped; `ensureDatabaseReady()`
+    introduced). Redundant test runners removed. Parity helper +
+    script re-pointed at DB ↔ DB for future blue/green migrations.
+  - **PR-21b:** in-place-mutation refactor (12+ routes converted to
+    explicit `.update()`), default flip to `db`, deletion of 18
+    `*-store.ts` files + dual-write infrastructure, async auth helpers,
+    `ensureDatabaseSeeded()` bootstrap with fixture seed. `'dual'`
+    accepted as no-op alias for back-compat.
 
 ---
 

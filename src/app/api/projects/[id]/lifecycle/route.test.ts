@@ -187,7 +187,12 @@ describe('PATCH /api/projects/[id]/lifecycle — 200 success path', () => {
     // One audit event was recorded.
     const auditAfter = await repos.auditEvents.list();
     expect(auditAfter.length).toBe(beforeAuditCount + 1);
-    const evt = auditAfter.at(-1);
+    const evt = auditAfter.find(
+      (event) =>
+        event.resourceType === 'project' &&
+        event.resourceId === PROJ_ID &&
+        event.action === 'advance_lifecycle_stage',
+    );
     expect(evt?.action).toBe('advance_lifecycle_stage');
     expect(evt?.resourceType).toBe('project');
     expect(evt?.resourceId).toBe(PROJ_ID);

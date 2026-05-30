@@ -90,9 +90,12 @@ describe('POST /api/users (PR-07 / post-PR-21)', () => {
     expect(await repos.users.findById(body.data.id)).not.toBeNull();
 
     // Audit event was emitted as a structured AuditEvent (PR-05).
+    // PR-21b: the Database repo returns events sorted asc by timestamp;
+    // seed events may be dated in the future relative to test runs, so
+    // identify the newly-created event by resourceId rather than position.
     const auditAfter = await repos.auditEvents.list();
     expect(auditAfter.length).toBe(beforeAuditCount + 1);
-    const newEvent = auditAfter.at(-1);
+    const newEvent = auditAfter.find((event) => event.resourceId === body.data.id);
     expect(newEvent?.action).toBe('edit_user');
     expect(newEvent?.resourceType).toBe('user');
     expect(newEvent?.resourceId).toBe(body.data.id);

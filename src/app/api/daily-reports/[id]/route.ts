@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
@@ -8,6 +10,7 @@ import {
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { updateDailyReportStatusRequestSchema } from '@/types/daily-report.schema';
+import type { DailyReport } from '@/types/daily-report';
 import type { Notification } from '@/types/notification';
 
 export async function GET(
@@ -15,9 +18,7 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const store = await getRepositories().dailyReports.list();
-
-  const report = store.find((r) => r.id === params.id);
+  const report = await getRepositories().dailyReports.findById(params.id);
 
   if (!report) {
     return Response.json(
@@ -29,7 +30,7 @@ export async function GET(
     );
   }
 
-  const forbidden = requireProjectAccess(report.projectId);
+  const forbidden = await requireProjectAccess(report.projectId);
   if (forbidden) return forbidden;
 
   return Response.json({ status: 'success', data: report });
@@ -40,7 +41,7 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const store = await getRepositories().dailyReports.list();
+  const repos = getRepositories();
 
   const rawText = await request.text();
   let rawBody: unknown = {};
@@ -56,7 +57,7 @@ export async function PATCH(
   const body = parsed.data;
   const nextStatus = body.status;
 
-  const report = store.find((entry) => entry.id === params.id);
+  const report = await repos.dailyReports.findById(params.id);
 
   if (!report) {
     return Response.json(
@@ -68,10 +69,10 @@ export async function PATCH(
     );
   }
 
-  const forbidden = requireProjectAccess(report.projectId);
+  const forbidden = await requireProjectAccess(report.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
   if (!currentUser) {
     return Response.json(
       {
@@ -85,12 +86,10 @@ export async function PATCH(
   // Action depends on which transition is being attempted:
   //   - submit/resubmit  → 'submit_daily_report' (Engineer, Team Member, etc.)
   //   - approve/reject   → 'approve_daily_report' (PM, Coordinator, Sys Admin)
-  // We gate first on the action's matrix capability, then validate the
-  // transition (the latter encodes additional state-machine rules).
   const requiredAction =
     nextStatus === 'submitted' ? 'submit_daily_report' : 'approve_daily_report';
 
-  if (!canPerformProjectAction(currentUser, report.projectId, requiredAction)) {
+  if (!(await canPerformProjectAction(currentUser, report.projectId, requiredAction))) {
     return forbiddenResponse(requiredAction);
   }
 
@@ -113,33 +112,38 @@ export async function PATCH(
     );
   }
 
-  report.status = nextStatus;
+  const patch: Partial<DailyReport> = { status: nextStatus };
 
-  // Update reporter signature when submitting
   if (nextStatus === 'submitted' && report.signatures) {
-    report.signatures.reporter = {
-      ...report.signatures.reporter,
-      signed: true,
-      timestamp: new Date().toISOString(),
-    };
-    // Reset inspector signature on (re)submit
-    report.signatures.inspector = {
-      name: '',
-      signed: false,
-      timestamp: null,
+    patch.signatures = {
+      reporter: {
+        ...report.signatures.reporter,
+        signed: true,
+        timestamp: new Date().toISOString(),
+      },
+      inspector: {
+        name: '',
+        signed: false,
+        timestamp: null,
+      },
     };
   }
 
-  // Update inspector signature when PM approves
   if (nextStatus === 'approved' && report.signatures) {
-    report.signatures.inspector = {
-      name: currentUser.name,
-      signed: true,
-      timestamp: new Date().toISOString(),
+    patch.signatures = {
+      ...(patch.signatures ?? report.signatures),
+      inspector: {
+        name: currentUser.name,
+        signed: true,
+        timestamp: new Date().toISOString(),
+      },
+      // Preserve reporter as-is.
+      reporter:
+        (patch.signatures?.reporter ?? report.signatures.reporter),
     };
   }
 
-  report.statusHistory = [
+  patch.statusHistory = [
     ...(report.statusHistory ?? []),
     {
       id: `dr-history-${Date.now()}`,
@@ -151,47 +155,49 @@ export async function PATCH(
     },
   ];
 
+  const updated = (await repos.dailyReports.update(report.id, patch)) ?? {
+    ...report,
+    ...patch,
+  };
+
   // --- Auto-generate notification ---
-  const reporterName = report.signatures?.reporter?.name ?? 'วิศวกร';
-  const reportLabel = `รายงานประจำวัน #${report.reportNumber}`;
-  const actionUrl = `/projects/${report.projectId}/daily-report`;
+  const reporterName = updated.signatures?.reporter?.name ?? 'วิศวกร';
+  const reportLabel = `รายงานประจำวัน #${updated.reportNumber}`;
+  const actionUrl = `/projects/${updated.projectId}/daily-report`;
 
   let notification: Notification | null = null;
 
   if (nextStatus === 'submitted') {
-    // Engineer submitted/resubmitted → notify PM
     notification = {
       id: `notif-dr-${Date.now()}`,
       type: 'approval',
       title: `${reportLabel} ส่งมาเพื่อขออนุมัติ`,
-      message: `${reporterName} ส่ง${reportLabel} (${report.date}) เพื่อขออนุมัติ`,
-      projectId: report.projectId,
+      message: `${reporterName} ส่ง${reportLabel} (${updated.date}) เพื่อขออนุมัติ`,
+      projectId: updated.projectId,
       isRead: false,
       timestamp: new Date().toISOString(),
       actionUrl,
       severity: 'info',
     };
   } else if (nextStatus === 'approved') {
-    // PM approved → notify reporter
     notification = {
       id: `notif-dr-${Date.now()}`,
       type: 'approval',
       title: `${reportLabel} ได้รับการอนุมัติ`,
-      message: `${currentUser.name} อนุมัติ${reportLabel} (${report.date}) เรียบร้อยแล้ว`,
-      projectId: report.projectId,
+      message: `${currentUser.name} อนุมัติ${reportLabel} (${updated.date}) เรียบร้อยแล้ว`,
+      projectId: updated.projectId,
       isRead: false,
       timestamp: new Date().toISOString(),
       actionUrl,
       severity: 'success',
     };
   } else if (nextStatus === 'rejected') {
-    // PM rejected → notify reporter
     notification = {
       id: `notif-dr-${Date.now()}`,
       type: 'approval',
       title: `${reportLabel} ถูกตีกลับ`,
-      message: `${currentUser.name} ตีกลับ${reportLabel} (${report.date}) — กรุณาแก้ไขและส่งใหม่`,
-      projectId: report.projectId,
+      message: `${currentUser.name} ตีกลับ${reportLabel} (${updated.date}) — กรุณาแก้ไขและส่งใหม่`,
+      projectId: updated.projectId,
       isRead: false,
       timestamp: new Date().toISOString(),
       actionUrl,
@@ -200,15 +206,15 @@ export async function PATCH(
   }
 
   if (notification) {
-    await getRepositories().notifications.push(notification);
+    await repos.notifications.push(notification);
   }
   await recordAuditEvent(request, {
     action: requiredAction,
     resourceType: 'daily_report',
-    resourceId: report.id,
-    projectId: report.projectId,
+    resourceId: updated.id,
+    projectId: updated.projectId,
     before: beforeReport,
-    after: report,
+    after: updated,
     decisionReason: `${beforeReport.status} → ${nextStatus}${
       body.note?.trim() ? `: ${body.note.trim()}` : ''
     }`,
@@ -216,5 +222,5 @@ export async function PATCH(
     actor: currentUser,
   });
 
-  return Response.json({ status: 'success', data: report });
+  return Response.json({ status: 'success', data: updated });
 }

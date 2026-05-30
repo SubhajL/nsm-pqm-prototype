@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { getRepositories } from '@/lib/repositories';
 import {
@@ -24,12 +26,12 @@ export async function GET(request: Request) {
   let filtered = [...store];
 
   if (projectId) {
-    const forbidden = requireProjectAccess(projectId);
+    const forbidden = await requireProjectAccess(projectId);
     if (forbidden) return forbidden;
 
     filtered = filtered.filter((cr) => cr.projectId === projectId);
   } else {
-    const visibleProjectIds = getVisibleProjectIdsForCurrentUser();
+    const visibleProjectIds = await getVisibleProjectIdsForCurrentUser();
     filtered = filtered.filter((cr) => visibleProjectIds.has(cr.projectId));
   }
 
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
   if (!currentUser) {
     return Response.json(
       { status: 'error', error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
@@ -51,10 +53,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const forbidden = requireProjectAccess(body.projectId);
+  const forbidden = await requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;
 
-  if (!canPerformProjectAction(currentUser, body.projectId, 'submit_change_request')) {
+  if (!(await canPerformProjectAction(currentUser, body.projectId, 'submit_change_request'))) {
     return forbiddenResponse('submit_change_request');
   }
 
@@ -105,7 +107,7 @@ export async function PATCH(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
   if (!currentUser) {
     return Response.json(
       { status: 'error', error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
@@ -122,11 +124,11 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const forbidden = requireProjectAccess(changeRequest.projectId);
+  const forbidden = await requireProjectAccess(changeRequest.projectId);
   if (forbidden) return forbidden;
 
   if (
-    !canPerformProjectAction(currentUser, changeRequest.projectId, 'approve_change_request')
+    !(await canPerformProjectAction(currentUser, changeRequest.projectId, 'approve_change_request'))
   ) {
     return forbiddenResponse('approve_change_request');
   }

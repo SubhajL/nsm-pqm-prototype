@@ -80,7 +80,7 @@ describe('POST /api/org-structure (PR-07 / post-PR-21)', () => {
 
     const auditAfter = await repos.auditEvents.list();
     expect(auditAfter.length).toBe(beforeAuditCount + 1);
-    const newEvent = auditAfter.at(-1);
+    const newEvent = auditAfter.find((event) => event.resourceId === body.data.id);
     expect(newEvent?.action).toBe('edit_org_structure');
     expect(newEvent?.resourceType).toBe('org_unit');
     expect(newEvent?.resourceId).toBe(body.data.id);

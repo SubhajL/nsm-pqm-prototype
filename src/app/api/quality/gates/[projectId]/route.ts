@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getRepositories } from '@/lib/repositories';
 import { requireProjectAccess } from '@/lib/project-api-access';
 
@@ -6,7 +8,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const filtered = await getRepositories().qualityGates.listByProject(params.projectId);

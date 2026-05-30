@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getRepositories } from '@/lib/repositories';
 import type { AuditEvent } from '@/types/audit';
 

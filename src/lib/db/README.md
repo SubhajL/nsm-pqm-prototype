@@ -7,13 +7,16 @@ This directory contains the Drizzle-ORM Postgres adapter introduced by PR-19:
   repository interfaces
 - `client.ts` — singleton DB client (real Postgres when `DATABASE_URL` is set;
   in-memory pglite otherwise) + `ensureDatabaseReady()` readiness probe
+- `bootstrap.ts` — idempotent migrations + fixture seed (`ensureDatabaseSeeded()`)
 - `migrate.ts` — SQL migration runner (consumes `drizzle/migrations/*.sql`)
 
-> **Status (post-PR-21):** the Database backend is fully functional behind
-> `PERSISTENCE_BACKEND=db` (and `dual`). The blob-snapshot infrastructure
-> (`project-demo-state.ts`) has been retired. **The default backend remains
-> `in_memory`** until the in-place-mutation refactor lands — see
-> `src/lib/repositories/DUAL_WRITE.md` "Post-cutover work" for details.
+> **Status (PR-21b — cutover complete):** Postgres is the canonical and only
+> persistence backend. The default value of `PERSISTENCE_BACKEND` is now
+> **`db`**. `'dual'` is retained as a no-op alias for `'db'` so existing
+> deployments with the env var set keep working. The InMemory repository
+> layer + per-domain `*-store.ts` modules + the dual-write wrapper have
+> all been retired. See `src/lib/repositories/DUAL_WRITE.md` for the
+> historical playbook.
 
 ## Hosting target (stakeholder decision)
 

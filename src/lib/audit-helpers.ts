@@ -74,7 +74,7 @@ export async function recordAuditEvent(
   request: Request,
   input: RecordAuditEventInput,
 ): Promise<AuditEvent> {
-  const actor = input.actor === undefined ? getCurrentApiUser() : input.actor;
+  const actor = input.actor === undefined ? await getCurrentApiUser() : input.actor;
   const requestId = getRequestId(request) ?? `evt-req-${crypto.randomUUID()}`;
 
   const event = await getRepositories().auditEvents.append({

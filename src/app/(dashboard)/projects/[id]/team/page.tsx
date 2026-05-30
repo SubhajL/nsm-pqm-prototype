@@ -28,8 +28,8 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons';
 import { canAccessAdmin, canAccessExecutive } from '@/lib/auth';
-import { getAssignmentRoleForUserRole } from '@/lib/project-access';
-import type { ProjectAssignmentRole } from '@/lib/project-membership-store';
+import { getAssignmentRoleForUserRole } from '@/lib/project-access-pure';
+import type { ProjectAssignmentRole } from '@/lib/repositories/team-membership.repository';
 import {
   useAddProjectTeamMember,
   useProjectTeam,

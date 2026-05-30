@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
@@ -19,7 +21,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const store = await getRepositories().issues.list();
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const { searchParams } = new URL(request.url);
@@ -39,17 +41,18 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const store = await getRepositories().issues.list();
+  const repos = getRepositories();
+  const store = await repos.issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createIssueRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_issue')) {
+  if (!(await canPerformProjectAction(await getCurrentApiUser(), params.projectId, 'edit_issue'))) {
     return forbiddenResponse('edit_issue');
   }
 
@@ -69,7 +72,7 @@ export async function POST(
     closedAt: null,
   };
 
-  await getRepositories().issues.create(newIssue);
+  await repos.issues.create(newIssue);
   await recordAuditEvent(request, {
     action: 'edit_issue',
     resourceType: 'issue',
@@ -89,47 +92,45 @@ export async function PATCH(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const store = await getRepositories().issues.list();
+  const repos = getRepositories();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateIssueStatusRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
   const { issueId, status: newStatus } = parsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_issue')) {
+  if (!(await canPerformProjectAction(await getCurrentApiUser(), params.projectId, 'edit_issue'))) {
     return forbiddenResponse('edit_issue');
   }
 
-  const index = store.findIndex(
-    (i) => i.id === issueId && i.projectId === params.projectId,
-  );
-
-  if (index === -1) {
+  const existing = await repos.issues.findById(issueId);
+  if (!existing || existing.projectId !== params.projectId) {
     return Response.json(
       { status: 'error', error: { code: 'NOT_FOUND', message: 'Issue not found' } },
       { status: 404 },
     );
   }
 
-  const beforeIssue = { ...store[index] };
-  store[index] = {
-    ...store[index],
+  const beforeIssue = { ...existing };
+  const updated = await repos.issues.update(issueId, {
     status: newStatus,
-    closedAt: newStatus === 'closed' ? new Date().toISOString().split('T')[0] : store[index].closedAt,
-  };
+    closedAt:
+      newStatus === 'closed' ? new Date().toISOString().split('T')[0] : existing.closedAt,
+  });
+  const after = updated ?? existing;
   await recordAuditEvent(request, {
     action: 'edit_issue',
     resourceType: 'issue',
-    resourceId: store[index].id,
+    resourceId: after.id,
     projectId: params.projectId,
     before: beforeIssue,
-    after: store[index],
+    after,
     decisionReason: `status ${beforeIssue.status} → ${newStatus}`,
     authorityBasis: 'AUTHZ_MATRIX:edit_issue',
   });
 
-  return Response.json({ status: 'success', data: store[index] });
+  return Response.json({ status: 'success', data: after });
 }

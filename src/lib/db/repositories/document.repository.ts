@@ -138,6 +138,27 @@ export class DatabaseDocumentRepository implements DocumentRepository {
     return rowToFile(row);
   }
 
+  async updateFileMetadata(
+    projectId: string,
+    fileId: string,
+    patch: Partial<DocumentFile>,
+  ): Promise<DocumentFile | null> {
+    const existingRows = await this.db
+      .select()
+      .from(documentFiles)
+      .where(and(eq(documentFiles.projectId, projectId), eq(documentFiles.id, fileId)))
+      .limit(1);
+    if (!existingRows[0]) return null;
+    const existing = rowToFile(existingRows[0]);
+    const merged: DocumentFile = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(documentFiles)
+      .set(fileToRow(projectId, merged))
+      .where(and(eq(documentFiles.projectId, projectId), eq(documentFiles.id, fileId)))
+      .returning();
+    return row ? rowToFile(row) : null;
+  }
+
   async deleteFile(projectId: string, fileId: string): Promise<DocumentFile | null> {
     const [row] = await this.db
       .delete(documentFiles)

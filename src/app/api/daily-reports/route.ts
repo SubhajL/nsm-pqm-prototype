@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
@@ -22,12 +24,12 @@ export async function GET(request: Request) {
   let filtered = [...store];
 
   if (projectId) {
-    const forbidden = requireProjectAccess(projectId);
+    const forbidden = await requireProjectAccess(projectId);
     if (forbidden) return forbidden;
 
     filtered = filtered.filter((r) => r.projectId === projectId);
   } else {
-    const visibleProjectIds = getVisibleProjectIdsForCurrentUser();
+    const visibleProjectIds = await getVisibleProjectIdsForCurrentUser();
     filtered = filtered.filter((report) => visibleProjectIds.has(report.projectId));
   }
 
@@ -73,10 +75,11 @@ export async function POST(request: Request) {
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const forbidden = requireProjectAccess(body.projectId);
+  const forbidden = await requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;
 
-  if (!canPerformProjectAction(getCurrentApiUser(), body.projectId, 'submit_daily_report')) {
+  const currentUser = await getCurrentApiUser();
+  if (!(await canPerformProjectAction(currentUser, body.projectId, 'submit_daily_report'))) {
     return forbiddenResponse('submit_daily_report');
   }
 
@@ -250,8 +253,8 @@ export async function POST(request: Request) {
       {
         id: `dr-history-${Date.now()}`,
         status: body.status ?? 'draft',
-        actorName: getCurrentApiUser()?.name ?? body.signatures?.reporter?.name ?? 'ระบบ',
-        actorRole: getCurrentApiUser()?.role ?? 'Unknown',
+        actorName: currentUser?.name ?? body.signatures?.reporter?.name ?? 'ระบบ',
+        actorRole: currentUser?.role ?? 'Unknown',
         timestamp: new Date().toISOString(),
         note: 'สร้างรายงานประจำวัน',
       },

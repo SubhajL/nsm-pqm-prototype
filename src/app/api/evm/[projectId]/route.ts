@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
@@ -27,7 +29,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const data = await getRepositories().evm.listByProject(params.projectId);
@@ -46,10 +48,10 @@ export async function POST(
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_evm')) {
+  if (!(await canPerformProjectAction(await getCurrentApiUser(), params.projectId, 'edit_evm'))) {
     return forbiddenResponse('edit_evm');
   }
 
@@ -148,10 +150,10 @@ export async function DELETE(
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  if (!canPerformProjectAction(getCurrentApiUser(), params.projectId, 'edit_evm')) {
+  if (!(await canPerformProjectAction(await getCurrentApiUser(), params.projectId, 'edit_evm'))) {
     return forbiddenResponse('edit_evm');
   }
 
