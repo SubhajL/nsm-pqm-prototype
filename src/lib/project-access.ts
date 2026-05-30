@@ -1,170 +1,67 @@
+/**
+ * Auth / visibility helpers. PR-21b made the DB-touching ones async
+ * because the data source (project + user + membership repositories) is
+ * async. Pure helpers (menu access, role mapping) live in
+ * `project-access-pure.ts` so client components can import them without
+ * pulling the Postgres client into the browser bundle.
+ */
 import { canAccessAdmin, canAccessExecutive } from '@/lib/auth';
-import { getProjectMembershipStore, type ProjectAssignmentRole } from '@/lib/project-membership-store';
-import { getProjectStore } from '@/lib/project-store';
-import type { User, UserRole } from '@/types/admin';
+import { getRepositories } from '@/lib/repositories';
+import type { User } from '@/types/admin';
 import type { Notification } from '@/types/notification';
 import type { Project } from '@/types/project';
-import { getUserStore } from '@/lib/user-store';
 
-export type AppMenuKey =
-  | 'dashboard'
-  | 'projects'
-  | 'team'
-  | 'wbs'
-  | 'gantt'
-  | 'daily-report'
-  | 's-curve'
-  | 'quality'
-  | 'risk'
-  | 'issues'
-  | 'documents'
-  | 'reports'
-  | 'admin';
+export type { ProjectAssignmentRole } from '@/lib/repositories/team-membership.repository';
 
-const MENU_LABELS: Record<AppMenuKey, string> = {
-  dashboard: 'แดชบอร์ด',
-  projects: 'โครงการ',
-  team: 'ทีมโครงการ',
-  wbs: 'WBS/BOQ',
-  gantt: 'แผนงาน',
-  'daily-report': 'รายงานประจำวัน',
-  's-curve': 'งบประมาณ (EVM)',
-  quality: 'คุณภาพ',
-  risk: 'ความเสี่ยง',
-  issues: 'ปัญหา',
-  documents: 'เอกสาร',
-  reports: 'รายงาน',
-  admin: 'ผู้ดูแลระบบ',
-};
+// Re-export pure helpers so existing imports of `project-access` keep
+// working server-side.
+export {
+  type AppMenuKey,
+  canAccessMenuItem,
+  getAssignmentRoleForUserRole,
+  getRoleMenuLabels,
+  isProjectScopedMenuItem,
+} from './project-access-pure';
 
-const PROJECT_SCOPED_MENU_KEYS: AppMenuKey[] = [
-  'team',
-  'wbs',
-  'gantt',
-  'daily-report',
-  's-curve',
-  'quality',
-  'risk',
-  'issues',
-  'documents',
-];
+export async function getActiveUser(userId: string | null | undefined): Promise<User | null> {
+  if (!userId) return null;
 
-const ROLE_MENU_ACCESS: Record<UserRole, AppMenuKey[]> = {
-  'System Admin': [
-    'dashboard',
-    'projects',
-    'team',
-    'wbs',
-    'gantt',
-    'daily-report',
-    's-curve',
-    'quality',
-    'risk',
-    'issues',
-    'documents',
-    'reports',
-    'admin',
-  ],
-  'Project Manager': [
-    'dashboard',
-    'projects',
-    'team',
-    'wbs',
-    'gantt',
-    'daily-report',
-    's-curve',
-    'quality',
-    'risk',
-    'issues',
-    'documents',
-  ],
-  Engineer: [
-    'dashboard',
-    'projects',
-    'team',
-    'wbs',
-    'gantt',
-    'daily-report',
-    'quality',
-    'risk',
-    'issues',
-    'documents',
-  ],
-  Coordinator: [
-    'dashboard',
-    'projects',
-    'team',
-    'daily-report',
-    'risk',
-    'issues',
-    'documents',
-  ],
-  'Team Member': ['dashboard', 'projects', 'team', 'daily-report', 'issues', 'documents'],
-  Executive: ['dashboard', 'projects', 'reports'],
-  Consultant: ['dashboard', 'projects', 'team', 'quality', 'documents'],
-};
-
-export function getActiveUser(userId: string | null | undefined) {
-  if (!userId) {
-    return null;
-  }
-
-  return getUserStore().find((user) => user.id === userId && user.status === 'active') ?? null;
+  const user = await getRepositories().users.findById(userId);
+  if (!user || user.status !== 'active') return null;
+  return user;
 }
 
-export function getAssignmentRoleForUserRole(role: UserRole): ProjectAssignmentRole {
-  if (role === 'Project Manager' || role === 'System Admin') {
-    return 'manager';
-  }
-
-  if (role === 'Engineer') {
-    return 'engineer';
-  }
-
-  if (role === 'Coordinator') {
-    return 'coordinator';
-  }
-
-  if (role === 'Consultant') {
-    return 'consultant';
-  }
-
-  return 'team_member';
-}
-
-export function getVisibleProjectsForUser(
+export async function getVisibleProjectsForUser(
   user: User | null,
-  projects: Project[] = getProjectStore(),
-) {
-  if (!user) {
-    return [];
-  }
+  projects?: Project[],
+): Promise<Project[]> {
+  if (!user) return [];
 
-  const assignedProjectIds = getAssignedProjectIdsForUser(user, projects);
+  const projectList = projects ?? (await getRepositories().projects.list());
+  const assignedProjectIds = await getAssignedProjectIdsForUser(user, projectList);
 
   if (canAccessAdmin(user.role) || canAccessExecutive(user.role)) {
-    return [...projects];
+    return [...projectList];
   }
 
-  return projects.filter((project) => assignedProjectIds.has(project.id));
+  return projectList.filter((project) => assignedProjectIds.has(project.id));
 }
 
-export function getAssignedProjectCountForUser(
+export async function getAssignedProjectCountForUser(
   user: User | null,
-  projects: Project[] = getProjectStore(),
-) {
-  if (!user) {
-    return 0;
-  }
+  projects?: Project[],
+): Promise<number> {
+  if (!user) return 0;
 
-  return getAssignedProjectIdsForUser(user, projects).size;
+  const projectList = projects ?? (await getRepositories().projects.list());
+  return (await getAssignedProjectIdsForUser(user, projectList)).size;
 }
 
-function getAssignedProjectIdsForUser(
+async function getAssignedProjectIdsForUser(
   user: User,
   projects: Project[],
-) {
-  const memberships = getProjectMembershipStore();
+): Promise<Set<string>> {
+  const memberships = await getRepositories().teamMemberships.list();
   const assignedProjectIds = new Set(
     memberships
       .filter((membership) => membership.userId === user.id)
@@ -180,54 +77,32 @@ function getAssignedProjectIdsForUser(
   return assignedProjectIds;
 }
 
-export function canUserAccessProject(
+export async function canUserAccessProject(
   user: User | null,
   projectId: string,
-  projects: Project[] = getProjectStore(),
-) {
-  return getVisibleProjectsForUser(user, projects).some((project) => project.id === projectId);
+  projects?: Project[],
+): Promise<boolean> {
+  const visible = await getVisibleProjectsForUser(user, projects);
+  return visible.some((project) => project.id === projectId);
 }
 
-export function filterNotificationsForUser(
+export async function filterNotificationsForUser(
   user: User | null,
   notifications: Notification[],
-  projects: Project[] = getProjectStore(),
-) {
-  if (!user) {
-    return [];
-  }
+  projects?: Project[],
+): Promise<Notification[]> {
+  if (!user) return [];
 
   if (canAccessAdmin(user.role) || canAccessExecutive(user.role)) {
     return [...notifications];
   }
 
-  const visibleProjectIds = new Set(
-    getVisibleProjectsForUser(user, projects).map((project) => project.id),
-  );
+  const visibleProjects = await getVisibleProjectsForUser(user, projects);
+  const visibleProjectIds = new Set(visibleProjects.map((project) => project.id));
 
   return notifications.filter(
     (notification) =>
       notification.projectId === null ||
       visibleProjectIds.has(notification.projectId),
   );
-}
-
-export function canAccessMenuItem(role: UserRole | null, menuKey: AppMenuKey) {
-  if (!role) {
-    return false;
-  }
-
-  return ROLE_MENU_ACCESS[role].includes(menuKey);
-}
-
-export function isProjectScopedMenuItem(menuKey: AppMenuKey) {
-  return PROJECT_SCOPED_MENU_KEYS.includes(menuKey);
-}
-
-export function getRoleMenuLabels(role: UserRole | null) {
-  if (!role) {
-    return [];
-  }
-
-  return ROLE_MENU_ACCESS[role].map((key) => MENU_LABELS[key]);
 }

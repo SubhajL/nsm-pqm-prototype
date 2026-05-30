@@ -1,5 +1,11 @@
+import type { RepositoryRegistry } from '@/lib/repositories';
 import type { Issue } from '@/types/risk';
-import type { InspectionRecord, InspectionsData, ITPItem, ITPStatus } from '@/types/quality';
+import type {
+  InspectionRecord,
+  InspectionsData,
+  ITPItem,
+  ITPStatus,
+} from '@/types/quality';
 
 function inspectionTimestamp(record: Pick<InspectionRecord, 'date' | 'time'>) {
   const time = record.time?.trim() || '00:00';
@@ -35,12 +41,34 @@ export function deriveItpStatusFromInspectionRecords(
   return latestRecord.overallResult === 'pass' ? 'passed' : 'conditional';
 }
 
+/**
+ * Backwards-compatible mutating helper (in-place). Used by unit tests
+ * that pass synthetic `InspectionsData`. Routes MUST use
+ * `applyItpStatusSync` against the repo instead.
+ */
 export function synchronizeItpStatuses(data: InspectionsData) {
   data.itpItems.forEach((item) => {
     item.status = deriveItpStatusFromInspectionRecords(item, data.inspectionRecords);
   });
 
   return data;
+}
+
+/**
+ * Repository-aware variant: derives the new status for each ITP item from
+ * the current inspection records and writes deltas back via
+ * `repos.qualityInspections.updateItpStatus()`.
+ */
+export async function applyItpStatusSync(
+  repos: Pick<RepositoryRegistry, 'qualityInspections'>,
+): Promise<void> {
+  const data = await repos.qualityInspections.getData();
+  for (const item of data.itpItems) {
+    const nextStatus = deriveItpStatusFromInspectionRecords(item, data.inspectionRecords);
+    if (nextStatus !== item.status) {
+      await repos.qualityInspections.updateItpStatus(item.id, nextStatus);
+    }
+  }
 }
 
 function getAutoNcrIssueTitle(inspection: InspectionRecord) {
@@ -97,10 +125,16 @@ function buildAutoNcrIssue(
   };
 }
 
-export function synchronizeAutoNcrIssues(
+/**
+ * Pure planner: given the current issues snapshot + inspection records,
+ * computes (creates, patches) for the auto-NCR sync.
+ */
+export function planAutoNcrIssueChanges(
   issues: Issue[],
   inspectionRecords: InspectionRecord[],
 ) {
+  const creates: Issue[] = [];
+  const patches: Array<{ id: string; patch: Partial<Issue> }> = [];
   let nextIssueNumber = issues.length + 1;
 
   inspectionRecords
@@ -111,19 +145,59 @@ export function synchronizeAutoNcrIssues(
       );
 
       if (existingIssue) {
-        existingIssue.tags = uniqueTags([...(existingIssue.tags ?? []), 'QC', 'NCR']);
-        existingIssue.sourceInspectionId = inspection.id;
-        existingIssue.sourceType = 'quality_auto_ncr';
+        patches.push({
+          id: existingIssue.id,
+          patch: {
+            tags: uniqueTags([...(existingIssue.tags ?? []), 'QC', 'NCR']),
+            sourceInspectionId: inspection.id,
+            sourceType: 'quality_auto_ncr',
+          },
+        });
         return;
       }
 
-      issues.push(buildAutoNcrIssue(inspection, nextIssueNumber));
+      creates.push(buildAutoNcrIssue(inspection, nextIssueNumber));
       nextIssueNumber += 1;
     });
 
+  return { creates, patches };
+}
+
+/**
+ * Backwards-compatible mutating helper for unit tests.
+ */
+export function synchronizeAutoNcrIssues(
+  issues: Issue[],
+  inspectionRecords: InspectionRecord[],
+) {
+  const { creates, patches } = planAutoNcrIssueChanges(issues, inspectionRecords);
+  for (const patch of patches) {
+    const issue = issues.find((entry) => entry.id === patch.id);
+    if (issue) Object.assign(issue, patch.patch);
+  }
+  for (const create of creates) {
+    issues.push(create);
+  }
   return issues;
 }
 
+export async function applyAutoNcrIssues(
+  repos: Pick<RepositoryRegistry, 'issues'>,
+  issuesSnapshot: Issue[],
+  inspectionRecords: InspectionRecord[],
+): Promise<void> {
+  const { creates, patches } = planAutoNcrIssueChanges(issuesSnapshot, inspectionRecords);
+  for (const patch of patches) {
+    await repos.issues.update(patch.id, patch.patch);
+  }
+  for (const create of creates) {
+    await repos.issues.create(create);
+  }
+}
+
+/**
+ * Backwards-compatible mutating helper for unit tests.
+ */
 export function removeAutoNcrIssuesForInspection(
   issues: Issue[],
   inspectionId: string,
@@ -135,4 +209,17 @@ export function removeAutoNcrIssuesForInspection(
   }
 
   return issues;
+}
+
+export async function applyRemoveAutoNcrIssuesForInspection(
+  repos: Pick<RepositoryRegistry, 'issues'>,
+  issuesSnapshot: Issue[],
+  inspectionId: string,
+): Promise<void> {
+  const toDelete = issuesSnapshot.filter(
+    (issue) => issue.sourceInspectionId === inspectionId,
+  );
+  for (const issue of toDelete) {
+    await repos.issues.delete(issue.id);
+  }
 }

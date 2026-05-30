@@ -28,7 +28,7 @@ import { useQualityGates } from '@/hooks/useQuality';
 import { formatThaiDateShort } from '@/lib/date-utils';
 import {
   deriveCurrentMilestoneNumber,
-} from '@/lib/project-milestone-derivations';
+} from '@/lib/project-milestone-derivations-pure';
 import {
   deriveAutoProjectStatus,
   deriveProjectScheduleHealth,

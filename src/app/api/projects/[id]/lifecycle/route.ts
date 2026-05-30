@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
@@ -26,11 +28,10 @@ import { advanceLifecycleStageRequestSchema } from '@/types/project.schema';
  * `canPerformProjectAction()` as usual.
  *
  * On success the route:
- *   1. Mutates Project.currentLifecycleStage to `targetStage`
- *   2. Appends an entry to Project.lifecycleStageHistory (actor + ts +
- *      cited artifactDocIds)
- *   3. Persists via the projects repository (Database canonical post-PR-21)
- *   4. Emits an `advance_lifecycle_stage` audit event with before/after snapshot
+ *   1. Builds the next lifecycle stage + history entry locally.
+ *   2. Persists via `repos.projects.update()` (Database canonical
+ *      post-PR-21b — explicit write, no in-place mutation).
+ *   3. Emits an `advance_lifecycle_stage` audit event with before/after snapshot.
  */
 export async function PATCH(
   request: Request,
@@ -40,9 +41,9 @@ export async function PATCH(
   const parsed = parseRequestBody(advanceLifecycleStageRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
 
-  if (!canPerformProjectAction(currentUser, params.id, 'advance_lifecycle_stage')) {
+  if (!(await canPerformProjectAction(currentUser, params.id, 'advance_lifecycle_stage'))) {
     return forbiddenResponse('advance_lifecycle_stage');
   }
 
@@ -90,13 +91,20 @@ export async function PATCH(
     lifecycleStageHistory: [...project.lifecycleStageHistory],
   };
 
-  project.currentLifecycleStage = parsed.data.targetStage;
-  project.lifecycleStageHistory.push({
-    stage: parsed.data.targetStage,
-    enteredAt: new Date().toISOString(),
-    enteredBy: currentUser?.id ?? null,
-    artifactDocIds: [...parsed.data.artifactDocIds],
+  const nextHistory = [
+    ...project.lifecycleStageHistory,
+    {
+      stage: parsed.data.targetStage,
+      enteredAt: new Date().toISOString(),
+      enteredBy: currentUser?.id ?? null,
+      artifactDocIds: [...parsed.data.artifactDocIds],
+    },
+  ];
+  const updated = await repos.projects.update(params.id, {
+    currentLifecycleStage: parsed.data.targetStage,
+    lifecycleStageHistory: nextHistory,
   });
+
   await recordAuditEvent(request, {
     action: 'advance_lifecycle_stage',
     resourceType: 'project',
@@ -104,13 +112,13 @@ export async function PATCH(
     projectId: project.id,
     before: beforeSnapshot,
     after: {
-      currentLifecycleStage: project.currentLifecycleStage,
-      lifecycleStageHistory: project.lifecycleStageHistory,
+      currentLifecycleStage: updated?.currentLifecycleStage,
+      lifecycleStageHistory: updated?.lifecycleStageHistory,
     },
     decisionReason: `lifecycle stage → ${parsed.data.targetStage}`,
     authorityBasis: 'AUTHZ_MATRIX:advance_lifecycle_stage',
     actor: currentUser,
   });
 
-  return Response.json({ status: 'success', data: project });
+  return Response.json({ status: 'success', data: updated ?? project });
 }

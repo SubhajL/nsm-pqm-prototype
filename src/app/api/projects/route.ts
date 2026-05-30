@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { AUTHZ_MATRIX } from '@/lib/authz-matrix';
@@ -19,15 +21,15 @@ export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const repos = getRepositories();
   const store = await repos.projects.list();
-  const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search')?.toLowerCase();
   const status = searchParams.get('status');
   const type = searchParams.get('type');
 
-  let filtered = getVisibleProjectsForUser(currentUser, store);
-  filtered.forEach((project) => syncProjectExecutionState(project.id));
+  let filtered = await getVisibleProjectsForUser(currentUser, store);
+  await Promise.all(filtered.map((project) => syncProjectExecutionState(project.id)));
 
   if (search) {
     filtered = filtered.filter(
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
 
   const repos = getRepositories();
   const store = await repos.projects.list();
-  const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
   // create_project does not target an existing project, so we skip
   // canPerformProjectAction (which composes a per-project visibility check)
@@ -129,7 +131,7 @@ export async function POST(request: Request) {
     assignmentRole: getAssignmentRoleForUserRole(currentUser.role),
   });
 
-  bootstrapProjectData({
+  await bootstrapProjectData({
     project: newProject,
     milestones,
   });

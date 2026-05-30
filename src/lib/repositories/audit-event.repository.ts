@@ -1,7 +1,3 @@
-import {
-  appendAuditEvent,
-  getAuditEventStore,
-} from '@/lib/audit-log-store';
 import type { AuditEvent } from '@/types/audit';
 
 /**
@@ -16,18 +12,4 @@ export interface AuditEventRepository {
       Partial<Pick<AuditEvent, 'id' | 'timestamp'>>,
     options?: { id?: string; timestamp?: string },
   ): Promise<AuditEvent>;
-}
-
-export class InMemoryAuditEventRepository implements AuditEventRepository {
-  async list(): Promise<AuditEvent[]> {
-    return getAuditEventStore();
-  }
-
-  async append(
-    event: Omit<AuditEvent, 'id' | 'timestamp'> &
-      Partial<Pick<AuditEvent, 'id' | 'timestamp'>>,
-    options: { id?: string; timestamp?: string } = {},
-  ): Promise<AuditEvent> {
-    return appendAuditEvent(event, options);
-  }
 }

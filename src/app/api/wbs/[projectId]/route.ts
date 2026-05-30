@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
@@ -52,7 +54,7 @@ export async function GET(
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const store = await getRepositories().wbs.list();
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const filtered = store.filter((n) => n.projectId === params.projectId);
@@ -65,19 +67,20 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const store = await getRepositories().wbs.list();
+  const repos = getRepositories();
+  const store = await repos.wbs.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createWbsNodeRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
-  if (!canPerformProjectAction(currentUser, params.projectId, 'edit_wbs')) {
+  if (!(await canPerformProjectAction(currentUser, params.projectId, 'edit_wbs'))) {
     return forbiddenResponse('edit_wbs');
   }
 
@@ -112,7 +115,7 @@ export async function POST(
     hasBOQ: false,
   };
 
-  store.push(newNode);
+  await repos.wbs.create(newNode);
   await recordAuditEvent(request, {
     action: 'edit_wbs',
     resourceType: 'wbs',

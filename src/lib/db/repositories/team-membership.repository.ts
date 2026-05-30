@@ -6,7 +6,7 @@ import type { TeamMembershipRepository } from '@/lib/repositories/team-membershi
 import type {
   ProjectAssignmentRole,
   ProjectMembership,
-} from '@/lib/project-membership-store';
+} from '@/lib/repositories/team-membership.repository';
 
 export class DatabaseTeamMembershipRepository implements TeamMembershipRepository {
   constructor(private readonly db: Db) {}

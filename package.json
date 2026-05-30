@@ -17,8 +17,7 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate-db.ts",
-    "db:seed": "tsx scripts/backfill-db-from-fixtures.ts",
-    "db:parity-check": "tsx scripts/db-parity-check.ts"
+    "db:seed": "tsx scripts/backfill-db-from-fixtures.ts"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.2",

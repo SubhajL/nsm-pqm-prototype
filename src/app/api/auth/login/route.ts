@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import {
   AUTH_COOKIE_MAX_AGE,
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const assignedProjectCount = getAssignedProjectCountForUser(
+  const assignedProjectCount = await getAssignedProjectCountForUser(
     selectedUser,
     await repos.projects.list(),
   );

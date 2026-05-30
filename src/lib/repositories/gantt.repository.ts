@@ -1,8 +1,3 @@
-import {
-  getGanttDataForProject,
-  getGanttStore,
-  getNextGanttTaskId,
-} from '@/lib/gantt-store';
 import type { GanttData } from '@/types/gantt';
 
 /**
@@ -15,23 +10,14 @@ export interface GanttRepository {
   getProjectData(projectId: string): Promise<GanttData>;
   nextTaskId(projectId: string): Promise<number>;
   /**
-   * Returns the entire per-project store. Used by snapshot/restore code paths
-   * and by callers that need raw access (e.g. mutating tasks/links arrays
-   * in place during a transactional API write).
+   * Persist the entire per-project `GanttData` blob (tasks + links).
+   * Replaces whatever is currently stored. Used by API routes that mutate
+   * the tasks/links arrays in place and need to flush the result.
+   */
+  replaceProjectData(projectId: string, data: GanttData): Promise<GanttData>;
+  /**
+   * Returns the entire per-project store. Used by callers that need to
+   * iterate across projects (export, parity checks).
    */
   allByProject(): Promise<Record<string, GanttData>>;
-}
-
-export class InMemoryGanttRepository implements GanttRepository {
-  async getProjectData(projectId: string): Promise<GanttData> {
-    return getGanttDataForProject(projectId);
-  }
-
-  async nextTaskId(projectId: string): Promise<number> {
-    return getNextGanttTaskId(projectId);
-  }
-
-  async allByProject(): Promise<Record<string, GanttData>> {
-    return getGanttStore();
-  }
 }

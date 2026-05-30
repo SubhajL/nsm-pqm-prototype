@@ -161,24 +161,36 @@ export async function POST(request: Request) {
 }
 ```
 
-**Persistence backend** is selected by the `PERSISTENCE_BACKEND` env var:
+**Persistence backend** is Drizzle-backed Postgres (PR-21b cutover
+complete). Selected by `PERSISTENCE_BACKEND`:
 
-- `in_memory` (default) — in-memory stores in `src/lib/*-store.ts`,
-  seeded from `src/data/*.json` on first read. Data resets on server
-  restart. Used for the demo + local dev.
-- `db` — Drizzle-backed Postgres (Neon in production; pglite when
-  `DATABASE_URL` is unset, for dev + tests). Data is durable. Operators
-  must run `npm run db:migrate && npm run db:seed` once before serving
-  traffic on a fresh deployment.
-- `dual` — writes mirror to both backends (InMemory primary, Database
-  secondary); reads from primary. Used for soak windows + future
-  blue/green DB migrations.
+- `db` (default) — real Postgres via `DATABASE_URL`; falls back to an
+  in-memory pglite when the env var is unset (useful for dev + tests).
+  Data is durable; fresh deployments must run
+  `npm run db:migrate && npm run db:seed` once before serving traffic
+  (or just hit any API endpoint — `ensureDatabaseSeeded()` is invoked
+  lazily on first call).
+- `dual` — kept as a no-op alias for `db` (back-compat with existing
+  Vercel previews from the PR-20 soak). The dual-write wrapper was
+  retired in PR-21b.
+- `in_memory` — **no longer supported.** Passing it logs a warning and
+  falls back to `db`. The 18 `*-store.ts` modules were deleted along
+  with the InMemoryXxxRepository impls.
 
-The blob-snapshot infrastructure that previously bridged in-memory state
-across server restarts (`src/lib/project-demo-state.ts`) was retired in
-PR-21. See `src/lib/repositories/DUAL_WRITE.md` for the operator
-playbook, including the post-cutover refactor work required before the
-default can flip from `in_memory` to `db`.
+Auth helpers (`getActiveUser`, `requireProjectAccess`,
+`canPerformProjectAction`, `syncProjectExecutionState`,
+`bootstrapProjectData`) are async and hit the repository. Pure UI
+helpers (menu access, role mapping) live in
+`src/lib/project-access-pure.ts` and `src/lib/project-milestone-derivations-pure.ts`
+so client components don't pull the Postgres client into the browser
+bundle.
+
+`middleware.ts` is the only consumer left of a sync read source
+(`src/lib/user-store.ts` — an Edge-safe seed-from-JSON helper). All
+writes still go through the Database repository.
+
+See `src/lib/db/README.md` for the schema layout and
+`src/lib/repositories/DUAL_WRITE.md` for the historical migration log.
 
 ### Mock Data Reference
 

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import dayjs from 'dayjs';
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { getRepositories } from '@/lib/repositories';
@@ -157,35 +159,35 @@ function validatePredecessors(
   return null;
 }
 
-function replaceIncomingLinks(
+function withReplacedIncomingLinks(
   store: GanttData,
   targetId: number,
   predecessors: ParsedPredecessor[],
-) {
-  store.links = store.links.filter((link) => link.target !== targetId);
+): GanttData {
+  const filteredLinks = store.links.filter((link) => link.target !== targetId);
 
   if (predecessors.length === 0) {
-    return;
+    return { data: store.data, links: filteredLinks };
   }
 
   let nextId =
-    store.links.reduce((max, link) => Math.max(max, Number(link.id) || 0), 0) + 1;
+    filteredLinks.reduce((max, link) => Math.max(max, Number(link.id) || 0), 0) + 1;
 
-  predecessors.forEach((predecessor) => {
-    store.links.push({
-      id: nextId++,
-      source: predecessor.taskId,
-      target: targetId,
-      type: predecessor.linkType,
-      lagDays: predecessor.lagDays,
-    });
-  });
+  const newLinks = predecessors.map((predecessor) => ({
+    id: nextId++,
+    source: predecessor.taskId,
+    target: targetId,
+    type: predecessor.linkType,
+    lagDays: predecessor.lagDays,
+  }));
+
+  return { data: store.data, links: [...filteredLinks, ...newLinks] };
 }
 
-function ensureCanManageGantt(projectId: string) {
-  const currentUser = getCurrentApiUser();
+async function ensureCanManageGantt(projectId: string) {
+  const currentUser = await getCurrentApiUser();
 
-  if (!canPerformProjectAction(currentUser, projectId, 'edit_schedule')) {
+  if (!(await canPerformProjectAction(currentUser, projectId, 'edit_schedule'))) {
     return forbiddenResponse('edit_schedule');
   }
 
@@ -214,7 +216,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const repos = getRepositories();
@@ -233,10 +235,10 @@ export async function POST(
   if (!schemaParsed.success) return schemaParsed.response;
   const body: GanttRequestBody = schemaParsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const cannotManage = ensureCanManageGantt(params.projectId);
+  const cannotManage = await ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
 
   const parsed = validateTaskInput(body);
@@ -270,9 +272,11 @@ export async function POST(
     baseline_end_date: parsed.value.end_date,
   };
 
-  store.data.push(newTask);
-  replaceIncomingLinks(store, newTask.id, parsed.value.predecessors);
-  syncProjectExecutionState(params.projectId, { updatedTask: newTask });
+  const withTask: GanttData = { data: [...store.data, newTask], links: store.links };
+  const finalData = withReplacedIncomingLinks(withTask, newTask.id, parsed.value.predecessors);
+  await repos.gantt.replaceProjectData(params.projectId, finalData);
+
+  await syncProjectExecutionState(params.projectId, { updatedTask: newTask });
   await recordAuditEvent(request, {
     action: 'edit_schedule',
     resourceType: 'gantt_task',
@@ -297,10 +301,10 @@ export async function PATCH(
   if (!schemaParsed.success) return schemaParsed.response;
   const body: GanttRequestBody = schemaParsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const cannotManage = ensureCanManageGantt(params.projectId);
+  const cannotManage = await ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
 
   const parsed = validateTaskInput(body);
@@ -337,7 +341,8 @@ export async function PATCH(
   if (predecessorError) return predecessorError;
 
   const beforeTask = { ...task };
-  Object.assign(task, {
+  const updatedTask: GanttTask = {
+    ...task,
     text: parsed.value.text,
     owner: parsed.value.owner,
     start_date: parsed.value.start_date,
@@ -346,21 +351,27 @@ export async function PATCH(
     progress: parsed.value.progress,
     parent: parsed.value.parent,
     type: parsed.value.type,
-  });
-  replaceIncomingLinks(store, task.id, parsed.value.predecessors);
-  syncProjectExecutionState(params.projectId, { updatedTask: task });
+  };
+  const withTask: GanttData = {
+    data: store.data.map((entry) => (entry.id === task.id ? updatedTask : entry)),
+    links: store.links,
+  };
+  const finalData = withReplacedIncomingLinks(withTask, task.id, parsed.value.predecessors);
+  await repos.gantt.replaceProjectData(params.projectId, finalData);
+
+  await syncProjectExecutionState(params.projectId, { updatedTask });
   await recordAuditEvent(request, {
     action: 'edit_schedule',
     resourceType: 'gantt_task',
     resourceId: String(task.id),
     projectId: params.projectId,
     before: beforeTask,
-    after: task,
+    after: updatedTask,
     decisionReason: 'update',
     authorityBasis: 'AUTHZ_MATRIX:edit_schedule',
   });
 
-  return Response.json({ status: 'success', data: task });
+  return Response.json({ status: 'success', data: updatedTask });
 }
 
 export async function DELETE(
@@ -373,10 +384,10 @@ export async function DELETE(
   if (!schemaParsed.success) return schemaParsed.response;
   const body = schemaParsed.data;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const cannotManage = ensureCanManageGantt(params.projectId);
+  const cannotManage = await ensureCanManageGantt(params.projectId);
   if (cannotManage) return cannotManage;
 
   const repos = getRepositories();
@@ -395,11 +406,15 @@ export async function DELETE(
 
   const deletedTask = { ...task };
   const idsToDelete = collectDescendantIds(store.data, task.id);
-  store.data = store.data.filter((entry) => !idsToDelete.has(entry.id));
-  store.links = store.links.filter(
-    (link) => !idsToDelete.has(link.source) && !idsToDelete.has(link.target),
-  );
-  syncProjectExecutionState(params.projectId, { deletedTask });
+  const finalData: GanttData = {
+    data: store.data.filter((entry) => !idsToDelete.has(entry.id)),
+    links: store.links.filter(
+      (link) => !idsToDelete.has(link.source) && !idsToDelete.has(link.target),
+    ),
+  };
+  await repos.gantt.replaceProjectData(params.projectId, finalData);
+
+  await syncProjectExecutionState(params.projectId, { deletedTask });
   await recordAuditEvent(request, {
     action: 'edit_schedule',
     resourceType: 'gantt_task',

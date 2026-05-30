@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { getRepositories } from '@/lib/repositories';

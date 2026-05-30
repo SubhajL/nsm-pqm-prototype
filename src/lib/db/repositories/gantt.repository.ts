@@ -7,29 +7,18 @@ import type { GanttData, GanttLink, GanttTask } from '@/types/gantt';
 
 /**
  * GanttData is stored as a single row per project (tasks + links as jsonb
- * arrays). The contract `nextTaskId` test inspects the returned `data` and
- * pushes into the array, then expects a subsequent `nextTaskId` to see the
- * change — to keep parity with InMemory behaviour we cache the most
- * recently returned blob per project and consult that on `nextTaskId`.
+ * arrays). PR-21b: added `replaceProjectData` for routes that mutate the
+ * arrays in place and need to flush the full blob back.
  */
 export class DatabaseGanttRepository implements GanttRepository {
-  private readonly liveBlobs = new Map<string, GanttData>();
-
   constructor(private readonly db: Db) {}
 
   async getProjectData(projectId: string): Promise<GanttData> {
-    const cached = this.liveBlobs.get(projectId);
-    if (cached) return cached;
-
     const rows = await this.db
       .select()
       .from(ganttProjects)
       .where(eq(ganttProjects.projectId, projectId))
       .limit(1);
-
-    const data: GanttData = rows[0]
-      ? { data: rows[0].tasks ?? [], links: rows[0].links ?? [] }
-      : { data: [], links: [] };
 
     if (!rows[0]) {
       // Match InMemory: lazily create the per-project blob on first read.
@@ -37,10 +26,13 @@ export class DatabaseGanttRepository implements GanttRepository {
         .insert(ganttProjects)
         .values({ projectId, tasks: [], links: [] })
         .onConflictDoNothing();
+      return { data: [], links: [] };
     }
 
-    this.liveBlobs.set(projectId, data);
-    return data;
+    return {
+      data: rows[0].tasks ?? [],
+      links: rows[0].links ?? [],
+    };
   }
 
   async nextTaskId(projectId: string): Promise<number> {
@@ -56,12 +48,31 @@ export class DatabaseGanttRepository implements GanttRepository {
     return Math.max(maxTaskId, maxLinkId) + 1;
   }
 
+  async replaceProjectData(projectId: string, data: GanttData): Promise<GanttData> {
+    const existing = await this.db
+      .select()
+      .from(ganttProjects)
+      .where(eq(ganttProjects.projectId, projectId))
+      .limit(1);
+
+    if (!existing[0]) {
+      await this.db
+        .insert(ganttProjects)
+        .values({ projectId, tasks: data.data, links: data.links });
+    } else {
+      await this.db
+        .update(ganttProjects)
+        .set({ tasks: data.data, links: data.links })
+        .where(eq(ganttProjects.projectId, projectId));
+    }
+    return data;
+  }
+
   async allByProject(): Promise<Record<string, GanttData>> {
     const rows = await this.db.select().from(ganttProjects);
     const result: Record<string, GanttData> = {};
     for (const row of rows) {
-      const cached = this.liveBlobs.get(row.projectId);
-      result[row.projectId] = cached ?? { data: row.tasks ?? [], links: row.links ?? [] };
+      result[row.projectId] = { data: row.tasks ?? [], links: row.links ?? [] };
     }
     return result;
   }

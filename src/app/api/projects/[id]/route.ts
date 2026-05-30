@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { recordAuditEvent } from '@/lib/audit-helpers';
@@ -13,10 +15,11 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const store = await getRepositories().projects.list();
-  const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const repos = getRepositories();
+  const store = await repos.projects.list();
+  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
-  if (!canUserAccessProject(currentUser, params.id, store)) {
+  if (!(await canUserAccessProject(currentUser, params.id, store))) {
     return Response.json(
       {
         status: 'error',
@@ -26,7 +29,9 @@ export async function GET(
     );
   }
 
-  const project = store.find((p) => p.id === params.id);
+  await syncProjectExecutionState(params.id);
+  // Re-read after sync so the response reflects the synced values.
+  const project = (await repos.projects.list()).find((p) => p.id === params.id);
 
   if (!project) {
     return Response.json(
@@ -37,8 +42,6 @@ export async function GET(
       { status: 404 },
     );
   }
-
-  syncProjectExecutionState(params.id);
 
   return Response.json({ status: 'success', data: project });
 }
@@ -52,14 +55,14 @@ export async function PATCH(
   const parsed = parseRequestBody(updateProjectStatusRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
 
-  const store = await getRepositories().projects.list();
-  const currentUser = getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const repos = getRepositories();
+  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
 
-  if (!canPerformProjectAction(currentUser, params.id, 'edit_basic')) {
+  if (!(await canPerformProjectAction(currentUser, params.id, 'edit_basic'))) {
     return forbiddenResponse('edit_basic');
   }
 
-  const project = store.find((candidate) => candidate.id === params.id);
+  const project = await repos.projects.findById(params.id);
 
   if (!project) {
     return Response.json(
@@ -72,18 +75,20 @@ export async function PATCH(
   }
 
   const beforeSnapshot = { ...project };
-  project.status = parsed.data.status;
+  const updated = await repos.projects.update(params.id, {
+    status: parsed.data.status,
+  });
   await recordAuditEvent(request, {
     action: 'edit_basic',
     resourceType: 'project',
     resourceId: project.id,
     projectId: project.id,
     before: beforeSnapshot,
-    after: project,
+    after: updated ?? project,
     decisionReason: `status → ${parsed.data.status}`,
     authorityBasis: 'AUTHZ_MATRIX:edit_basic',
     actor: currentUser,
   });
 
-  return Response.json({ status: 'success', data: project });
+  return Response.json({ status: 'success', data: updated ?? project });
 }

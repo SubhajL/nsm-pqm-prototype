@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { getRepositories } from '@/lib/repositories';
 import { recordAuditEvent } from '@/lib/audit-helpers';
@@ -15,10 +17,13 @@ export async function GET(request: Request) {
 
   const repos = getRepositories();
   const projects = await repos.projects.list();
-  let filtered = [...(await repos.users.list())].map((user) => ({
-    ...user,
-    projectCount: getAssignedProjectCountForUser(user, projects),
-  }));
+  const users = await repos.users.list();
+  let filtered = await Promise.all(
+    users.map(async (user) => ({
+      ...user,
+      projectCount: await getAssignedProjectCountForUser(user, projects),
+    })),
+  );
 
   if (department) {
     filtered = filtered.filter((u) => u.departmentId === department);

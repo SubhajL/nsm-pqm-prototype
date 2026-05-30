@@ -1,30 +1,10 @@
-import { getGanttDataForProject } from '@/lib/gantt-store';
-import { getMilestoneStore } from '@/lib/milestone-store';
+import { getRepositories } from '@/lib/repositories';
 import type { GanttTask } from '@/types/gantt';
 import type { Milestone } from '@/types/project';
 
-function deriveMilestoneStatusFromTask(
-  milestoneTask: GanttTask,
-  allTasks: GanttTask[],
-): Milestone['status'] {
-  if (milestoneTask.progress >= 1) {
-    return 'completed';
-  }
+import { deriveMilestoneStatusFromTask } from './project-milestone-derivations-pure';
 
-  if (milestoneTask.type === 'project') {
-    return milestoneTask.progress > 0 ? 'in_progress' : 'pending';
-  }
-
-  const parentTask = allTasks.find((task) => task.id === milestoneTask.parent);
-  if ((parentTask?.progress ?? 0) >= 1) {
-    return 'review';
-  }
-  if ((parentTask?.progress ?? 0) > 0) {
-    return 'in_progress';
-  }
-
-  return 'pending';
-}
+export { deriveCurrentMilestoneNumber } from './project-milestone-derivations-pure';
 
 function findMilestoneTask(
   milestone: Milestone,
@@ -43,11 +23,13 @@ function findMilestoneTask(
   return topLevelPhase ?? null;
 }
 
-export function getDerivedMilestonesForProject(projectId: string): Milestone[] {
-  const baseMilestones = getMilestoneStore()
+export async function getDerivedMilestonesForProject(projectId: string): Promise<Milestone[]> {
+  const repos = getRepositories();
+  const allMilestones = await repos.milestones.list();
+  const baseMilestones = allMilestones
     .filter((milestone) => milestone.projectId === projectId)
     .sort((left, right) => left.number - right.number);
-  const ganttTasks = getGanttDataForProject(projectId).data;
+  const ganttTasks = (await repos.gantt.getProjectData(projectId)).data;
 
   return baseMilestones.map((milestone, index) => {
     const matchedTask = findMilestoneTask(milestone, ganttTasks, index);
@@ -62,27 +44,4 @@ export function getDerivedMilestonesForProject(projectId: string): Milestone[] {
       status: deriveMilestoneStatusFromTask(matchedTask, ganttTasks),
     };
   });
-}
-
-export function deriveCurrentMilestoneNumber(milestones: Milestone[]) {
-  if (milestones.length === 0) {
-    return 0;
-  }
-
-  const reviewMilestone = milestones.find((milestone) => milestone.status === 'review');
-  if (reviewMilestone) {
-    return reviewMilestone.number;
-  }
-
-  const inProgressMilestone = milestones.find((milestone) => milestone.status === 'in_progress');
-  if (inProgressMilestone) {
-    return inProgressMilestone.number;
-  }
-
-  const completedCount = milestones.filter((milestone) => milestone.status === 'completed').length;
-  if (completedCount === milestones.length) {
-    return milestones[milestones.length - 1]?.number ?? milestones.length;
-  }
-
-  return completedCount === 0 ? 0 : completedCount + 1;
 }

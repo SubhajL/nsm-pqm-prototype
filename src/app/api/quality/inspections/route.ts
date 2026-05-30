@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
@@ -7,9 +9,9 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import {
-  removeAutoNcrIssuesForInspection,
-  synchronizeAutoNcrIssues,
-  synchronizeItpStatuses,
+  applyAutoNcrIssues,
+  applyItpStatusSync,
+  applyRemoveAutoNcrIssuesForInspection,
 } from '@/lib/quality-consistency';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
@@ -30,7 +32,7 @@ export async function GET(request: Request) {
   let inspectionRecords = [...store.inspectionRecords];
 
   if (projectId) {
-    const forbidden = requireProjectAccess(projectId);
+    const forbidden = await requireProjectAccess(projectId);
     if (forbidden) return forbidden;
 
     itpItems = itpItems.filter((item) => item.projectId === projectId);
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
       (record) => record.projectId === projectId,
     );
   } else {
-    const visibleProjectIds = getVisibleProjectIdsForCurrentUser();
+    const visibleProjectIds = await getVisibleProjectIdsForCurrentUser();
     itpItems = itpItems.filter((item) => visibleProjectIds.has(item.projectId));
     inspectionRecords = inspectionRecords.filter((record) => visibleProjectIds.has(record.projectId));
   }
@@ -53,18 +55,21 @@ export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const repos = getRepositories();
   const store = await repos.qualityInspections.getData();
-  const issueStore = await repos.issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createInspectionRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const forbidden = requireProjectAccess(body.projectId);
+  const forbidden = await requireProjectAccess(body.projectId);
   if (forbidden) return forbidden;
 
   if (
-    !canPerformProjectAction(getCurrentApiUser(), body.projectId, 'edit_quality_inspection')
+    !(await canPerformProjectAction(
+      await getCurrentApiUser(),
+      body.projectId,
+      'edit_quality_inspection',
+    ))
   ) {
     return forbiddenResponse('edit_quality_inspection');
   }
@@ -128,9 +133,10 @@ export async function POST(request: Request) {
     workflowStatus: 'draft' as const,
   };
 
-  store.inspectionRecords.push(newRecord);
-  synchronizeItpStatuses(store);
-  synchronizeAutoNcrIssues(issueStore, [newRecord]);
+  await repos.qualityInspections.createInspection(newRecord);
+  await applyItpStatusSync(repos);
+  const issueStoreNow = await repos.issues.list();
+  await applyAutoNcrIssues(repos, issueStoreNow, [newRecord]);
   await recordAuditEvent(request, {
     action: 'edit_quality_inspection',
     resourceType: 'quality_inspection',
@@ -154,7 +160,6 @@ export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const repos = getRepositories();
   const store = await repos.qualityInspections.getData();
-  const issueStore = await repos.issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateInspectionRequestSchema, rawBody);
@@ -173,12 +178,12 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const forbidden = requireProjectAccess(record.projectId);
+  const forbidden = await requireProjectAccess(record.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
 
-  if (!canPerformProjectAction(currentUser, record.projectId, 'edit_quality_inspection')) {
+  if (!(await canPerformProjectAction(currentUser, record.projectId, 'edit_quality_inspection'))) {
     return forbiddenResponse('edit_quality_inspection');
   }
 
@@ -198,32 +203,47 @@ export async function PATCH(request: Request) {
       );
     }
 
-    item.result = 'pass';
-    item.note = `${item.note} → แก้ไขแล้ว โดย ${currentUser?.name ?? 'วิศวกร'}`;
+    const nextChecklist = record.checklist.map((entry) =>
+      entry.id === body.checklistItemId
+        ? {
+            ...entry,
+            result: 'pass' as const,
+            note: `${entry.note} → แก้ไขแล้ว โดย ${currentUser?.name ?? 'วิศวกร'}`,
+          }
+        : entry,
+    );
 
-    // Recalculate overall result if all items now pass
-    const allPass = record.checklist.every((c) => c.result === 'pass');
+    const allPass = nextChecklist.every((c) => c.result === 'pass');
+    const patch: Parameters<typeof repos.qualityInspections.updateInspection>[1] = {
+      checklist: nextChecklist,
+    };
     if (allPass) {
-      record.overallResult = 'pass';
-      record.failReason = '';
-      record.autoNCR = false;
-      removeAutoNcrIssuesForInspection(issueStore, record.id);
+      patch.overallResult = 'pass';
+      patch.failReason = '';
+      patch.autoNCR = false;
+    }
+    const updated =
+      (await repos.qualityInspections.updateInspection(record.id, patch)) ?? record;
+
+    if (allPass) {
+      const issueStoreNow = await repos.issues.list();
+      await applyRemoveAutoNcrIssuesForInspection(repos, issueStoreNow, record.id);
     }
 
-    synchronizeItpStatuses(store);
+    await applyItpStatusSync(repos);
     await recordAuditEvent(request, {
       action: 'edit_quality_inspection',
       resourceType: 'quality_inspection',
       resourceId: record.id,
       projectId: record.projectId,
       before: beforeRecord,
-      after: record,
+      after: updated,
       decisionReason: `resolve checklist ${body.checklistItemId} as pass`,
       authorityBasis: 'AUTHZ_MATRIX:edit_quality_inspection',
       actor: currentUser,
     });
 
-    return Response.json({ status: 'success', data: record });
+    return Response.json({ status: 'success', data: updated });
   }
 
   // --- Workflow status transition ---
@@ -270,36 +290,38 @@ export async function PATCH(request: Request) {
     );
   }
 
-  record.workflowStatus = body.workflowStatus;
+  const updated =
+    (await repos.qualityInspections.updateInspection(record.id, {
+      workflowStatus: body.workflowStatus,
+    })) ?? record;
   await recordAuditEvent(request, {
     action: 'edit_quality_inspection',
     resourceType: 'quality_inspection',
     resourceId: record.id,
     projectId: record.projectId,
     before: beforeRecord,
-    after: record,
+    after: updated,
     decisionReason: `workflow ${currentStatus} → ${body.workflowStatus}`,
     authorityBasis: 'AUTHZ_MATRIX:edit_quality_inspection',
     actor: currentUser,
   });
 
-  return Response.json({ status: 'success', data: record });
+  return Response.json({ status: 'success', data: updated });
 }
 
 export async function DELETE(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const repos = getRepositories();
   const store = await repos.qualityInspections.getData();
-  const issueStore = await repos.issues.list();
 
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(deleteInspectionRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
   const body = parsed.data;
 
-  const index = store.inspectionRecords.findIndex((record) => record.id === body.id);
+  const record = store.inspectionRecords.find((entry) => entry.id === body.id);
 
-  if (index === -1) {
+  if (!record) {
     return Response.json(
       {
         status: 'error',
@@ -309,21 +331,24 @@ export async function DELETE(request: Request) {
     );
   }
 
-  const record = store.inspectionRecords[index];
-  const forbidden = requireProjectAccess(record.projectId);
+  const forbidden = await requireProjectAccess(record.projectId);
   if (forbidden) return forbidden;
 
   if (
-    !canPerformProjectAction(getCurrentApiUser(), record.projectId, 'edit_quality_inspection')
+    !(await canPerformProjectAction(
+      await getCurrentApiUser(),
+      record.projectId,
+      'edit_quality_inspection',
+    ))
   ) {
     return forbiddenResponse('edit_quality_inspection');
   }
 
   const deletedRecord = structuredClone(record);
-  store.inspectionRecords.splice(index, 1);
-  removeAutoNcrIssuesForInspection(issueStore, record.id);
-
-  synchronizeItpStatuses(store);
+  await repos.qualityInspections.deleteInspection(record.id);
+  const issueStoreNow = await repos.issues.list();
+  await applyRemoveAutoNcrIssuesForInspection(repos, issueStoreNow, record.id);
+  await applyItpStatusSync(repos);
   await recordAuditEvent(request, {
     action: 'edit_quality_inspection',
     resourceType: 'quality_inspection',

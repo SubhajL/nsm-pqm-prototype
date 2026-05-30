@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button, Card, Radio, Space, Spin, Tag, Typography, message } from 'antd';
 import { LoginOutlined, UserOutlined } from '@ant-design/icons';
 import { apiPost } from '@/lib/api-client';
-import { getRoleMenuLabels } from '@/lib/project-access';
+import { getRoleMenuLabels } from '@/lib/project-access-pure';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { COLORS } from '@/theme/antd-theme';

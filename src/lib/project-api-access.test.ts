@@ -18,6 +18,10 @@ import type { User, UserRole } from '@/types/admin';
 //
 // We assert behavior against these stable IDs; the seed data is part of the
 // contract for the project-access library.
+//
+// PR-21b: helpers are async — they now hit the Database registry, which is
+// seeded from the same JSON fixtures so identity / role / visibility logic
+// is unchanged behaviourally.
 // ---------------------------------------------------------------------------
 
 function makeUser(overrides: Partial<User>): User {
@@ -60,63 +64,63 @@ const NON_MEMBER_ENGINEER: User = makeUser({
 });
 
 describe('canPerformProjectAction — denial paths', () => {
-  it('returns false for null user', () => {
-    expect(canPerformProjectAction(null, VISIBLE_PROJECT_ID, 'view')).toBe(false);
-    expect(canPerformProjectAction(null, VISIBLE_PROJECT_ID, 'edit_schedule')).toBe(false);
+  it('returns false for null user', async () => {
+    expect(await canPerformProjectAction(null, VISIBLE_PROJECT_ID, 'view')).toBe(false);
+    expect(await canPerformProjectAction(null, VISIBLE_PROJECT_ID, 'edit_schedule')).toBe(false);
   });
 
-  it('returns false when user is not a member of the project (visibility fails)', () => {
+  it('returns false when user is not a member of the project (visibility fails)', async () => {
     // user-002 is a manager of proj-001/proj-004 — NOT proj-005.
     // Even though the role has the action, visibility must succeed first.
     expect(
-      canPerformProjectAction(PROJECT_MANAGER, NOT_A_MEMBER_PROJECT_ID, 'edit_schedule'),
+      await canPerformProjectAction(PROJECT_MANAGER, NOT_A_MEMBER_PROJECT_ID, 'edit_schedule'),
     ).toBe(false);
   });
 
-  it('returns false for unknown user id (not in store)', () => {
-    expect(canPerformProjectAction(NON_MEMBER_ENGINEER, VISIBLE_PROJECT_ID, 'view')).toBe(false);
+  it('returns false for unknown user id (not in store)', async () => {
+    expect(await canPerformProjectAction(NON_MEMBER_ENGINEER, VISIBLE_PROJECT_ID, 'view')).toBe(false);
   });
 });
 
 describe('canPerformProjectAction — allow paths', () => {
-  it('allows a Project Manager to edit_schedule on their own project', () => {
-    expect(canPerformProjectAction(PROJECT_MANAGER, VISIBLE_PROJECT_ID, 'edit_schedule')).toBe(
+  it('allows a Project Manager to edit_schedule on their own project', async () => {
+    expect(await canPerformProjectAction(PROJECT_MANAGER, VISIBLE_PROJECT_ID, 'edit_schedule')).toBe(
       true,
     );
   });
 
-  it('allows an Engineer member to edit_wbs and submit_daily_report', () => {
-    expect(canPerformProjectAction(ENGINEER, VISIBLE_PROJECT_ID, 'edit_wbs')).toBe(true);
-    expect(canPerformProjectAction(ENGINEER, VISIBLE_PROJECT_ID, 'submit_daily_report')).toBe(true);
+  it('allows an Engineer member to edit_wbs and submit_daily_report', async () => {
+    expect(await canPerformProjectAction(ENGINEER, VISIBLE_PROJECT_ID, 'edit_wbs')).toBe(true);
+    expect(await canPerformProjectAction(ENGINEER, VISIBLE_PROJECT_ID, 'submit_daily_report')).toBe(true);
   });
 
-  it('allows an Executive to view every project (visibility bypass + matrix view)', () => {
-    expect(canPerformProjectAction(EXECUTIVE, VISIBLE_PROJECT_ID, 'view')).toBe(true);
-    expect(canPerformProjectAction(EXECUTIVE, NOT_A_MEMBER_PROJECT_ID, 'view')).toBe(true);
+  it('allows an Executive to view every project (visibility bypass + matrix view)', async () => {
+    expect(await canPerformProjectAction(EXECUTIVE, VISIBLE_PROJECT_ID, 'view')).toBe(true);
+    expect(await canPerformProjectAction(EXECUTIVE, NOT_A_MEMBER_PROJECT_ID, 'view')).toBe(true);
   });
 });
 
 describe('canPerformProjectAction — role × action denials inside visibility', () => {
-  it('denies Engineer approve_daily_report even on a project they belong to', () => {
-    expect(canPerformProjectAction(ENGINEER, VISIBLE_PROJECT_ID, 'approve_daily_report')).toBe(
+  it('denies Engineer approve_daily_report even on a project they belong to', async () => {
+    expect(await canPerformProjectAction(ENGINEER, VISIBLE_PROJECT_ID, 'approve_daily_report')).toBe(
       false,
     );
   });
 
-  it('denies Team Member edit_schedule on their own project', () => {
-    expect(canPerformProjectAction(TEAM_MEMBER, 'proj-005', 'edit_schedule')).toBe(false);
+  it('denies Team Member edit_schedule on their own project', async () => {
+    expect(await canPerformProjectAction(TEAM_MEMBER, 'proj-005', 'edit_schedule')).toBe(false);
   });
 
-  it('denies Executive any write action even with visibility', () => {
-    expect(canPerformProjectAction(EXECUTIVE, VISIBLE_PROJECT_ID, 'edit_basic')).toBe(false);
-    expect(canPerformProjectAction(EXECUTIVE, VISIBLE_PROJECT_ID, 'approve_change_request')).toBe(
+  it('denies Executive any write action even with visibility', async () => {
+    expect(await canPerformProjectAction(EXECUTIVE, VISIBLE_PROJECT_ID, 'edit_basic')).toBe(false);
+    expect(await canPerformProjectAction(EXECUTIVE, VISIBLE_PROJECT_ID, 'approve_change_request')).toBe(
       false,
     );
-    expect(canPerformProjectAction(EXECUTIVE, VISIBLE_PROJECT_ID, 'delete_project')).toBe(false);
+    expect(await canPerformProjectAction(EXECUTIVE, VISIBLE_PROJECT_ID, 'delete_project')).toBe(false);
   });
 
-  it('denies Project Manager delete_project everywhere (reserved for System Admin)', () => {
-    expect(canPerformProjectAction(PROJECT_MANAGER, VISIBLE_PROJECT_ID, 'delete_project')).toBe(
+  it('denies Project Manager delete_project everywhere (reserved for System Admin)', async () => {
+    expect(await canPerformProjectAction(PROJECT_MANAGER, VISIBLE_PROJECT_ID, 'delete_project')).toBe(
       false,
     );
   });

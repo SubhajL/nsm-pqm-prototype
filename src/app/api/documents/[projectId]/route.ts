@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import { getSignedDocumentUrl } from '@/lib/mock-upload-storage';
 import {
@@ -19,7 +21,7 @@ export async function GET(
   { params }: { params: { projectId: string } },
 ) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
   const data = await getRepositories().documents.getDataForProject(params.projectId);
@@ -35,12 +37,12 @@ export async function POST(
   const parsed = parseRequestBody(documentWriteRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
 
-  if (!canPerformProjectAction(currentUser, params.projectId, 'upload_document')) {
+  if (!(await canPerformProjectAction(currentUser, params.projectId, 'upload_document'))) {
     return forbiddenResponse('upload_document');
   }
 
@@ -160,15 +162,27 @@ export async function POST(
     versionLocked: false,
   };
 
-  const updatedFile = await repos.documents.uploadVersion(params.projectId, body.fileId, nextVersion);
-  if (updatedFile) {
-    updatedFile.sha256 = body.sha256 ?? updatedFile.sha256;
-    updatedFile.sizeBytes = body.sizeBytes ?? updatedFile.sizeBytes;
-    updatedFile.mimeType = body.mimeType ?? updatedFile.mimeType;
-    updatedFile.virusScanStatus = body.sha256 ? 'clean' : updatedFile.virusScanStatus;
-    updatedFile.virusScanCheckedAt = body.sha256
-      ? new Date().toISOString()
-      : updatedFile.virusScanCheckedAt ?? null;
+  const baseUpdatedFile = await repos.documents.uploadVersion(
+    params.projectId,
+    body.fileId,
+    nextVersion,
+  );
+  let updatedFile = baseUpdatedFile;
+  if (baseUpdatedFile) {
+    const overlay: Partial<DocumentFile> = {
+      sha256: body.sha256 ?? baseUpdatedFile.sha256,
+      sizeBytes: body.sizeBytes ?? baseUpdatedFile.sizeBytes,
+      mimeType: body.mimeType ?? baseUpdatedFile.mimeType,
+      virusScanStatus: body.sha256 ? 'clean' : baseUpdatedFile.virusScanStatus,
+      virusScanCheckedAt: body.sha256
+        ? new Date().toISOString()
+        : baseUpdatedFile.virusScanCheckedAt ?? null,
+    };
+    updatedFile = await repos.documents.updateFileMetadata(
+      params.projectId,
+      body.fileId,
+      overlay,
+    );
   }
   await recordAuditEvent(request, {
     action: 'upload_document',
@@ -198,12 +212,12 @@ export async function DELETE(
   const parsed = parseRequestBody(documentDeleteRequestSchema, rawBody);
   if (!parsed.success) return parsed.response;
 
-  const forbidden = requireProjectAccess(params.projectId);
+  const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = getCurrentApiUser();
+  const currentUser = await getCurrentApiUser();
 
-  if (!canPerformProjectAction(currentUser, params.projectId, 'upload_document')) {
+  if (!(await canPerformProjectAction(currentUser, params.projectId, 'upload_document'))) {
     return forbiddenResponse('upload_document');
   }
 

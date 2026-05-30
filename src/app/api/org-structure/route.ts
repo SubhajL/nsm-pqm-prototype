@@ -1,5 +1,7 @@
+export const dynamic = 'force-dynamic';
+
 import { recordAuditEvent } from '@/lib/audit-helpers';
-import type { RidOrgUnitTreeNode } from '@/lib/org-structure-store';
+import type { RidOrgUnitTreeNode } from '@/lib/repositories/org-structure.repository';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { OrgUnit, OrgUnitWithUserCount } from '@/types/admin';
