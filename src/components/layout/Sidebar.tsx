@@ -180,7 +180,13 @@ export const Sidebar = memo(function Sidebar() {
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <nav
+        // PR-A2 — primary navigation landmark. The Thai label is
+        // surfaced first because screen readers running in a Thai
+        // locale read it directly; the English suffix aids QA tooling.
+        aria-label="เมนูหลัก (Main navigation)"
+        style={{ flex: 1, overflowY: 'auto' }}
+      >
         <Menu
           theme="dark"
           mode="inline"
@@ -193,7 +199,7 @@ export const Sidebar = memo(function Sidebar() {
           }}
           style={{ background: 'transparent', borderRight: 0, marginTop: 8 }}
         />
-      </div>
+      </nav>
 
       {currentUser && (
         <div
@@ -234,6 +240,11 @@ export const Sidebar = memo(function Sidebar() {
         open={mobileSidebarOpen}
         onClose={closeMobileSidebar}
         closable={false}
+        // AntD 5.x Drawer doesn't surface a documented `aria-label`
+        // pass-through to the dialog wrapper, so we rely on the inner
+        // `<nav aria-label="…">` inside menuNode to identify the
+        // region to assistive tech instead.
+        rootClassName="pqm-mobile-nav-drawer"
         styles={{
           body: {
             padding: 0,

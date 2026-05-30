@@ -197,6 +197,71 @@ named tokens as `tk-xs` through `tk-6xl` alongside its numeric scale.
 
 ---
 
+## Accessibility (PR-A2)
+
+Targets **WCAG 2.2 AA** end-to-end. The app shell ships three primitives
+that every page inherits via `src/app/(dashboard)/layout.tsx`:
+
+| Primitive | Source | Purpose |
+|---|---|---|
+| `SkipLink` | `src/components/a11y/SkipLink.tsx` | Keyboard "bypass blocks" (SC 2.4.1). Off-screen until focused; jumps to `#main-content` and moves focus there. |
+| `<main id="main-content" tabIndex={-1}>` | dashboard layout | Landmark + programmatic focus target for the skip-link. |
+| `LiveRegion` × 2 (polite + assertive) | `src/components/a11y/LiveRegion.tsx` | ARIA live regions (SC 4.1.3). Registered with the announcer module so any code path can call `announce(...)` without React imports. |
+
+### Announcing async UI to screen readers
+
+Visual-only `message.success(...)` / `notification.error(...)` calls are
+invisible to assistive tech. Pair every user-facing toast with an
+explicit announcement:
+
+```tsx
+import { announce } from '@/components/a11y';
+import { message } from 'antd';
+
+message.success('บันทึกแล้ว');
+announce('บันทึกโครงการเรียบร้อยแล้ว'); // polite by default
+
+message.error('บันทึกไม่สำเร็จ');
+announce('เกิดข้อผิดพลาด: บันทึกโครงการไม่สำเร็จ', 'assertive');
+```
+
+Rules of thumb:
+- `polite` — successes, info, "draft saved". Don't interrupt the user.
+- `assertive` — errors that block the user's intent. Use sparingly.
+- Empty / whitespace-only messages are dropped (avoids re-announcing
+  stale text on some screen readers).
+
+### Focus trap + restore for modals
+
+Use AntD `<Modal>` and `<Drawer>` for any dialog UI — both implement
+focus-trap, ESC-to-close, and focus-restore-on-close. **Do not** hand-
+roll modals out of `<div>` + portal: they will skip these guarantees.
+
+When a custom focus target is needed (e.g. moving focus to a freshly
+inserted row), prefer `useEffect(() => ref.current?.focus(), [])` over
+imperative `document.getElementById` calls.
+
+### Landmark structure
+
+Every dashboard route already has the right landmarks via the shell:
+
+- `<Sidebar>` renders a `<nav aria-label="เมนูหลัก (Main navigation)">`
+- `<Header>`'s breadcrumb is wrapped in `<nav aria-label="เส้นทาง (Breadcrumb)">`
+- Content area is wrapped in `<main id="main-content">`
+
+Inside individual pages, prefer semantic regions (`<section>`,
+`<article>`) over `<div>` when the block carries a heading.
+
+### Authoring rules (PR-A2)
+
+- **New toast** → call `announce(...)` alongside `message`/`notification`.
+- **New modal** → use AntD `<Modal>` / `<Drawer>`; never a raw portal.
+- **New icon-only button** → must carry `aria-label` (Thai + English in
+  the `Thai (English)` format already used by the rest of the shell).
+- **New `<nav>` region** → must carry a bilingual `aria-label`.
+
+---
+
 ## Thai Buddhist Calendar
 
 All dates displayed to users use Buddhist Era (BE = CE + 543):
