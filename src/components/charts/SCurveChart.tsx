@@ -110,6 +110,14 @@ export function SCurveChart({
         },
         symbol: 'circle',
         symbolSize: 6,
+        // PR-C3: visualise schedule variance as a light area between PV
+        // and EV — the upper bound. Lower bound (EV) is set on the EV
+        // series via `stack` would clip data; we use a stackStrategy of
+        // `samesign` so each point's fill clamps at the lower curve.
+        areaStyle: {
+          opacity: 0.08,
+          color: CHART_COLORS.pv,
+        },
       },
       {
         name: 'EV — มูลค่าที่ได้ (Earned)',
@@ -134,11 +142,14 @@ export function SCurveChart({
         symbolSize: 6,
         markLine: {
           symbol: 'none',
+          // PR-C3: bilingual marker label — UX gap C3 flagged the
+          // marker as "unlabeled"; the prior copy was Thai-only.
           label: {
-            formatter: 'ข้อมูลงวดล่าสุด',
+            formatter: 'ข้อมูลงวดล่าสุด (Latest)',
             position: 'insideEndTop',
             color: CHART_COLORS.error,
             fontSize: 11,
+            fontWeight: 'bold',
           },
           lineStyle: {
             type: 'dashed',

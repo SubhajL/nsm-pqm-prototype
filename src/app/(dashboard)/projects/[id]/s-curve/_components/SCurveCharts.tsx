@@ -1,51 +1,30 @@
 'use client';
 
-import { Card, Col, Empty, Row, Space, Tag } from 'antd';
+import { Card, Col, Empty, Row } from 'antd';
 
 import { COLORS } from '@/theme/antd-theme';
-import {
-  formatSignedCompactBaht,
-  formatSignedPercent,
-  getPaidToDate,
-} from '@/lib/evm-metrics';
-import type {
-  DerivedEvmMetrics,
-  DerivedInternalEvmMetrics,
-  DerivedOutsourcedContractMetrics,
-} from '@/lib/evm-metrics';
+import { getPaidToDate } from '@/lib/evm-metrics';
 import type { EVMDataPoint } from '@/types/evm';
 
 import { CPISPITrendChart, SCurveChart } from './helpers';
-
-type ToneColor = 'success' | 'warning' | 'error' | 'processing';
-type Tone = { color: ToneColor; summaryTh: string; summaryEn: string };
 
 export function SCurveCharts({
   evmData,
   hasSnapshots,
   isOutsourced,
   bac,
-  metrics,
-  internalMetrics,
-  outsourcedMetrics,
-  svIsPositive,
-  cvIsPositive,
-  paymentGapTone,
 }: {
   evmData: EVMDataPoint[] | undefined;
   hasSnapshots: boolean;
   isOutsourced: boolean;
   bac: number;
-  metrics: DerivedEvmMetrics | null;
-  internalMetrics: DerivedInternalEvmMetrics | null;
-  outsourcedMetrics: DerivedOutsourcedContractMetrics | null;
-  svIsPositive: boolean;
-  cvIsPositive: boolean;
-  paymentGapTone: Tone | null;
 }) {
   return (
-    <Row gutter={16} style={{ marginBottom: 24 }}>
-      <Col span={14}>
+    // PR-C3: stack the chart pair on viewports below xl (≥1200px). The
+    // 14/10 split read as cramped on iPad-landscape; full-width stack
+    // is more legible for analytical reading.
+    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <Col xs={24} md={24} lg={24} xl={14}>
         <Card
           title={isOutsourced ? 'S-Curve / Contract Progress' : 'S-Curve'}
           styles={{ body: { padding: '16px 24px' } }}
@@ -67,25 +46,13 @@ export function SCurveCharts({
               description={isOutsourced ? 'ยังไม่มีเส้นโค้งความก้าวหน้า/เบิกจ่าย เพราะยังไม่มีข้อมูลงวด' : 'ยังไม่มีเส้นโค้ง EVM เพราะยังไม่มีข้อมูลงวด'}
             />
           )}
-          <div style={{ marginTop: 12 }}>
-            <Space size={8}>
-              <Tag color={svIsPositive ? 'green' : 'red'}>
-                Schedule Variance: {metrics ? formatSignedPercent(metrics.svPercent) : '-'}
-              </Tag>
-              {internalMetrics ? (
-                <Tag color={cvIsPositive ? 'green' : 'red'}>
-                  Cost Variance: {formatSignedPercent(internalMetrics.cvPercent)}
-                </Tag>
-              ) : (
-                <Tag color={paymentGapTone?.color === 'warning' ? 'gold' : paymentGapTone?.color === 'success' ? 'green' : 'blue'}>
-                  Earned vs Paid Gap: {outsourcedMetrics ? formatSignedCompactBaht(outsourcedMetrics.paymentGap) : '-'}
-                </Tag>
-              )}
-            </Space>
-          </div>
+          {/* PR-C3: SV%, CV%, and Earned-vs-Paid Gap tags were removed —
+              the same metrics are already presented as SPI / CPI / VAC
+              KPI cards in the row above; the duplication was UX gap
+              "redundant status tags". */}
         </Card>
       </Col>
-      <Col span={10}>
+      <Col xs={24} md={24} lg={24} xl={10}>
         <Card
           title={isOutsourced ? 'Earned / Paid Trend' : 'CPI/SPI Trend'}
           styles={{ body: { padding: '16px 24px' } }}

@@ -160,12 +160,6 @@ export default function SCurvePage() {
         hasSnapshots={hasSnapshots}
         isOutsourced={isOutsourced}
         bac={bac}
-        metrics={metrics}
-        internalMetrics={internalMetrics}
-        outsourcedMetrics={outsourcedMetrics}
-        svIsPositive={svIsPositive}
-        cvIsPositive={cvIsPositive}
-        paymentGapTone={paymentGapTone}
       />
 
       <Alert
