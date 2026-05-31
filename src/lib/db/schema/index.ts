@@ -30,4 +30,12 @@ export * from './permit.schema';
 export * from './environmental-assessment.schema';
 export * from './public-hearing.schema';
 export * from './land-acquisition.schema';
+// PR-27 — Project approval workflow.
 export * from './project-approval-request.schema';
+// PR-24 — Procurement / contract domain.
+export * from './procurement-package.schema';
+export * from './tor-document.schema';
+export * from './engineering-estimate.schema';
+export * from './awarded-contract.schema';
+export * from './contract-amendment.schema';
+export * from './contractor-prequalification.schema';
