@@ -104,6 +104,20 @@ export const paymentVoucherStateEnum = pgEnum(
   PAYMENT_VOUCHER_STATES,
 );
 
+// PR-26 — Handover (SOP 8.1 + 8.10) enums.
+//   - handover_state        — workflow status of a HandoverPacket
+//   - om_manual_category    — O&M manual section taxonomy
+//   - asset_type            — RID asset coarse classification
+import { HANDOVER_STATES } from '@/types/handover-packet';
+import { OM_MANUAL_CATEGORIES } from '@/types/om-manual';
+import { ASSET_TYPES } from '@/types/asset-registration';
+export const handoverStateEnum = pgEnum('handover_state', HANDOVER_STATES);
+export const omManualCategoryEnum = pgEnum(
+  'om_manual_category',
+  OM_MANUAL_CATEGORIES,
+);
+export const assetTypeEnum = pgEnum('asset_type', ASSET_TYPES);
+
 // ProjectStatus + ProjectScheduleHealth + role labels are stored as text
 // (cheap, easy to extend without ALTER TYPE round-trips for the demo).
 

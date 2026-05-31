@@ -48,3 +48,8 @@ export * from './payment-voucher.schema';
 export * from './vendor-sow.schema';
 export * from './sprint.schema';
 export * from './knowledge-area-note.schema';
+// PR-26 — Handover packet + as-built register + O&M manual + asset registration.
+export * from './handover-packet.schema';
+export * from './as-built-drawing.schema';
+export * from './om-manual-entry.schema';
+export * from './asset-registration.schema';

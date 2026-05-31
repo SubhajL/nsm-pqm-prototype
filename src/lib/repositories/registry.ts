@@ -32,6 +32,8 @@
 import { ensureDatabaseSeeded } from '@/lib/db/bootstrap';
 import { createDbClient, type Db } from '@/lib/db/client';
 import {
+  DatabaseAsBuiltDrawingRepository,
+  DatabaseAssetRegistrationRepository,
   DatabaseAuditEventRepository,
   DatabaseAwardedContractRepository,
   DatabaseBoqRepository,
@@ -46,10 +48,12 @@ import {
   DatabaseEnvironmentalAssessmentRepository,
   DatabaseEvmRepository,
   DatabaseGanttRepository,
+  DatabaseHandoverPacketRepository,
   DatabaseIssueRepository,
   DatabaseLandAcquisitionRepository,
   DatabaseMilestoneRepository,
   DatabaseNotificationRepository,
+  DatabaseOmManualEntryRepository,
   DatabaseOrgStructureRepository,
   DatabasePaymentVoucherRepository,
   DatabasePermitRepository,
@@ -71,6 +75,8 @@ import {
   DatabaseVendorSowRepository,
 } from '@/lib/db/repositories';
 
+import type { AsBuiltDrawingRepository } from './as-built-drawing.repository';
+import type { AssetRegistrationRepository } from './asset-registration.repository';
 import type { AuditEventRepository } from './audit-event.repository';
 import type { AwardedContractRepository } from './awarded-contract.repository';
 import type { BoqRepository } from './boq.repository';
@@ -85,10 +91,12 @@ import type { EngineeringEstimateRepository } from './engineering-estimate.repos
 import type { EnvironmentalAssessmentRepository } from './environmental-assessment.repository';
 import type { EvmRepository } from './evm.repository';
 import type { GanttRepository } from './gantt.repository';
+import type { HandoverPacketRepository } from './handover-packet.repository';
 import type { IssueRepository } from './issue.repository';
 import type { LandAcquisitionRepository } from './land-acquisition.repository';
 import type { MilestoneRepository } from './milestone.repository';
 import type { NotificationRepository } from './notification.repository';
+import type { OmManualEntryRepository } from './om-manual-entry.repository';
 import type { OrgStructureRepository } from './org-structure.repository';
 import type { PaymentVoucherRepository } from './payment-voucher.repository';
 import type { PermitRepository } from './permit.repository';
@@ -110,6 +118,8 @@ import type { KnowledgeAreaNoteRepository } from './knowledge-area-note.reposito
 import type { VendorSowRepository } from './vendor-sow.repository';
 
 export interface RepositoryRegistry {
+  asBuiltDrawings: AsBuiltDrawingRepository;
+  assetRegistrations: AssetRegistrationRepository;
   auditEvents: AuditEventRepository;
   awardedContracts: AwardedContractRepository;
   boq: BoqRepository;
@@ -124,10 +134,12 @@ export interface RepositoryRegistry {
   environmentalAssessments: EnvironmentalAssessmentRepository;
   evm: EvmRepository;
   gantt: GanttRepository;
+  handoverPackets: HandoverPacketRepository;
   issues: IssueRepository;
   landAcquisitionRecords: LandAcquisitionRepository;
   milestones: MilestoneRepository;
   notifications: NotificationRepository;
+  omManualEntries: OmManualEntryRepository;
   orgStructure: OrgStructureRepository;
   paymentVouchers: PaymentVoucherRepository;
   permits: PermitRepository;
@@ -187,6 +199,8 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
   };
 
   return {
+    asBuiltDrawings: wrap(new DatabaseAsBuiltDrawingRepository(db)),
+    assetRegistrations: wrap(new DatabaseAssetRegistrationRepository(db)),
     auditEvents: wrap(new DatabaseAuditEventRepository(db)),
     awardedContracts: wrap(new DatabaseAwardedContractRepository(db)),
     boq: wrap(new DatabaseBoqRepository(db)),
@@ -205,10 +219,12 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     ),
     evm: wrap(new DatabaseEvmRepository(db)),
     gantt: wrap(new DatabaseGanttRepository(db)),
+    handoverPackets: wrap(new DatabaseHandoverPacketRepository(db)),
     issues: wrap(new DatabaseIssueRepository(db)),
     landAcquisitionRecords: wrap(new DatabaseLandAcquisitionRepository(db)),
     milestones: wrap(new DatabaseMilestoneRepository(db)),
     notifications: wrap(new DatabaseNotificationRepository(db)),
+    omManualEntries: wrap(new DatabaseOmManualEntryRepository(db)),
     orgStructure: wrap(new DatabaseOrgStructureRepository(db)),
     paymentVouchers: wrap(new DatabasePaymentVoucherRepository(db)),
     permits: wrap(new DatabasePermitRepository(db)),

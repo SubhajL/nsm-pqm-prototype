@@ -198,6 +198,20 @@ export const LIFECYCLE_STAGE_ARTIFACTS: Record<RidLifecycleStage, StageArtifactR
       required: false,
       sopReference: null,
     },
+    {
+      // PR-26 — Handover packet acceptance gate. Pairs with the SOP 8.1
+      // handover packet entity introduced in PR-26 (as-built drawings
+      // register + O&M manual + asset registrations). The lifecycle
+      // gate stays MVP-permissive: a single linked document satisfies
+      // the slot. The transition route is responsible for cross-
+      // checking that the packet's `state === 'accepted'`.
+      stage: 'om',
+      key: 'handover_packet_accepted',
+      label:
+        'เอกสารส่งมอบ-รับมอบงานที่คณะกรรมการรับมอบแล้ว (Accepted Handover Packet — SOP 8.1)',
+      required: true,
+      sopReference: 'SOP 8.1 — การส่งมอบ-รับมอบ (PR-26)',
+    },
   ],
 };
 

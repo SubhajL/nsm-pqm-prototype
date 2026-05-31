@@ -187,3 +187,41 @@ describe('canEnterStage — required-count shape (PR-25)', () => {
     expect(result.missing).toHaveLength(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// PR-26 — Handover packet gate on the `om` stage.
+//
+// SOP 8.1 makes the handover packet a required artifact for transitioning
+// from `construction`/`handover` into `om`. PR-26 surfaces this on the
+// existing `om` stage's requirement array as `handover_packet_accepted`
+// (`required: true`). One linked document is enough to satisfy it — the
+// route layer cross-checks the acceptance state of the packet itself.
+// ---------------------------------------------------------------------------
+
+describe('LIFECYCLE_STAGE_ARTIFACTS — om stage (PR-26)', () => {
+  it('om stage REQUIRES the handover packet (PR-26)', () => {
+    const omReqs = LIFECYCLE_STAGE_ARTIFACTS.om;
+    const handover = omReqs.find((r) => r.key === 'handover_packet_accepted');
+    expect(handover).toBeDefined();
+    expect(handover?.required).toBe(true);
+    expect(handover?.sopReference).toMatch(/SOP 8\.1/);
+    expect(handover?.sopReference).toMatch(/PR-26/);
+  });
+
+  it('blocks entering om without any linked document (PR-26)', () => {
+    const result = canEnterStage('om', [], []);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    const missingKeys = result.missing.map((m) => m.key);
+    expect(missingKeys).toContain('handover_packet_accepted');
+  });
+
+  it('passes entering om with ONE linked + valid document (PR-26)', () => {
+    const handoverDoc = makeDoc(
+      'doc-ho-001',
+      'เอกสารส่งมอบ-รับมอบงาน — SOP 8.1.pdf',
+    );
+    const result = canEnterStage('om', ['doc-ho-001'], [handoverDoc]);
+    expect(result).toEqual({ ok: true });
+  });
+});
