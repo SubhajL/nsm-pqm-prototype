@@ -402,6 +402,18 @@ async function seedFromFixtures(db: Db): Promise<void> {
       .onConflictDoNothing();
   }
 
+  // PR-23 — งวดงาน-driven payment flow.
+  //
+  // Work periods, delivery slips, committee inspections, and payment
+  // vouchers have no demo fixtures yet — the feature is gated behind
+  // `FEATURE_RID_PAYMENT_FLOW` and ships with empty registers. When a
+  // fixture set lands (PR-23 UI follow-up), seed it here in the same
+  // pattern as the registers above.
+  //   for (const wp of seedWorkPeriods as WorkPeriod[]) { ... }
+  //   for (const slip of seedDeliverySlips as DeliverySlip[]) { ... }
+  //   for (const insp of seedCommitteeInspections as CommitteeInspection[]) { ... }
+  //   for (const voucher of seedPaymentVouchers as PaymentVoucher[]) { ... }
+
   // Audit events (with legacy log migration).
   const auditRepo = new DatabaseAuditEventRepository(db);
   const existingEvents = await auditRepo.list();

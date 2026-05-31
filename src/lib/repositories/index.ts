@@ -48,3 +48,8 @@ export type { EngineeringEstimateRepository } from './engineering-estimate.repos
 export type { AwardedContractRepository } from './awarded-contract.repository';
 export type { ContractAmendmentRepository } from './contract-amendment.repository';
 export type { ContractorPrequalificationRepository } from './contractor-prequalification.repository';
+// PR-23 — งวดงาน-driven payment flow.
+export type { WorkPeriodRepository } from './work-period.repository';
+export type { DeliverySlipRepository } from './delivery-slip.repository';
+export type { CommitteeInspectionRepository } from './committee-inspection.repository';
+export type { PaymentVoucherRepository } from './payment-voucher.repository';

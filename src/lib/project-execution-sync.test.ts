@@ -113,6 +113,11 @@ function buildRegistry(state: FakeState): RepositoryRegistry {
     contractAmendments: {} as RepositoryRegistry['contractAmendments'],
     contractorPrequalifications:
       {} as RepositoryRegistry['contractorPrequalifications'],
+    // PR-23 — งวดงาน payment flow (sync helper never touches these either).
+    workPeriods: {} as RepositoryRegistry['workPeriods'],
+    deliverySlips: {} as RepositoryRegistry['deliverySlips'],
+    committeeInspections: {} as RepositoryRegistry['committeeInspections'],
+    paymentVouchers: {} as RepositoryRegistry['paymentVouchers'],
   };
 }
 

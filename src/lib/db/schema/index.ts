@@ -39,3 +39,8 @@ export * from './engineering-estimate.schema';
 export * from './awarded-contract.schema';
 export * from './contract-amendment.schema';
 export * from './contractor-prequalification.schema';
+// PR-23 — งวดงาน-driven payment flow.
+export * from './work-period.schema';
+export * from './delivery-slip.schema';
+export * from './committee-inspection.schema';
+export * from './payment-voucher.schema';

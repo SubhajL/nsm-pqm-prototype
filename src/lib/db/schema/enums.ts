@@ -16,6 +16,7 @@ import { CONTRACT_STATES } from '@/types/awarded-contract';
 import { EIA_STATUSES } from '@/types/environmental-assessment';
 import { ENGINEERING_ESTIMATE_BASES } from '@/types/engineering-estimate';
 import { LAND_ACQ_STATUSES } from '@/types/land-acquisition';
+import { PAYMENT_VOUCHER_STATES } from '@/types/payment-voucher';
 import { PERMIT_STATUSES } from '@/types/permit';
 import {
   PROCUREMENT_METHODS,
@@ -29,6 +30,7 @@ import {
   RID_LIFECYCLE_STAGES,
   RID_ORG_UNIT_KINDS,
 } from '@/types/rid/vocabulary';
+import { WORK_PERIOD_STATES } from '@/types/work-period';
 
 export const projectClassEnum = pgEnum('project_class', PROJECT_CLASSES);
 export const deliveryMethodEnum = pgEnum('delivery_method', DELIVERY_METHODS);
@@ -88,6 +90,19 @@ export const engineeringEstimateBasisEnum = pgEnum(
   ENGINEERING_ESTIMATE_BASES,
 );
 export const contractStateEnum = pgEnum('contract_state', CONTRACT_STATES);
+
+// PR-23 — งวดงาน / payment-voucher enums. Committee inspection
+// `result` is stored as plain text (not enum) so future extensions like
+// `pass_with_conditions_subset` can be added without an ALTER TYPE
+// migration on every preview environment.
+export const workPeriodStateEnum = pgEnum(
+  'work_period_state',
+  WORK_PERIOD_STATES,
+);
+export const paymentVoucherStateEnum = pgEnum(
+  'payment_voucher_state',
+  PAYMENT_VOUCHER_STATES,
+);
 
 // ProjectStatus + ProjectScheduleHealth + role labels are stored as text
 // (cheap, easy to extend without ALTER TYPE round-trips for the demo).

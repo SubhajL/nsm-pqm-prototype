@@ -36,9 +36,11 @@ import {
   DatabaseAwardedContractRepository,
   DatabaseBoqRepository,
   DatabaseChangeRequestRepository,
+  DatabaseCommitteeInspectionRepository,
   DatabaseContractAmendmentRepository,
   DatabaseContractorPrequalificationRepository,
   DatabaseDailyReportRepository,
+  DatabaseDeliverySlipRepository,
   DatabaseDocumentRepository,
   DatabaseEngineeringEstimateRepository,
   DatabaseEnvironmentalAssessmentRepository,
@@ -49,6 +51,7 @@ import {
   DatabaseMilestoneRepository,
   DatabaseNotificationRepository,
   DatabaseOrgStructureRepository,
+  DatabasePaymentVoucherRepository,
   DatabasePermitRepository,
   DatabaseProcurementPackageRepository,
   DatabaseProjectApprovalRequestRepository,
@@ -61,15 +64,18 @@ import {
   DatabaseTorDocumentRepository,
   DatabaseUserRepository,
   DatabaseWbsRepository,
+  DatabaseWorkPeriodRepository,
 } from '@/lib/db/repositories';
 
 import type { AuditEventRepository } from './audit-event.repository';
 import type { AwardedContractRepository } from './awarded-contract.repository';
 import type { BoqRepository } from './boq.repository';
 import type { ChangeRequestRepository } from './change-request.repository';
+import type { CommitteeInspectionRepository } from './committee-inspection.repository';
 import type { ContractAmendmentRepository } from './contract-amendment.repository';
 import type { ContractorPrequalificationRepository } from './contractor-prequalification.repository';
 import type { DailyReportRepository } from './daily-report.repository';
+import type { DeliverySlipRepository } from './delivery-slip.repository';
 import type { DocumentRepository } from './document.repository';
 import type { EngineeringEstimateRepository } from './engineering-estimate.repository';
 import type { EnvironmentalAssessmentRepository } from './environmental-assessment.repository';
@@ -80,6 +86,7 @@ import type { LandAcquisitionRepository } from './land-acquisition.repository';
 import type { MilestoneRepository } from './milestone.repository';
 import type { NotificationRepository } from './notification.repository';
 import type { OrgStructureRepository } from './org-structure.repository';
+import type { PaymentVoucherRepository } from './payment-voucher.repository';
 import type { PermitRepository } from './permit.repository';
 import type { ProcurementPackageRepository } from './procurement-package.repository';
 import type { ProjectApprovalRequestRepository } from './project-approval-request.repository';
@@ -92,15 +99,18 @@ import type { TeamMembershipRepository } from './team-membership.repository';
 import type { TorDocumentRepository } from './tor-document.repository';
 import type { UserRepository } from './user.repository';
 import type { WbsRepository } from './wbs.repository';
+import type { WorkPeriodRepository } from './work-period.repository';
 
 export interface RepositoryRegistry {
   auditEvents: AuditEventRepository;
   awardedContracts: AwardedContractRepository;
   boq: BoqRepository;
   changeRequests: ChangeRequestRepository;
+  committeeInspections: CommitteeInspectionRepository;
   contractAmendments: ContractAmendmentRepository;
   contractorPrequalifications: ContractorPrequalificationRepository;
   dailyReports: DailyReportRepository;
+  deliverySlips: DeliverySlipRepository;
   documents: DocumentRepository;
   engineeringEstimates: EngineeringEstimateRepository;
   environmentalAssessments: EnvironmentalAssessmentRepository;
@@ -111,6 +121,7 @@ export interface RepositoryRegistry {
   milestones: MilestoneRepository;
   notifications: NotificationRepository;
   orgStructure: OrgStructureRepository;
+  paymentVouchers: PaymentVoucherRepository;
   permits: PermitRepository;
   procurementPackages: ProcurementPackageRepository;
   projectApprovalRequests: ProjectApprovalRequestRepository;
@@ -123,6 +134,7 @@ export interface RepositoryRegistry {
   torDocuments: TorDocumentRepository;
   users: UserRepository;
   wbs: WbsRepository;
+  workPeriods: WorkPeriodRepository;
 }
 
 /**
@@ -167,11 +179,13 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     awardedContracts: wrap(new DatabaseAwardedContractRepository(db)),
     boq: wrap(new DatabaseBoqRepository(db)),
     changeRequests: wrap(new DatabaseChangeRequestRepository(db)),
+    committeeInspections: wrap(new DatabaseCommitteeInspectionRepository(db)),
     contractAmendments: wrap(new DatabaseContractAmendmentRepository(db)),
     contractorPrequalifications: wrap(
       new DatabaseContractorPrequalificationRepository(db),
     ),
     dailyReports: wrap(new DatabaseDailyReportRepository(db)),
+    deliverySlips: wrap(new DatabaseDeliverySlipRepository(db)),
     documents: wrap(new DatabaseDocumentRepository(db)),
     engineeringEstimates: wrap(new DatabaseEngineeringEstimateRepository(db)),
     environmentalAssessments: wrap(
@@ -184,6 +198,7 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     milestones: wrap(new DatabaseMilestoneRepository(db)),
     notifications: wrap(new DatabaseNotificationRepository(db)),
     orgStructure: wrap(new DatabaseOrgStructureRepository(db)),
+    paymentVouchers: wrap(new DatabasePaymentVoucherRepository(db)),
     permits: wrap(new DatabasePermitRepository(db)),
     procurementPackages: wrap(new DatabaseProcurementPackageRepository(db)),
     projectApprovalRequests: wrap(new DatabaseProjectApprovalRequestRepository(db)),
@@ -196,6 +211,7 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     torDocuments: wrap(new DatabaseTorDocumentRepository(db)),
     users: wrap(new DatabaseUserRepository(db)),
     wbs: wrap(new DatabaseWbsRepository(db)),
+    workPeriods: wrap(new DatabaseWorkPeriodRepository(db)),
   };
 }
 

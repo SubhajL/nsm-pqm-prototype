@@ -42,3 +42,8 @@ export { DatabaseEngineeringEstimateRepository } from './engineering-estimate.re
 export { DatabaseAwardedContractRepository } from './awarded-contract.repository';
 export { DatabaseContractAmendmentRepository } from './contract-amendment.repository';
 export { DatabaseContractorPrequalificationRepository } from './contractor-prequalification.repository';
+// PR-23 — งวดงาน-driven payment flow.
+export { DatabaseWorkPeriodRepository } from './work-period.repository';
+export { DatabaseDeliverySlipRepository } from './delivery-slip.repository';
+export { DatabaseCommitteeInspectionRepository } from './committee-inspection.repository';
+export { DatabasePaymentVoucherRepository } from './payment-voucher.repository';

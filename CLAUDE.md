@@ -447,6 +447,59 @@ successful writes.
 
 The primary demo project is "โครงการปรับปรุงนิทรรศการดาราศาสตร์" (PJ-2569-0012), budget 12.5M THB, progress 65%, SPI 0.92, CPI 1.05. All 15 JSON fixture files, personnel names, and EVM time-series data are documented in detail in the data schema comments within each `src/data/*.json` file.
 
+### งวดงาน-driven payment flow (PR-23, behind `FEATURE_RID_PAYMENT_FLOW`)
+
+A `WorkPeriod` (งวดงาน) is the contract-level unit of progress + payment.
+Each งวด carries its own deliverable checklist, ใบส่งมอบงาน (delivery
+slip), committee inspection record, and payment voucher. Feature is
+gated by the env flag `FEATURE_RID_PAYMENT_FLOW`; routes return
+`503 FEATURE_DISABLED` BEFORE auth when the flag is off.
+
+Lifecycle is delivery-method aware (`src/lib/rid/work-period-state-machine.ts`):
+
+- `in_house` skips committee inspection
+  (`planned → in_progress → submitted → payment_requested → approved → disbursed`).
+- `outsourced` / `consultant_supervised` go through committee inspection
+  (`… → submitted → inspection_passed → payment_requested → …`).
+- `inspection_failed → in_progress` is the only legal exit from
+  `inspection_failed` (rework).
+- `cancelled` is reachable from every non-terminal state and is itself
+  terminal.
+
+Entities + persistence (always wired; the flag only gates reachability):
+
+- `src/types/work-period.ts` + `src/lib/db/schema/work-period.schema.ts`
+- `src/types/delivery-slip.ts` + `src/lib/db/schema/delivery-slip.schema.ts`
+- `src/types/committee-inspection.ts` + `src/lib/db/schema/committee-inspection.schema.ts`
+  — distinct from the existing `InspectionRecord` / ITP module, which
+  models execution-time QC.
+- `src/types/payment-voucher.ts` + `src/lib/db/schema/payment-voucher.schema.ts`
+
+API surface (under the flag):
+
+- `GET|POST /api/work-periods/by-project/[projectId]` — list + create.
+  Sibling-aware path (Next.js disallows sibling `[projectId]` and
+  `[workPeriodId]` slugs at the same depth); matches PR-24's
+  `/api/procurement-packages/by-project/[projectId]` convention.
+- `POST   /api/work-periods/[workPeriodId]/transition` — body
+  `{ targetState }`. Consults the pure state machine using the parent
+  project's `deliveryMethod`. Returns `409 STATE_TRANSITION_REJECTED`
+  with a human-readable `reason` when the state graph rejects, or
+  `409 EVIDENCE_REQUIRED` when a target state needs a supporting
+  delivery slip / committee inspection / payment-voucher record that
+  is missing (see `evidenceRequirementForState` in the state-machine
+  module).
+- `GET|POST /api/delivery-slips/[workPeriodId]`
+- `GET|POST /api/committee-inspections/[workPeriodId]`
+- `GET|POST|PATCH /api/payment-vouchers/[workPeriodId]` — PATCH writes
+  go through `canTransitionPaymentVoucher` so callers cannot skip
+  stages (e.g. `draft → paid`) or reverse terminal states; honours
+  `voucherNumber` only at the `approved` transition, `paidAt` at `paid`.
+
+Feature flag helper: `src/lib/feature-flags.ts` — `isFeatureEnabled(name)`
+returns `true` only for `'true' | '1' | 'on'` (case-insensitive). Default
+OFF.
+
 ---
 
 ## PMQA (PR-28)
