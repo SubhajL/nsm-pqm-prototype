@@ -226,8 +226,11 @@ export default function DocumentLibraryPage() {
         onSearchChange={setSearchText}
       />
 
+      {/* PR-B1: lg=992-1199 (iPad-landscape range) sized the folder tree at
+          ~290px, too narrow for the bilingual labels. Bump the split to
+          xl (≥1200) so tablet users get the stacked full-width layout. */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={7}>
+        <Col xs={24} md={24} lg={24} xl={7}>
           <FolderTreePanel
             treeData={treeData}
             selectedFolderId={selectedFolderId}
@@ -235,7 +238,7 @@ export default function DocumentLibraryPage() {
           />
         </Col>
 
-        <Col xs={24} lg={17}>
+        <Col xs={24} md={24} lg={24} xl={17}>
           <FilesTablePanel
             selectedFolder={selectedFolder}
             selectedFolderId={selectedFolderId}

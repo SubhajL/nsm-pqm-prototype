@@ -10,13 +10,14 @@ export function WbsLoading() {
       <Title level={3}>
         โครงสร้างการแบ่งงาน (WBS) & BOQ
       </Title>
-      <Row gutter={16}>
-        <Col span={10}>
+      <Row gutter={[16, 16]}>
+        {/* PR-B1: matches the live WBS page's responsive layout. */}
+        <Col xs={24} sm={24} md={24} lg={10}>
           <Card>
             <Skeleton active paragraph={{ rows: 12 }} />
           </Card>
         </Col>
-        <Col span={14}>
+        <Col xs={24} sm={24} md={24} lg={14}>
           <Card>
             <Skeleton active paragraph={{ rows: 12 }} />
           </Card>
