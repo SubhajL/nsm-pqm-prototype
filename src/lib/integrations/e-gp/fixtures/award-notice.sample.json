@@ -1,0 +1,10 @@
+{
+  "referenceId": "EGP-SAMPLE-69-0001",
+  "fiscalYearBE": 2569,
+  "awardedContractor": {
+    "name": "บริษัทผู้รับเหมาตัวอย่าง จำกัด (Sample Contractor Co., Ltd.)",
+    "taxId": "0105561012345"
+  },
+  "awardAmountTHB": 13750000,
+  "awardedAt": "2026-03-22"
+}
