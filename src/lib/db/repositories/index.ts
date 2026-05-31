@@ -33,3 +33,4 @@ export { DatabasePermitRepository } from './permit.repository';
 export { DatabaseEnvironmentalAssessmentRepository } from './environmental-assessment.repository';
 export { DatabasePublicHearingRepository } from './public-hearing.repository';
 export { DatabaseLandAcquisitionRepository } from './land-acquisition.repository';
+export { DatabaseProjectApprovalRequestRepository } from './project-approval-request.repository';

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     scheduleImpact: body.scheduleImpact,
     linkedWbs: body.linkedWbs,
     priority: body.priority,
-    status: 'pending',
+    status: 'submitted',
     requestedBy: currentUser.name,
     requestedAt: new Date().toISOString(),
     approvedBy: null,
@@ -80,6 +80,14 @@ export async function POST(request: Request) {
       { step: 'หัวหน้ากองพิจารณา', user: 'รอระบุผู้อนุมัติ', date: null, status: 'current' },
       { step: 'ประธานอนุมัติ', user: 'รอระบุผู้อนุมัติ', date: null, status: 'pending' },
     ],
+    // PR-27 — impact analysis seeded from the create payload's budget/
+    // schedule deltas; scope free-text starts empty (UI prompts later).
+    impactScheduleDays: body.scheduleImpact,
+    impactBudgetTHB: body.budgetImpact,
+    impactScope: '',
+    approvedByChain: [],
+    rejectedReason: null,
+    decidedAt: null,
   };
 
   await getRepositories().changeRequests.create(nextChangeRequest);

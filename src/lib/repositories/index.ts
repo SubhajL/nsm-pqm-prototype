@@ -39,3 +39,4 @@ export type { PermitRepository } from './permit.repository';
 export type { EnvironmentalAssessmentRepository } from './environmental-assessment.repository';
 export type { PublicHearingRepository } from './public-hearing.repository';
 export type { LandAcquisitionRepository } from './land-acquisition.repository';
+export type { ProjectApprovalRequestRepository } from './project-approval-request.repository';

@@ -97,7 +97,36 @@ export interface DocumentData {
   permissions: PermissionEntry[];
 }
 
-export type CRStatus = 'approved' | 'pending' | 'rejected';
+/**
+ * Change-request status union.
+ *
+ * Legacy values (`pending` / `approved`) are retained for back-compat with
+ * pre-PR-27 fixture data and the existing change-request UI in
+ * `src/app/(dashboard)/projects/[id]/change-request/`. PR-27 introduces
+ * the granular workflow states (`submitted`, `under_review`,
+ * `pm_approved`, `bureau_approved`, `committee_approved`, `applied`)
+ * driven by the authority router in
+ * `src/lib/rid/change-request-routing.ts`.
+ *
+ * State chart (PR-27):
+ *   submitted → under_review → (pm_approved | bureau_approved | committee_approved) → applied
+ *   * → rejected (allowed from any non-terminal state)
+ *
+ * Terminal states: `applied`, `rejected`. Legacy `approved` is treated as
+ * equivalent to `applied`, and legacy `pending` is treated as equivalent
+ * to `submitted` for status-filter purposes.
+ */
+export type CRStatus =
+  | 'submitted'
+  | 'under_review'
+  | 'pm_approved'
+  | 'bureau_approved'
+  | 'committee_approved'
+  | 'applied'
+  | 'rejected'
+  // Legacy values retained for fixture back-compat (see header comment).
+  | 'pending'
+  | 'approved';
 export type CRPriority = 'high' | 'medium' | 'low';
 
 export interface CRWorkflowStep {
@@ -123,6 +152,40 @@ export interface ChangeRequest {
   approvedAt: string | null;
   attachments: string[];
   workflow: CRWorkflowStep[];
+  /**
+   * PR-27 — Impact analysis. Delta to schedule expressed in days
+   * (positive = delay, negative = pull-in). Defaults to 0 when the
+   * impact has not yet been quantified.
+   */
+  impactScheduleDays: number;
+  /**
+   * PR-27 — Delta to project budget in THB. Positive = increase,
+   * negative = scope-reduction / refund. Magnitude (absolute value) is
+   * what the authority router uses to pick the required approval tier.
+   */
+  impactBudgetTHB: number;
+  /**
+   * PR-27 — Free-text description of the scope change ("เพิ่มจอ HMI 2
+   * จอ", "เปลี่ยนแบบฐานราก"). Empty string means "no scope description
+   * captured yet" (UI should surface as a warning).
+   */
+  impactScope: string;
+  /**
+   * PR-27 — Append-only chain of user ids who approved at each tier
+   * (PM → bureau → committee). Length corresponds to how far the CR has
+   * climbed the authority ladder. A rejected CR may have 0-N entries.
+   */
+  approvedByChain: string[];
+  /**
+   * PR-27 — Rationale captured when the CR was rejected. `null` while
+   * the CR is still in flight or once it has been applied.
+   */
+  rejectedReason: string | null;
+  /**
+   * PR-27 — ISO 8601 timestamp of the final decision (applied OR
+   * rejected). `null` while the CR is still in flight.
+   */
+  decidedAt: string | null;
 }
 
 type StatusLabelEntry = { label: string; color: string };
@@ -134,9 +197,17 @@ export const DOC_STATUS_LABELS: Record<DocStatus, StatusLabelEntry> = {
 };
 
 export const CR_STATUS_LABELS: Record<CRStatus, StatusLabelEntry> = {
+  // PR-27 granular states
+  submitted: { label: 'ส่งคำขอแล้ว (Submitted)', color: 'default' },
+  under_review: { label: 'อยู่ระหว่างพิจารณา (Under Review)', color: 'gold' },
+  pm_approved: { label: 'หัวหน้าโครงการอนุมัติ (PM Approved)', color: 'cyan' },
+  bureau_approved: { label: 'กองอนุมัติ (Bureau Approved)', color: 'blue' },
+  committee_approved: { label: 'คณะกรรมการอนุมัติ (Committee Approved)', color: 'geekblue' },
+  applied: { label: 'ดำเนินการแล้ว (Applied)', color: 'green' },
+  rejected: { label: 'ไม่อนุมัติ (Rejected)', color: 'red' },
+  // Legacy values (kept for back-compat with seed fixtures + existing UI).
   approved: { label: 'อนุมัติ (Approved)', color: 'green' },
   pending: { label: 'รออนุมัติ (Pending)', color: 'gold' },
-  rejected: { label: 'ไม่อนุมัติ (Rejected)', color: 'red' },
 };
 
 export const CR_PRIORITY_LABELS: Record<CRPriority, StatusLabelEntry> = {

@@ -46,6 +46,7 @@ import {
   DatabaseNotificationRepository,
   DatabaseOrgStructureRepository,
   DatabasePermitRepository,
+  DatabaseProjectApprovalRequestRepository,
   DatabaseProjectRepository,
   DatabasePublicHearingRepository,
   DatabaseQualityGateRepository,
@@ -70,6 +71,7 @@ import type { MilestoneRepository } from './milestone.repository';
 import type { NotificationRepository } from './notification.repository';
 import type { OrgStructureRepository } from './org-structure.repository';
 import type { PermitRepository } from './permit.repository';
+import type { ProjectApprovalRequestRepository } from './project-approval-request.repository';
 import type { ProjectRepository } from './project.repository';
 import type { PublicHearingRepository } from './public-hearing.repository';
 import type { QualityGateRepository } from './quality-gate.repository';
@@ -94,6 +96,7 @@ export interface RepositoryRegistry {
   notifications: NotificationRepository;
   orgStructure: OrgStructureRepository;
   permits: PermitRepository;
+  projectApprovalRequests: ProjectApprovalRequestRepository;
   projects: ProjectRepository;
   publicHearings: PublicHearingRepository;
   qualityGates: QualityGateRepository;
@@ -158,6 +161,7 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     notifications: wrap(new DatabaseNotificationRepository(db)),
     orgStructure: wrap(new DatabaseOrgStructureRepository(db)),
     permits: wrap(new DatabasePermitRepository(db)),
+    projectApprovalRequests: wrap(new DatabaseProjectApprovalRequestRepository(db)),
     projects: wrap(new DatabaseProjectRepository(db)),
     publicHearings: wrap(new DatabasePublicHearingRepository(db)),
     qualityGates: wrap(new DatabaseQualityGateRepository(db)),
