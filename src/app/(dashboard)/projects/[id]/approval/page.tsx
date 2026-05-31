@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   Steps,
@@ -16,6 +16,7 @@ import {
   Space,
   message,
 } from 'antd';
+import type { StepProps } from 'antd';
 import {
   FileOutlined,
   DownloadOutlined,
@@ -24,38 +25,182 @@ import {
   SendOutlined,
 } from '@ant-design/icons';
 import { useProject } from '@/hooks/useProjects';
+import {
+  useProjectApprovalRequests,
+  useRecordProjectApprovalDecision,
+} from '@/hooks/useProjectApprovalRequests';
 import { useRouteProjectId } from '@/hooks/useRouteProjectId';
 import { COLORS } from '@/theme/antd-theme';
+import type {
+  ApprovalRequestState,
+  ProjectApprovalRequest,
+} from '@/types/project-approval-request';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-/* ---------- attachment data ---------- */
+/* ---------- attachment data (demo fallback when no real request exists) ---------- */
 interface Attachment {
   name: string;
   size: string;
 }
 
-const ATTACHMENTS: Attachment[] = [
+const DEMO_ATTACHMENTS: Attachment[] = [
   { name: 'แผนงานโครงการ_v1.pdf', size: '2.3 MB' },
   { name: 'WBS_Template_ก่อสร้าง.xlsx', size: '1.1 MB' },
   { name: 'BOQ_Rev3.xlsx', size: '0.8 MB' },
   { name: 'ITP_Checklist.pdf', size: '0.5 MB' },
 ];
 
+const DEMO_STEPS: StepProps[] = [
+  { title: 'ผจก.โครงการ ส่งคำขอ', status: 'finish', description: 'วิภา ข. — 05/04/69' },
+  { title: 'หัวหน้ากองพิจารณา', status: 'process', description: 'สมชาย ก. — รอพิจารณา' },
+  { title: 'รอง ผอ. อนุมัติ', status: 'wait', description: 'ธนา ก.' },
+  { title: 'แจ้งทีมโครงการ', status: 'wait' },
+];
+
+const DEMO_HEADER_TAG = { color: 'warning' as const, label: 'รออนุมัติ (Pending)' };
+
+/* ---------- PR-D2 — derive Steps from a real ProjectApprovalRequest --------- */
+
+const STATE_TO_STEPS_INDEX: Record<ApprovalRequestState, number> = {
+  submitted: 1,
+  pm_review: 1,
+  bureau_review: 2,
+  committee_review: 3,
+  approved: 4,
+  rejected: -1,   // marker — paint the current step as error
+  withdrawn: -2,  // marker — paint everything wait
+};
+
+const STATE_TO_HEADER_TAG: Record<
+  ApprovalRequestState,
+  { color: string; label: string }
+> = {
+  submitted: { color: 'default', label: 'ส่งคำขอแล้ว (Submitted)' },
+  pm_review: { color: 'cyan', label: 'หัวหน้าโครงการพิจารณา (PM Review)' },
+  bureau_review: { color: 'blue', label: 'กองพิจารณา (Bureau Review)' },
+  committee_review: { color: 'geekblue', label: 'คณะกรรมการพิจารณา (Committee Review)' },
+  approved: { color: 'success', label: 'อนุมัติแล้ว (Approved)' },
+  rejected: { color: 'error', label: 'ไม่อนุมัติ (Rejected)' },
+  withdrawn: { color: 'default', label: 'ถอนคำขอแล้ว (Withdrawn)' },
+};
+
+function buildStepsFromRequest(request: ProjectApprovalRequest): StepProps[] {
+  // PR-D2 g-check fix: `decisionHistory[0]` is the FIRST decision-maker
+  // (typically the PM reviewer), NOT the original submitter. Always pull
+  // the submitter from the request's top-level field instead.
+  const submitterName = request.submittedBy;
+
+  // PR-D2 g-check fix: do not filter on non-empty comment — an `approve`
+  // decision with no comment is still an approval (the API permits empty
+  // comments on the decision route).
+  const pmDecision = request.decisionHistory.find((d) => d.decision === 'approve');
+  const lastDecision = request.decisionHistory[request.decisionHistory.length - 1] ?? null;
+
+  const baseSteps: StepProps[] = [
+    {
+      title: 'ผจก.โครงการ ส่งคำขอ',
+      description: `${submitterName} — ${request.submittedAt.slice(0, 10)}`,
+    },
+    {
+      title: 'หัวหน้ากองพิจารณา',
+      description: pmDecision ? `อนุมัติแล้ว — ${pmDecision.decidedAt.slice(0, 10)}` : 'รอพิจารณา',
+    },
+    {
+      title: 'รอง ผอ. อนุมัติ',
+      description: '—',
+    },
+    {
+      title: 'แจ้งทีมโครงการ',
+      description: '—',
+    },
+  ];
+
+  const indicator = STATE_TO_STEPS_INDEX[request.state];
+
+  if (indicator === -2) {
+    // withdrawn → reset all to wait
+    return baseSteps.map((s) => ({ ...s, status: 'wait' as const }));
+  }
+
+  if (indicator === -1) {
+    // rejected → paint the last decision's step as error, prior as finish
+    const errorStepIdx = Math.max(0, (lastDecision ? 1 : 0));
+    return baseSteps.map((s, i) => ({
+      ...s,
+      status: i < errorStepIdx ? 'finish' : i === errorStepIdx ? 'error' : 'wait',
+    }));
+  }
+
+  return baseSteps.map((s, i) => ({
+    ...s,
+    status: i < indicator ? 'finish' : i === indicator ? 'process' : 'wait',
+  }));
+}
+
 /* ========================================================================== */
 
 export default function PlanApprovalPage() {
   const projectId = useRouteProjectId() ?? 'proj-001';
   const { data: project } = useProject(projectId);
+  const { data: approvalRequests } = useProjectApprovalRequests(projectId);
+  const recordDecision = useRecordProjectApprovalDecision(projectId);
   const [commentText, setCommentText] = useState('');
 
-  const handleApprove = () => {
-    message.success('อนุมัติแผนงานเรียบร้อยแล้ว (Plan approved successfully)');
+  // PR-D2: prefer the latest real ProjectApprovalRequest if one exists for
+  // this project. Older / no-data projects fall back to the demo content
+  // so the screen stays useful during the soft rollout.
+  const latestRequest: ProjectApprovalRequest | null = useMemo(() => {
+    if (!approvalRequests || approvalRequests.length === 0) return null;
+    return [...approvalRequests].sort((a, b) =>
+      b.submittedAt.localeCompare(a.submittedAt),
+    )[0];
+  }, [approvalRequests]);
+
+  const steps = useMemo(
+    () => (latestRequest ? buildStepsFromRequest(latestRequest) : DEMO_STEPS),
+    [latestRequest],
+  );
+
+  const headerTag = latestRequest
+    ? STATE_TO_HEADER_TAG[latestRequest.state]
+    : DEMO_HEADER_TAG;
+
+  const handleApprove = async () => {
+    if (!latestRequest) {
+      message.success('อนุมัติแผนงานเรียบร้อยแล้ว (Plan approved successfully)');
+      return;
+    }
+    try {
+      await recordDecision.mutateAsync({
+        approvalRequestId: latestRequest.id,
+        decision: 'approve',
+        comment: commentText.trim() || 'อนุมัติ',
+      });
+      setCommentText('');
+      message.success('อนุมัติเรียบร้อย (Decision recorded)');
+    } catch {
+      message.error('บันทึกการอนุมัติไม่สำเร็จ (Failed to record decision)');
+    }
   };
 
-  const handleReject = () => {
-    message.warning('ส่งกลับแก้ไขเรียบร้อยแล้ว (Returned for revision)');
+  const handleReject = async () => {
+    if (!latestRequest) {
+      message.warning('ส่งกลับแก้ไขเรียบร้อยแล้ว (Returned for revision)');
+      return;
+    }
+    try {
+      await recordDecision.mutateAsync({
+        approvalRequestId: latestRequest.id,
+        decision: 'request_changes',
+        comment: commentText.trim() || 'ขอให้แก้ไขและส่งกลับ',
+      });
+      setCommentText('');
+      message.success('ส่งกลับแก้ไขเรียบร้อย (Returned for revision)');
+    } catch {
+      message.error('บันทึกไม่สำเร็จ (Failed to record decision)');
+    }
   };
 
   const handleSendComment = () => {
@@ -75,8 +220,8 @@ export default function PlanApprovalPage() {
           <Title level={3} style={{ marginBottom: 0 }}>
             ขออนุมัติแผนงานโครงการ (Plan Approval)
           </Title>
-          <Tag color="warning" style={{ fontSize: 14, padding: '2px 12px' }}>
-            รออนุมัติ (Pending)
+          <Tag color={headerTag.color} style={{ fontSize: 14, padding: '2px 12px' }}>
+            {headerTag.label}
           </Tag>
         </Space>
         <div style={{ marginTop: 4 }}>
@@ -94,30 +239,7 @@ export default function PlanApprovalPage() {
           boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
         }}
       >
-        <Steps
-          current={1}
-          items={[
-            {
-              title: 'ผจก.โครงการ ส่งคำขอ',
-              status: 'finish',
-              description: 'วิภา ข. — 05/04/69',
-            },
-            {
-              title: 'หัวหน้ากองพิจารณา',
-              status: 'process',
-              description: 'สมชาย ก. — รอพิจารณา',
-            },
-            {
-              title: 'รอง ผอ. อนุมัติ',
-              status: 'wait',
-              description: 'ธนา ก.',
-            },
-            {
-              title: 'แจ้งทีมโครงการ',
-              status: 'wait',
-            },
-          ]}
-        />
+        <Steps items={steps} />
       </Card>
 
       {/* ---------- two-column content ---------- */}
@@ -187,7 +309,7 @@ export default function PlanApprovalPage() {
             }}
           >
             <List
-              dataSource={ATTACHMENTS}
+              dataSource={DEMO_ATTACHMENTS}
               renderItem={(item, index) => (
                 <List.Item
                   actions={[
