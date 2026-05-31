@@ -1,0 +1,275 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildWorkPeriodReport > renders empty-deliverable + empty-slip placeholder snapshot 1`] = `
+{
+  "generatedAt": "2026-05-31T00:00:00.000Z",
+  "kind": "work_period",
+  "periodEnd": "2026-04-30",
+  "periodStart": "2026-03-01",
+  "projectId": "proj-001",
+  "sections": [
+    {
+      "heading": "ข้อมูลโครงการ (Project Information)",
+      "rows": [
+        {
+          "label": "รหัสโครงการ (Project Code)",
+          "value": "PJ-2569-0012",
+        },
+        {
+          "label": "ชื่อโครงการ (Project Name)",
+          "value": "โครงการก่อสร้างฝายทดน้ำห้วยขุนแก้ว ตอน 1",
+        },
+        {
+          "label": "Project Name (English)",
+          "value": "Huai Khun Kaeo Weir Construction (Section 1)",
+        },
+        {
+          "label": "งบประมาณ (Budget)",
+          "value": "12,500,000 ฿",
+        },
+        {
+          "label": "วันที่เริ่ม (Start Date)",
+          "value": "05/01/2569",
+        },
+        {
+          "label": "วันที่สิ้นสุด (End Date)",
+          "value": "30/06/2569",
+        },
+      ],
+    },
+    {
+      "heading": "ข้อมูลงวดงาน (Work-Period Information)",
+      "rows": [
+        {
+          "label": "งวดที่ (Period No.)",
+          "value": "2",
+        },
+        {
+          "label": "ชื่องวด (Title)",
+          "value": "งวดที่ 2 — งานฐานราก",
+        },
+        {
+          "label": "วันเริ่มตามแผน (Planned Start)",
+          "value": "01/03/2569",
+        },
+        {
+          "label": "วันสิ้นสุดตามแผน (Planned End)",
+          "value": "30/04/2569",
+        },
+        {
+          "label": "สถานะปัจจุบัน (Current State)",
+          "value": "ตรวจรับผ่าน (Inspection Passed)",
+        },
+      ],
+    },
+    {
+      "heading": "รายการส่งมอบ (Deliverables)",
+      "rows": [
+        {
+          "label": "ไม่มีรายการ (No deliverables)",
+          "value": "—",
+        },
+      ],
+    },
+    {
+      "heading": "ใบส่งมอบงาน (Delivery Slips)",
+      "rows": [
+        {
+          "label": "จำนวน (Count)",
+          "value": "0",
+        },
+      ],
+    },
+    {
+      "heading": "สรุปการเงิน (Financial Summary)",
+      "rows": [
+        {
+          "label": "มูลค่างวด (Period Amount)",
+          "value": "2,500,000 ฿",
+        },
+        {
+          "label": "เปอร์เซ็นต์จากสัญญา (% of Contract)",
+          "value": "20.0%",
+        },
+        {
+          "label": "งบประมาณรวมโครงการ (Project BAC)",
+          "value": "12,500,000 ฿",
+        },
+      ],
+    },
+    {
+      "heading": "หลักฐานภาพถ่าย (Photo / Document Evidence)",
+      "rows": [
+        {
+          "label": "จำนวนเอกสารแนบ (Attached Documents)",
+          "value": "0",
+        },
+        {
+          "label": "รหัสล่าสุด (Most-recent IDs)",
+          "value": "—",
+        },
+      ],
+    },
+  ],
+  "signatories": [
+    {
+      "name": "น.ส.วิภา ขจรศักดิ์",
+      "role": "ผู้จัดการโครงการ (Project Manager)",
+      "signedAt": null,
+    },
+    {
+      "name": null,
+      "role": "วิศวกรผู้ควบคุมงาน (Supervising Engineer)",
+      "signedAt": null,
+    },
+    {
+      "name": null,
+      "role": "พยาน (Witness)",
+      "signedAt": null,
+    },
+  ],
+}
+`;
+
+exports[`buildWorkPeriodReport > returns deterministic snapshot with slips + deliverables 1`] = `
+{
+  "generatedAt": "2026-05-31T00:00:00.000Z",
+  "kind": "work_period",
+  "periodEnd": "2026-04-30",
+  "periodStart": "2026-03-01",
+  "projectId": "proj-001",
+  "sections": [
+    {
+      "heading": "ข้อมูลโครงการ (Project Information)",
+      "rows": [
+        {
+          "label": "รหัสโครงการ (Project Code)",
+          "value": "PJ-2569-0012",
+        },
+        {
+          "label": "ชื่อโครงการ (Project Name)",
+          "value": "โครงการก่อสร้างฝายทดน้ำห้วยขุนแก้ว ตอน 1",
+        },
+        {
+          "label": "Project Name (English)",
+          "value": "Huai Khun Kaeo Weir Construction (Section 1)",
+        },
+        {
+          "label": "งบประมาณ (Budget)",
+          "value": "12,500,000 ฿",
+        },
+        {
+          "label": "วันที่เริ่ม (Start Date)",
+          "value": "05/01/2569",
+        },
+        {
+          "label": "วันที่สิ้นสุด (End Date)",
+          "value": "30/06/2569",
+        },
+      ],
+    },
+    {
+      "heading": "ข้อมูลงวดงาน (Work-Period Information)",
+      "rows": [
+        {
+          "label": "งวดที่ (Period No.)",
+          "value": "2",
+        },
+        {
+          "label": "ชื่องวด (Title)",
+          "value": "งวดที่ 2 — งานฐานราก",
+        },
+        {
+          "label": "วันเริ่มตามแผน (Planned Start)",
+          "value": "01/03/2569",
+        },
+        {
+          "label": "วันสิ้นสุดตามแผน (Planned End)",
+          "value": "30/04/2569",
+        },
+        {
+          "label": "สถานะปัจจุบัน (Current State)",
+          "value": "ตรวจรับผ่าน (Inspection Passed)",
+        },
+      ],
+    },
+    {
+      "heading": "รายการส่งมอบ (Deliverables)",
+      "rows": [
+        {
+          "label": "รายการที่ 1",
+          "value": "ฐานรากเสร็จ 100%",
+        },
+        {
+          "label": "รายการที่ 2",
+          "value": "รายงาน QC ฐานราก",
+        },
+      ],
+    },
+    {
+      "heading": "ใบส่งมอบงาน (Delivery Slips)",
+      "rows": [
+        {
+          "label": "จำนวน (Count)",
+          "value": "2",
+        },
+        {
+          "label": "ใบที่ 1 (slip-001)",
+          "value": "30/04/2569",
+        },
+        {
+          "label": "ใบที่ 2 (slip-002)",
+          "value": "02/05/2569",
+        },
+      ],
+    },
+    {
+      "heading": "สรุปการเงิน (Financial Summary)",
+      "rows": [
+        {
+          "label": "มูลค่างวด (Period Amount)",
+          "value": "2,500,000 ฿",
+        },
+        {
+          "label": "เปอร์เซ็นต์จากสัญญา (% of Contract)",
+          "value": "20.0%",
+        },
+        {
+          "label": "งบประมาณรวมโครงการ (Project BAC)",
+          "value": "12,500,000 ฿",
+        },
+      ],
+    },
+    {
+      "heading": "หลักฐานภาพถ่าย (Photo / Document Evidence)",
+      "rows": [
+        {
+          "label": "จำนวนเอกสารแนบ (Attached Documents)",
+          "value": "3",
+        },
+        {
+          "label": "รหัสล่าสุด (Most-recent IDs)",
+          "value": "doc-101, doc-102, doc-103",
+        },
+      ],
+    },
+  ],
+  "signatories": [
+    {
+      "name": "น.ส.วิภา ขจรศักดิ์",
+      "role": "ผู้จัดการโครงการ (Project Manager)",
+      "signedAt": null,
+    },
+    {
+      "name": "นายกิตติ คงเจริญ",
+      "role": "วิศวกรผู้ควบคุมงาน (Supervising Engineer)",
+      "signedAt": null,
+    },
+    {
+      "name": null,
+      "role": "พยาน (Witness)",
+      "signedAt": null,
+    },
+  ],
+}
+`;
