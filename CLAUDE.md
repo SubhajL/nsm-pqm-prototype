@@ -572,6 +572,44 @@ All routes are gated by `requireItProject(projectId)` in
 
 Per stakeholder guidance: do NOT introduce PMBOK terminology in any
 new code on this surface — DT6 is the canonical vocabulary.
+### Handover (PR-26)
+
+PR-26 implements RID SOP 8.1 (`การส่งมอบ-รับมอบ`) and 8.10 (operational
+quality). A `HandoverPacket` aggregates the artifact set required to
+transition a project out of `construction` and into `om`:
+
+| Table | Owns | API route |
+|---|---|---|
+| `handover_packets` | Workflow state machine `draft → submitted → committee_review → accepted | rejected` (with `rejected → draft` revise loop). Optional `contract_id` link to PR-24 contract for warranty derivation; `warranty_start_date` / `warranty_end_date` derived on acceptance from `contract.warrantyMonths` | `GET/POST /api/handover-packets/by-project/[projectId]`, `POST /api/handover-packets/[packetId]/transition` |
+| `as_built_drawings` | As-built drawings register (drawing number + revision + optional DocumentFile id) | `GET/POST /api/as-built-drawings/[packetId]` |
+| `om_manual_entries` | O&M manual catalogue, one entry per `OmManualCategory` (`operations / maintenance / safety / spare_parts`) | `GET/POST /api/om-manual-entries/[packetId]` |
+| `asset_registrations` | RID asset-system-compatible asset register (asset code + type + installed-at + initial value + optional GFMIS cost center) | `GET/POST /api/asset-registrations/[packetId]` |
+
+Pure helpers live in `src/lib/rid/handover-helpers.ts`:
+
+- `canTransitionHandover(from, to)` — gates every packet state change;
+  rejects self-transitions, illegal edges, and exit attempts from the
+  terminal `accepted` state.
+- `computeWarrantyWindow(acceptedAt, warrantyMonths)` — derives the
+  warranty `{ start, end }` pair when both are set; clamps to last-day-
+  of-month on roll-over (Jan 31 + 1 month → Feb 28 / 29).
+- `isHandoverComplete(input)` — SOP 8.1 minimum-artifact gate: at least
+  one as-built drawing, an O&M manual entry per category, and at least
+  one asset registration. Returns a stable `missing` key array on
+  failure (`as_built_drawings`, `om_manual_<category>`,
+  `asset_registrations`).
+
+The transition route gates moves into `submitted` / `committee_review` /
+`accepted` on `isHandoverComplete` (`409 INCOMPLETE_HANDOVER` with the
+`missing` array). State-machine rejection is `409 INVALID_TRANSITION`
+with a human-readable `reason`. Acceptance fills `acceptedAt`,
+`acceptedBy`, and the warranty window when a linked contract has
+`warrantyMonths` set.
+
+The `om` lifecycle stage also gains a required `handover_packet_accepted`
+entry in `LIFECYCLE_STAGE_ARTIFACTS` (`src/lib/rid/lifecycle-artifacts.ts`)
+so projects cannot enter the operations stage without an evidenced
+handover.
 
 ---
 

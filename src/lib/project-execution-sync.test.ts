@@ -122,6 +122,11 @@ function buildRegistry(state: FakeState): RepositoryRegistry {
     vendorSows: {} as RepositoryRegistry['vendorSows'],
     itSprints: {} as RepositoryRegistry['itSprints'],
     knowledgeAreaNotes: {} as RepositoryRegistry['knowledgeAreaNotes'],
+    // PR-26 — handover workflow (sync helper never touches these either).
+    handoverPackets: {} as RepositoryRegistry['handoverPackets'],
+    asBuiltDrawings: {} as RepositoryRegistry['asBuiltDrawings'],
+    omManualEntries: {} as RepositoryRegistry['omManualEntries'],
+    assetRegistrations: {} as RepositoryRegistry['assetRegistrations'],
   };
 }
 

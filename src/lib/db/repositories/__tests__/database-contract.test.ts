@@ -18,6 +18,8 @@ import { runMigrations } from '@/lib/db/migrate';
 import type { Db } from '@/lib/db/client';
 
 import {
+  DatabaseAsBuiltDrawingRepository,
+  DatabaseAssetRegistrationRepository,
   DatabaseAuditEventRepository,
   DatabaseAwardedContractRepository,
   DatabaseBoqRepository,
@@ -32,10 +34,12 @@ import {
   DatabaseEnvironmentalAssessmentRepository,
   DatabaseEvmRepository,
   DatabaseGanttRepository,
+  DatabaseHandoverPacketRepository,
   DatabaseIssueRepository,
   DatabaseLandAcquisitionRepository,
   DatabaseMilestoneRepository,
   DatabaseNotificationRepository,
+  DatabaseOmManualEntryRepository,
   DatabaseOrgStructureRepository,
   DatabasePaymentVoucherRepository,
   DatabasePermitRepository,
@@ -95,6 +99,11 @@ import { runTorDocumentRepositoryContract } from '@/lib/repositories/__tests__/c
 import { runItSprintRepositoryContract } from '@/lib/repositories/__tests__/contracts/sprint.contract';
 import { runKnowledgeAreaNoteRepositoryContract } from '@/lib/repositories/__tests__/contracts/knowledge-area-note.contract';
 import { runVendorSowRepositoryContract } from '@/lib/repositories/__tests__/contracts/vendor-sow.contract';
+// PR-26 — Handover workflow contracts.
+import { runAsBuiltDrawingRepositoryContract } from '@/lib/repositories/__tests__/contracts/as-built-drawing.contract';
+import { runAssetRegistrationRepositoryContract } from '@/lib/repositories/__tests__/contracts/asset-registration.contract';
+import { runHandoverPacketRepositoryContract } from '@/lib/repositories/__tests__/contracts/handover-packet.contract';
+import { runOmManualEntryRepositoryContract } from '@/lib/repositories/__tests__/contracts/om-manual-entry.contract';
 
 /**
  * Build a freshly-migrated pglite-backed Drizzle DB per call. Cheap (sub-100ms);
@@ -286,5 +295,20 @@ describe('Database repository contracts (pglite)', () => {
 
   runKnowledgeAreaNoteRepositoryContract(async () => {
     return new DatabaseKnowledgeAreaNoteRepository(await freshDb());
+  // PR-26 — handover workflow.
+  runHandoverPacketRepositoryContract(async () => {
+    return new DatabaseHandoverPacketRepository(await freshDb());
+  });
+
+  runAsBuiltDrawingRepositoryContract(async () => {
+    return new DatabaseAsBuiltDrawingRepository(await freshDb());
+  });
+
+  runOmManualEntryRepositoryContract(async () => {
+    return new DatabaseOmManualEntryRepository(await freshDb());
+  });
+
+  runAssetRegistrationRepositoryContract(async () => {
+    return new DatabaseAssetRegistrationRepository(await freshDb());
   });
 });

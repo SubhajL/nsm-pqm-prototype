@@ -57,3 +57,8 @@ export type { PaymentVoucherRepository } from './payment-voucher.repository';
 export type { VendorSowRepository } from './vendor-sow.repository';
 export type { ItSprintRepository } from './sprint.repository';
 export type { KnowledgeAreaNoteRepository } from './knowledge-area-note.repository';
+// PR-26 — Handover workflow.
+export type { HandoverPacketRepository } from './handover-packet.repository';
+export type { AsBuiltDrawingRepository } from './as-built-drawing.repository';
+export type { OmManualEntryRepository } from './om-manual-entry.repository';
+export type { AssetRegistrationRepository } from './asset-registration.repository';

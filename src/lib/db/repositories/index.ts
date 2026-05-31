@@ -51,3 +51,8 @@ export { DatabasePaymentVoucherRepository } from './payment-voucher.repository';
 export { DatabaseVendorSowRepository } from './vendor-sow.repository';
 export { DatabaseItSprintRepository } from './sprint.repository';
 export { DatabaseKnowledgeAreaNoteRepository } from './knowledge-area-note.repository';
+// PR-26 — Handover workflow.
+export { DatabaseHandoverPacketRepository } from './handover-packet.repository';
+export { DatabaseAsBuiltDrawingRepository } from './as-built-drawing.repository';
+export { DatabaseOmManualEntryRepository } from './om-manual-entry.repository';
+export { DatabaseAssetRegistrationRepository } from './asset-registration.repository';
