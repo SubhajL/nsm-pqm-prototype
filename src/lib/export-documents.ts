@@ -25,6 +25,12 @@ import {
 import { RISK_LEVEL_LABELS, RISK_STATUS_LABELS, type Risk } from '@/types/risk';
 import type { OrgUnit, User } from '@/types/admin';
 import type { ExportDocument } from '@/lib/export-utils';
+import { toExportRows } from '@/lib/pmqa/pmqa-export';
+import {
+  PMQA_CATEGORY_LABELS,
+  type PmqaCategory,
+  type PmqaScore,
+} from '@/lib/pmqa/pmqa-types';
 
 function makeFilename(parts: string[], extension: string) {
   const stem = parts
@@ -389,6 +395,81 @@ export function buildRiskExcelDocument(options: {
         ]),
         emptyMessage: 'ไม่พบข้อมูลความเสี่ยงตามเงื่อนไข',
       },
+    ],
+  };
+}
+
+/**
+ * Build the ก.พ.ร. PMQA audit-friendly export document.
+ *
+ * Produces an ExportDocument that the existing `openPrintableReport` /
+ * `downloadSpreadsheetReport` helpers can render. The output is the full
+ * indicator list grouped by category, with score + benchmark columns.
+ */
+export function buildPmqaExportDocument(score: PmqaScore): ExportDocument {
+  const rows = toExportRows(score);
+  const categoryAverageLabel = (category: PmqaCategory): string => {
+    const avg = score.categoryAverages[category].toFixed(2);
+    const { th, en } = PMQA_CATEGORY_LABELS[category];
+    return `${th} (${en}) — เฉลี่ย ${avg}`;
+  };
+
+  return {
+    title: 'PMQA ก.พ.ร. — รายงานหมวด 2 / 6 / 7',
+    subtitle:
+      score.scope === 'project'
+        ? `ขอบเขต: โครงการ ${score.scopeId ?? ''}`.trim()
+        : 'ขอบเขต: ภาพรวมพอร์ตโฟลิโอ',
+    filename: makeFilename(
+      ['pmqa-opdc-report', score.scope, score.scopeId ?? 'portfolio'],
+      'pdf',
+    ),
+    orientation: 'portrait',
+    metadata: [
+      { label: 'คะแนนรวม (Overall PMQA Score)', value: score.overallScore.toFixed(2) },
+      { label: categoryAverageLabel('category_2_strategy'), value: '' },
+      { label: categoryAverageLabel('category_6_process'), value: '' },
+      { label: categoryAverageLabel('category_7_results'), value: '' },
+    ],
+    summaries: [
+      {
+        label: 'หมวด 2 ยุทธศาสตร์',
+        value: score.categoryAverages.category_2_strategy.toFixed(2),
+        tone: 'neutral',
+      },
+      {
+        label: 'หมวด 6 กระบวนการ',
+        value: score.categoryAverages.category_6_process.toFixed(2),
+        tone: 'neutral',
+      },
+      {
+        label: 'หมวด 7 ผลลัพธ์',
+        value: score.categoryAverages.category_7_results.toFixed(2),
+        tone: 'neutral',
+      },
+      {
+        label: 'คะแนนเฉลี่ย',
+        value: score.overallScore.toFixed(2),
+        tone: 'success',
+      },
+    ],
+    tables: [
+      {
+        title: 'PMQA Indicators',
+        columns: ['หมวด', 'ตัวชี้วัด (Indicator)', 'ค่า (Value)', 'คะแนน (Score)', 'เกณฑ์ (Benchmark)'],
+        rows: rows.map((row) => [
+          row.category,
+          row.label,
+          row.value,
+          String(row.score),
+          row.benchmark,
+        ]),
+        emptyMessage: 'ยังไม่มีข้อมูลตัวชี้วัด',
+      },
+    ],
+    notes: [
+      'เอกสารนี้สร้างจากข้อมูลโครงการที่ผู้ใช้สามารถมองเห็นในระบบ ณ เวลาที่เรียกใช้',
+      'หมวด 1/3/4/5 ของ PMQA จะเปิดให้ใช้งานหลังการเผยแพร่ MVP',
     ],
   };
 }

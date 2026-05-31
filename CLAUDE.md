@@ -390,6 +390,68 @@ The primary demo project is "โครงการปรับปรุงนิ
 
 ---
 
+## PMQA (PR-28)
+
+PR-28 wires the ก.พ.ร. OPDC PMQA framework into the executive dashboard,
+scoped to the three categories most relevant to project management:
+
+- **Category 2 — Strategic Planning** (`computeStrategyAlignment`)
+- **Category 6 — Process Management** (`computeProcessMaturity`)
+- **Category 7 — Results** (`computeResults`)
+
+Categories 1 / 3 / 4 / 5 (Leadership, Customer Focus, Measurement,
+Workforce) are deferred post-MVP.
+
+**No new tables.** All indicators read existing project / quality-gate /
+ITP / inspection / lifecycle-history data and compute deterministic
+PMQA 1–5 maturity scores via the percent banding
+`scorePercentBand()` in `src/lib/pmqa/category-2-strategy.ts`
+(≥90 → 5, ≥80 → 4, ≥70 → 3, ≥60 → 2, else 1).
+
+```
+src/lib/pmqa/
+├── pmqa-types.ts            # PmqaCategory, PmqaIndicator, PmqaScore
+├── category-2-strategy.ts   # strategy_alignment_percent, portfolio_balance
+├── category-6-process.ts    # lifecycle_stage_progression, on_time_stage_transitions_percent, quality_gate_pass_rate
+├── category-7-results.ts    # on_time_percent, on_budget_percent, inspection_completion_rate
+├── pmqa-rollup.ts           # rollupAllCategories(...) → PmqaScore
+├── pmqa-export.ts           # toExportRows(score) → ExportRow[]
+└── *.test.ts
+```
+
+The roll-up rule is mean-of-mean: `categoryAverage = mean(indicator.score)`,
+`overallScore = mean(categoryAverages)`, both clamped to `[1, 5]`.
+
+### API
+
+`GET /api/pmqa` returns the rolled-up `PmqaScore` for the caller's
+visible projects (`getVisibleProjectsForUser` — same pattern as
+`/api/projects`). Pass `?projectId=…` to scope to a single project; the
+project must be in the caller's visible set or the route returns 403.
+Use the `usePmqa()` React Query hook on the client.
+
+### Export
+
+`buildPmqaExportDocument(score)` in `src/lib/export-documents.ts`
+reuses the existing `ExportDocument` / `openPrintableReport` pipeline —
+no new export dependencies. The "ส่งออก ก.พ.ร. (Export OPDC)" button on
+the executive dashboard wires this to the PDF print flow.
+
+### Adding a new PMQA indicator
+
+1. Pick the category file (`category-2-strategy.ts`, `category-6-process.ts`,
+   or `category-7-results.ts`).
+2. Add the indicator definition, returning `{ key, category, label,
+   value, unit, score, benchmark?, rationale }`. Bands MUST be
+   deterministic given the inputs.
+3. Extend the matching `*.test.ts` with `it.each` cases covering empty
+   input, threshold boundaries, and at least one each of "good" and
+   "bad" portfolios.
+4. The roll-up + export pick the indicator up automatically — no other
+   edits required.
+
+---
+
 ## Stitch Design Reference
 
 When implementing any screen, fetch the HTML from the Stitch project for visual reference:

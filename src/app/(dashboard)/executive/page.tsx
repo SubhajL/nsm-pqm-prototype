@@ -1,6 +1,18 @@
 'use client';
 
-import { Row, Col, Card, Typography, Progress, Button, Spin, Alert, message } from 'antd';
+import {
+  Row,
+  Col,
+  Card,
+  Typography,
+  Progress,
+  Button,
+  Spin,
+  Alert,
+  message,
+  Tag,
+  Tooltip,
+} from 'antd';
 import {
   FolderOutlined,
   DollarOutlined,
@@ -10,14 +22,25 @@ import {
   FilePdfOutlined,
   SendOutlined,
   TeamOutlined,
+  AuditOutlined,
 } from '@ant-design/icons';
 import { useProjects } from '@/hooks/useProjects';
+import { usePmqa } from '@/hooks/usePmqa';
 import { KPICard } from '@/components/common/KPICard';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { getAgencyBrand } from '@/lib/branding';
-import { buildExecutiveExportDocument } from '@/lib/export-documents';
+import {
+  buildExecutiveExportDocument,
+  buildPmqaExportDocument,
+} from '@/lib/export-documents';
 import { formatBahtShort } from '@/lib/date-utils';
 import { openPrintableReport } from '@/lib/export-utils';
+import {
+  PMQA_CATEGORY_LABELS,
+  type PmqaCategory,
+  type PmqaIndicator,
+  type PmqaScore,
+} from '@/lib/pmqa/pmqa-types';
 import { COLORS, PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 
 const { Title, Text } = Typography;
@@ -42,8 +65,40 @@ function getProjectDisplayStatus(project: { status: string; scheduleHealth?: str
   return project.scheduleHealth ?? 'on_schedule';
 }
 
+function pmqaToneColor(score: number): string {
+  if (score >= 4.5) return COLORS.success;
+  if (score >= 3.5) return COLORS.accentTeal;
+  if (score >= 2.5) return COLORS.warning;
+  return COLORS.error;
+}
+
+function topIndicatorsByCategory(
+  indicators: PmqaIndicator[],
+  category: PmqaCategory,
+  limit = 3,
+): PmqaIndicator[] {
+  return indicators
+    .filter((i) => i.category === category)
+    .slice(0, limit);
+}
+
+function formatPmqaValue(indicator: PmqaIndicator): string {
+  switch (indicator.unit) {
+    case 'percent':
+      return `${indicator.value.toFixed(1)}%`;
+    case 'ratio':
+      return indicator.value.toFixed(2);
+    case 'days':
+      return `${indicator.value.toFixed(0)} วัน`;
+    case 'count':
+    default:
+      return String(Math.round(indicator.value));
+  }
+}
+
 export default function ExecutiveDashboardPage() {
   const { data: projects, isLoading, isError, error, refetch } = useProjects();
+  const pmqaQuery = usePmqa();
 
   if (isLoading) {
     return (
@@ -94,6 +149,19 @@ export default function ExecutiveDashboardPage() {
       message.error('ไม่สามารถเปิดหน้าต่างรายงานได้ กรุณาอนุญาต pop-up');
     }
   };
+
+  const handleExportPmqa = () => {
+    if (!pmqaQuery.data) {
+      message.warning('ข้อมูล PMQA ยังโหลดไม่เสร็จ กรุณารอสักครู่');
+      return;
+    }
+    const opened = openPrintableReport(buildPmqaExportDocument(pmqaQuery.data));
+    if (!opened) {
+      message.error('ไม่สามารถเปิดหน้าต่างรายงานได้ กรุณาอนุญาต pop-up');
+    }
+  };
+
+  const pmqaScore: PmqaScore | undefined = pmqaQuery.data;
 
   return (
     <div>
@@ -318,6 +386,123 @@ export default function ExecutiveDashboardPage() {
         </Row>
       </Card>
 
+      {/* PMQA (PR-28) — OPDC categories 2 / 6 / 7 */}
+      <Card
+        title={
+          <span>
+            <AuditOutlined style={{ marginRight: 8 }} />
+            PMQA — หมวด 2 / 6 / 7 (OPDC PMQA Categories)
+          </span>
+        }
+        style={{ marginBottom: 24 }}
+        extra={
+          pmqaScore ? (
+            <Tooltip title="คะแนนเฉลี่ยจากทุกหมวด (1–5)">
+              <Tag color={pmqaToneColor(pmqaScore.overallScore)} style={{ fontSize: 14 }}>
+                คะแนนรวม {pmqaScore.overallScore.toFixed(2)} / 5
+              </Tag>
+            </Tooltip>
+          ) : null
+        }
+      >
+        {pmqaQuery.isLoading ? (
+          <div style={{ textAlign: 'center', padding: 24 }}>
+            <Spin />
+          </div>
+        ) : pmqaQuery.isError ? (
+          <Alert
+            type="error"
+            showIcon
+            message="ไม่สามารถโหลดคะแนน PMQA ได้"
+            description={
+              pmqaQuery.error instanceof Error
+                ? pmqaQuery.error.message
+                : 'กรุณาลองใหม่อีกครั้ง'
+            }
+            action={
+              <Button size="small" onClick={() => void pmqaQuery.refetch()}>
+                ลองใหม่
+              </Button>
+            }
+          />
+        ) : pmqaScore ? (
+          <Row gutter={[16, 16]}>
+            {(
+              [
+                'category_2_strategy',
+                'category_6_process',
+                'category_7_results',
+              ] as PmqaCategory[]
+            ).map((category) => {
+              const avg = pmqaScore.categoryAverages[category];
+              const topIndicators = topIndicatorsByCategory(
+                pmqaScore.indicators,
+                category,
+                3,
+              );
+              const { th, en } = PMQA_CATEGORY_LABELS[category];
+              return (
+                <Col xs={24} lg={8} key={category}>
+                  <Card
+                    size="small"
+                    title={
+                      <span>
+                        <Text strong>{th}</Text>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {en}
+                        </Text>
+                      </span>
+                    }
+                    extra={
+                      <Tag color={pmqaToneColor(avg)}>เฉลี่ย {avg.toFixed(2)}</Tag>
+                    }
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {topIndicators.map((indicator) => (
+                        <div key={indicator.key}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'baseline',
+                              marginBottom: 2,
+                            }}
+                          >
+                            <Text style={{ fontSize: 12 }}>{indicator.label}</Text>
+                            <Tag color={pmqaToneColor(indicator.score)} style={{ marginLeft: 8 }}>
+                              {indicator.score}/5
+                            </Tag>
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              fontSize: 12,
+                              color: COLORS.textMuted,
+                            }}
+                          >
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {formatPmqaValue(indicator)}
+                            </Text>
+                            {indicator.benchmark !== undefined ? (
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                เกณฑ์ {indicator.benchmark}
+                                {indicator.unit === 'percent' ? '%' : ''}
+                              </Text>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </Col>
+              );
+            })}
+          </Row>
+        ) : null}
+      </Card>
+
       {/* Bottom Buttons */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <Button
@@ -327,6 +512,13 @@ export default function ExecutiveDashboardPage() {
           style={{ backgroundColor: COLORS.accentTeal, borderColor: COLORS.accentTeal }}
         >
           สร้างรายงาน PDF (Generate PDF)
+        </Button>
+        <Button
+          icon={<AuditOutlined />}
+          onClick={handleExportPmqa}
+          disabled={!pmqaScore}
+        >
+          ส่งออก ก.พ.ร. (Export OPDC)
         </Button>
         <Button icon={<SendOutlined />} type="default">
           {`ส่ง Dashboard ไปยัง ${getAgencyBrand().name} DSC`}
