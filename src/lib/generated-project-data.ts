@@ -773,6 +773,19 @@ function buildChangeRequests(project: Project, scenario: ScenarioConfig): Change
     approvedAt: request.approvedAt ?? null,
     attachments: request.attachments,
     workflow: request.workflow,
+    // PR-27 — generated scenarios pre-date the impact-analysis fields;
+    // default to zero deltas + empty scope text. Approved fixtures back-
+    // fill the chain with the manager so the audit trail isn't blank.
+    impactScheduleDays: request.scheduleImpact,
+    impactBudgetTHB: request.budgetImpact,
+    impactScope: '',
+    approvedByChain:
+      request.status === 'approved' ? [request.approvedBy ?? contacts.manager] : [],
+    rejectedReason: request.status === 'rejected' ? 'ไม่ระบุเหตุผล' : null,
+    decidedAt:
+      request.status === 'approved' || request.status === 'rejected'
+        ? request.approvedAt ?? request.requestedAt
+        : null,
   }));
 }
 

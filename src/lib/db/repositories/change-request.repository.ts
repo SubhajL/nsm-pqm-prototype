@@ -65,6 +65,13 @@ function rowToCr(row: Row): ChangeRequest {
     approvedAt: row.approvedAt,
     attachments: row.attachments,
     workflow: row.workflow,
+    // PR-27 — impact analysis + approval chain.
+    impactScheduleDays: row.impactScheduleDays,
+    impactBudgetTHB: row.impactBudgetTHB,
+    impactScope: row.impactScope,
+    approvedByChain: row.approvedByChain,
+    rejectedReason: row.rejectedReason,
+    decidedAt: row.decidedAt,
   };
 }
 
@@ -85,5 +92,14 @@ function crToRow(cr: ChangeRequest): typeof changeRequests.$inferInsert {
     approvedAt: cr.approvedAt,
     attachments: cr.attachments,
     workflow: cr.workflow,
+    // PR-27 — impact analysis + approval chain (defaults handled by the
+    // column defaults, but we pass them explicitly so the merged patch in
+    // `update()` propagates new values reliably).
+    impactScheduleDays: cr.impactScheduleDays,
+    impactBudgetTHB: cr.impactBudgetTHB,
+    impactScope: cr.impactScope,
+    approvedByChain: cr.approvedByChain,
+    rejectedReason: cr.rejectedReason,
+    decidedAt: cr.decidedAt,
   };
 }

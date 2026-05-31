@@ -1,0 +1,19 @@
+/**
+ * PR-27 — Project approval workflow repository interface.
+ *
+ * Mirrors the standard CRUD surface from `types.ts`. The
+ * `listByProject` accessor lets the per-project API route avoid loading
+ * the whole table; `findByProject` returns the most recent ACTIVE (non-
+ * terminal) request for a project so the UI can show "there is a
+ * pending approval" without paging through history.
+ */
+
+import type { ProjectApprovalRequest } from '@/types/project-approval-request';
+
+import type { Repository } from './types';
+
+export interface ProjectApprovalRequestRepository
+  extends Repository<ProjectApprovalRequest> {
+  /** Every approval request (history + active) for a project. */
+  listByProject(projectId: string): Promise<ProjectApprovalRequest[]>;
+}

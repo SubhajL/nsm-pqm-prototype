@@ -30,3 +30,4 @@ export * from './permit.schema';
 export * from './environmental-assessment.schema';
 export * from './public-hearing.schema';
 export * from './land-acquisition.schema';
+export * from './project-approval-request.schema';

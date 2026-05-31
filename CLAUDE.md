@@ -384,6 +384,40 @@ writes still go through the Database repository.
 See `src/lib/db/README.md` for the schema layout and
 `src/lib/repositories/DUAL_WRITE.md` for the historical migration log.
 
+## Approval Workflows (PR-27)
+
+Two state-machine-driven approval workflows live in the API,
+both gated by pure routing helpers in
+`src/lib/rid/change-request-routing.ts`:
+
+1. **Change-request workflow** —
+   `POST /api/change-requests/[id]/transition` advances
+   `ChangeRequest.status` through
+   `submitted → under_review → (pm|bureau|committee)_approved → applied`,
+   with `* → rejected` reachable from any non-terminal state.
+   `requiredApprovalLevelForChangeRequest(impactBudgetTHB, sizeTier)`
+   classifies the required tier per PR-14:
+   small CR (<฿1M) → PM, medium (฿1M–฿10M) → bureau head,
+   large (≥฿10M or large project) → committee. Negative budget
+   deltas are bucketed by absolute magnitude.
+
+2. **Project approval workflow** —
+   `POST /api/project-approval-requests/by-project/[projectId]`
+   submits, `POST /api/project-approval-requests/[id]/decision`
+   records an approve/reject/request_changes decision and
+   advances the state machine. `decisionHistory` is append-only.
+
+Role → authority mapping reuses
+`ROLES_SATISFYING_AUTHORITY` in
+`src/lib/rid/approval-authority.ts` (System Admin / Project
+Manager satisfy pm + bureau_head; System Admin alone satisfies
+committee until RID confirms a richer position model).
+
+Legacy CR status values `pending` and `approved` are retained
+for back-compat with seed fixtures and the existing
+`change-request/page.tsx` UI; both are mapped to
+`submitted` / `applied` semantics by the helpers.
+
 ### Mock Data Reference
 
 The primary demo project is "โครงการปรับปรุงนิทรรศการดาราศาสตร์" (PJ-2569-0012), budget 12.5M THB, progress 65%, SPI 0.92, CPI 1.05. All 15 JSON fixture files, personnel names, and EVM time-series data are documented in detail in the data schema comments within each `src/data/*.json` file.

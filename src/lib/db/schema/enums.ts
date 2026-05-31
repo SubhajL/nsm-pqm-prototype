@@ -43,6 +43,14 @@ export const ridOrgUnitKindEnum = pgEnum(
   RID_ORG_UNIT_KINDS,
 );
 
+// PR-27 — Project-approval workflow state enum. Mirrors the
+// `APPROVAL_REQUEST_STATES` union in `src/types/project-approval-request.ts`.
+import { APPROVAL_REQUEST_STATES } from '@/types/project-approval-request';
+export const approvalRequestStateEnum = pgEnum(
+  'approval_request_state',
+  APPROVAL_REQUEST_STATES,
+);
+
 // PR-25 — Compliance-register enums (permits, EIA, land acquisition).
 // Public hearings have no status enum; their workflow is the
 // "minute attached / not attached" boolean implicit in `signed_minute_doc_id`.
