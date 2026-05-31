@@ -15,6 +15,13 @@
       "when": 1780617600000,
       "tag": "0001_pr_rid_a_project_class",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780790400000,
+      "tag": "0002_pr25_compliance_registers",
+      "breakpoints": true
     }
   ]
 }

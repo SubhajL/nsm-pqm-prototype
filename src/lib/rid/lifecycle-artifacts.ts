@@ -153,6 +153,19 @@ export const LIFECYCLE_STAGE_ARTIFACTS: Record<RidLifecycleStage, StageArtifactR
       required: true,
       sopReference: 'SOP 8.2 — การขออนุมัติเปิดโครงการก่อสร้าง',
     },
+    {
+      // PR-25 — Pre-construction clearance gate. Pairs with the four
+      // compliance registers (permits, environmental assessments, public
+      // hearings, land acquisition). One linked clearance document must
+      // demonstrate that EIA + land acquisition are settled before
+      // construction starts.
+      stage: 'construction',
+      key: 'pre_construction_clearance',
+      label:
+        'หลักฐานเคลียร์เงื่อนไขก่อนก่อสร้าง (EIA + การได้มาซึ่งที่ดิน) (Pre-construction clearance: EIA + Land Acquisition)',
+      required: true,
+      sopReference: 'PR-25 — Pre-construction conditions gate',
+    },
   ],
   handover: [
     {

@@ -26,3 +26,7 @@ export * from './user.schema';
 export * from './org-structure.schema';
 export * from './audit-event.schema';
 export * from './notification.schema';
+export * from './permit.schema';
+export * from './environmental-assessment.schema';
+export * from './public-hearing.schema';
+export * from './land-acquisition.schema';

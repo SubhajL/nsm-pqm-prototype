@@ -92,22 +92,41 @@ describe('RidLifecycleGates — CTA gating logic', () => {
     );
   });
 
-  it('enables the construction CTA when a valid SOP 8.2 doc is cited', async () => {
+  it('enables the construction CTA when BOTH the SOP 8.2 + PR-25 clearance docs are cited', async () => {
+    // PR-25 extended the construction gate to require TWO documents
+    // (SOP 8.2 approval AND pre-construction clearance). One alone is not
+    // enough.
     const { canEnterStage } = await import('@/lib/rid/lifecycle-artifacts');
-    const result = canEnterStage('construction', ['doc-001'], [
-      {
-        id: 'doc-001',
-        folderId: 'folder-1',
-        name: 'sop-8-2.pdf',
-        type: 'pdf',
-        version: 1,
-        size: '1 KB',
-        uploadedBy: 'user-001',
-        uploadedAt: '2026-01-01T00:00:00.000Z',
-        status: 'approved',
-        workflow: [],
-      },
-    ]);
+    const result = canEnterStage(
+      'construction',
+      ['doc-001', 'doc-002'],
+      [
+        {
+          id: 'doc-001',
+          folderId: 'folder-1',
+          name: 'sop-8-2.pdf',
+          type: 'pdf',
+          version: 1,
+          size: '1 KB',
+          uploadedBy: 'user-001',
+          uploadedAt: '2026-01-01T00:00:00.000Z',
+          status: 'approved',
+          workflow: [],
+        },
+        {
+          id: 'doc-002',
+          folderId: 'folder-1',
+          name: 'pre-construction-clearance.pdf',
+          type: 'pdf',
+          version: 1,
+          size: '1 KB',
+          uploadedBy: 'user-001',
+          uploadedAt: '2026-01-01T00:00:00.000Z',
+          status: 'approved',
+          workflow: [],
+        },
+      ],
+    );
     expect(result.ok).toBe(true);
   });
 });

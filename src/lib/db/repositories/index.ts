@@ -29,3 +29,7 @@ export { DatabaseRiskRepository } from './risk.repository';
 export { DatabaseTeamMembershipRepository } from './team-membership.repository';
 export { DatabaseUserRepository } from './user.repository';
 export { DatabaseWbsRepository } from './wbs.repository';
+export { DatabasePermitRepository } from './permit.repository';
+export { DatabaseEnvironmentalAssessmentRepository } from './environmental-assessment.repository';
+export { DatabasePublicHearingRepository } from './public-hearing.repository';
+export { DatabaseLandAcquisitionRepository } from './land-acquisition.repository';
