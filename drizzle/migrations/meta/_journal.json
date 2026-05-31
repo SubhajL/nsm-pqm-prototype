@@ -36,6 +36,13 @@
       "when": 1780963200000,
       "tag": "0004_pr24_procurement_contracts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781049600000,
+      "tag": "0005_pr23_work_periods",
+      "breakpoints": true
     }
   ]
 }

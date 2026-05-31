@@ -22,9 +22,11 @@ import {
   DatabaseAwardedContractRepository,
   DatabaseBoqRepository,
   DatabaseChangeRequestRepository,
+  DatabaseCommitteeInspectionRepository,
   DatabaseContractAmendmentRepository,
   DatabaseContractorPrequalificationRepository,
   DatabaseDailyReportRepository,
+  DatabaseDeliverySlipRepository,
   DatabaseDocumentRepository,
   DatabaseEngineeringEstimateRepository,
   DatabaseEnvironmentalAssessmentRepository,
@@ -35,6 +37,7 @@ import {
   DatabaseMilestoneRepository,
   DatabaseNotificationRepository,
   DatabaseOrgStructureRepository,
+  DatabasePaymentVoucherRepository,
   DatabasePermitRepository,
   DatabaseProcurementPackageRepository,
   DatabaseProjectRepository,
@@ -46,12 +49,15 @@ import {
   DatabaseTorDocumentRepository,
   DatabaseUserRepository,
   DatabaseWbsRepository,
+  DatabaseWorkPeriodRepository,
 } from '@/lib/db/repositories';
 
 import { runAuditEventRepositoryContract } from '@/lib/repositories/__tests__/contracts/audit-event.contract';
 import { runBoqRepositoryContract } from '@/lib/repositories/__tests__/contracts/boq.contract';
 import { runChangeRequestRepositoryContract } from '@/lib/repositories/__tests__/contracts/change-request.contract';
+import { runCommitteeInspectionRepositoryContract } from '@/lib/repositories/__tests__/contracts/committee-inspection.contract';
 import { runDailyReportRepositoryContract } from '@/lib/repositories/__tests__/contracts/daily-report.contract';
+import { runDeliverySlipRepositoryContract } from '@/lib/repositories/__tests__/contracts/delivery-slip.contract';
 import { runDocumentRepositoryContract } from '@/lib/repositories/__tests__/contracts/document.contract';
 import { runEnvironmentalAssessmentRepositoryContract } from '@/lib/repositories/__tests__/contracts/environmental-assessment.contract';
 import { runEvmRepositoryContract } from '@/lib/repositories/__tests__/contracts/evm.contract';
@@ -61,6 +67,7 @@ import { runLandAcquisitionRepositoryContract } from '@/lib/repositories/__tests
 import { runMilestoneRepositoryContract } from '@/lib/repositories/__tests__/contracts/milestone.contract';
 import { runNotificationRepositoryContract } from '@/lib/repositories/__tests__/contracts/notification.contract';
 import { runOrgStructureRepositoryContract } from '@/lib/repositories/__tests__/contracts/org-structure.contract';
+import { runPaymentVoucherRepositoryContract } from '@/lib/repositories/__tests__/contracts/payment-voucher.contract';
 import { runPermitRepositoryContract } from '@/lib/repositories/__tests__/contracts/permit.contract';
 import { runProjectRepositoryContract } from '@/lib/repositories/__tests__/contracts/project.contract';
 import { runPublicHearingRepositoryContract } from '@/lib/repositories/__tests__/contracts/public-hearing.contract';
@@ -70,6 +77,7 @@ import { runRiskRepositoryContract } from '@/lib/repositories/__tests__/contract
 import { runTeamMembershipRepositoryContract } from '@/lib/repositories/__tests__/contracts/team-membership.contract';
 import { runUserRepositoryContract } from '@/lib/repositories/__tests__/contracts/user.contract';
 import { runWbsRepositoryContract } from '@/lib/repositories/__tests__/contracts/wbs.contract';
+import { runWorkPeriodRepositoryContract } from '@/lib/repositories/__tests__/contracts/work-period.contract';
 
 // PR-24 — Procurement / contract contracts.
 import { runAwardedContractRepositoryContract } from '@/lib/repositories/__tests__/contracts/awarded-contract.contract';
@@ -239,5 +247,22 @@ describe('Database repository contracts (pglite)', () => {
 
   runContractorPrequalificationRepositoryContract(async () => {
     return new DatabaseContractorPrequalificationRepository(await freshDb());
+  });
+
+  // PR-23 — งวดงาน-driven payment flow.
+  runWorkPeriodRepositoryContract(async () => {
+    return new DatabaseWorkPeriodRepository(await freshDb());
+  });
+
+  runDeliverySlipRepositoryContract(async () => {
+    return new DatabaseDeliverySlipRepository(await freshDb());
+  });
+
+  runCommitteeInspectionRepositoryContract(async () => {
+    return new DatabaseCommitteeInspectionRepository(await freshDb());
+  });
+
+  runPaymentVoucherRepositoryContract(async () => {
+    return new DatabasePaymentVoucherRepository(await freshDb());
   });
 });
