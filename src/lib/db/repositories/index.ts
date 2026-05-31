@@ -47,3 +47,7 @@ export { DatabaseWorkPeriodRepository } from './work-period.repository';
 export { DatabaseDeliverySlipRepository } from './delivery-slip.repository';
 export { DatabaseCommitteeInspectionRepository } from './committee-inspection.repository';
 export { DatabasePaymentVoucherRepository } from './payment-voucher.repository';
+// PR-30a — IT class extensions.
+export { DatabaseVendorSowRepository } from './vendor-sow.repository';
+export { DatabaseItSprintRepository } from './sprint.repository';
+export { DatabaseKnowledgeAreaNoteRepository } from './knowledge-area-note.repository';

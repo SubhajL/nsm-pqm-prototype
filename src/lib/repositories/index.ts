@@ -53,3 +53,7 @@ export type { WorkPeriodRepository } from './work-period.repository';
 export type { DeliverySlipRepository } from './delivery-slip.repository';
 export type { CommitteeInspectionRepository } from './committee-inspection.repository';
 export type { PaymentVoucherRepository } from './payment-voucher.repository';
+// PR-30a — IT class extensions.
+export type { VendorSowRepository } from './vendor-sow.repository';
+export type { ItSprintRepository } from './sprint.repository';
+export type { KnowledgeAreaNoteRepository } from './knowledge-area-note.repository';

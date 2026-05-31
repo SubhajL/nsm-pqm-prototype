@@ -50,6 +50,10 @@ import {
   DatabaseUserRepository,
   DatabaseWbsRepository,
   DatabaseWorkPeriodRepository,
+  // PR-30a — IT class extensions.
+  DatabaseItSprintRepository,
+  DatabaseKnowledgeAreaNoteRepository,
+  DatabaseVendorSowRepository,
 } from '@/lib/db/repositories';
 
 import { runAuditEventRepositoryContract } from '@/lib/repositories/__tests__/contracts/audit-event.contract';
@@ -86,6 +90,11 @@ import { runContractorPrequalificationRepositoryContract } from '@/lib/repositor
 import { runEngineeringEstimateRepositoryContract } from '@/lib/repositories/__tests__/contracts/engineering-estimate.contract';
 import { runProcurementPackageRepositoryContract } from '@/lib/repositories/__tests__/contracts/procurement-package.contract';
 import { runTorDocumentRepositoryContract } from '@/lib/repositories/__tests__/contracts/tor-document.contract';
+
+// PR-30a — IT class extension contracts.
+import { runItSprintRepositoryContract } from '@/lib/repositories/__tests__/contracts/sprint.contract';
+import { runKnowledgeAreaNoteRepositoryContract } from '@/lib/repositories/__tests__/contracts/knowledge-area-note.contract';
+import { runVendorSowRepositoryContract } from '@/lib/repositories/__tests__/contracts/vendor-sow.contract';
 
 /**
  * Build a freshly-migrated pglite-backed Drizzle DB per call. Cheap (sub-100ms);
@@ -264,5 +273,18 @@ describe('Database repository contracts (pglite)', () => {
 
   runPaymentVoucherRepositoryContract(async () => {
     return new DatabasePaymentVoucherRepository(await freshDb());
+  });
+
+  // PR-30a — IT class extensions.
+  runVendorSowRepositoryContract(async () => {
+    return new DatabaseVendorSowRepository(await freshDb());
+  });
+
+  runItSprintRepositoryContract(async () => {
+    return new DatabaseItSprintRepository(await freshDb());
+  });
+
+  runKnowledgeAreaNoteRepositoryContract(async () => {
+    return new DatabaseKnowledgeAreaNoteRepository(await freshDb());
   });
 });

@@ -48,6 +48,10 @@ import { ActivityTimelineCard } from './_components/ActivityTimelineCard';
 import { MilestonesCard } from './_components/MilestonesCard';
 import { QuickActionsCard } from './_components/QuickActionsCard';
 import { ReportExportButton } from './_components/ReportExportButton';
+// PR-30a — IT-class extension surface (vendor SOWs + sprints + DT6 notes).
+// Rendered only when `project.projectClass === 'it'` so non-IT projects
+// never load the IT-only API endpoints.
+import { ItProjectTabs } from './_components/ItProjectTabs';
 
 const { Text } = Typography;
 
@@ -301,6 +305,11 @@ export default function ProjectOverviewPage() {
             <QualityGatePipeline gates={qualityGates ?? []} />
           </div>
         </Card>
+      ) : null}
+
+      {/* ====== PR-30a. IT-class extension tabs (gated on projectClass) ====== */}
+      {projectClass === 'it' ? (
+        <ItProjectTabs projectId={projectId} />
       ) : null}
 
       <QuickActionsCard projectId={projectId} />

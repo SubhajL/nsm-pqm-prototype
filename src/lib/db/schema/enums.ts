@@ -106,3 +106,16 @@ export const paymentVoucherStateEnum = pgEnum(
 
 // ProjectStatus + ProjectScheduleHealth + role labels are stored as text
 // (cheap, easy to extend without ALTER TYPE round-trips for the demo).
+
+// PR-30a — IT class extensions (vendor SOW + DT6 knowledge areas).
+//
+// `sow_state` is a strict enum because the state machine in
+// `src/lib/rid/it-class-helpers.ts` references it; `dt6_area` is also
+// strict to enforce the "only three canonical RID areas" rule at the DB
+// boundary. Sprint `lifecycleStage` stays plain text to avoid coupling
+// to the `rid_lifecycle_stage` enum (matches the loose-coupling
+// convention used by `committee_inspections.result`).
+import { SOW_STATES } from '@/types/vendor-sow';
+import { DT6_AREAS } from '@/types/knowledge-area-note';
+export const sowStateEnum = pgEnum('sow_state', SOW_STATES);
+export const dt6AreaEnum = pgEnum('dt6_area', DT6_AREAS);
