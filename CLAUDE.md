@@ -443,6 +443,51 @@ All routes follow the standard auth pattern (`requireProjectAccess` +
 `canPerformProjectAction(..., 'edit_basic')`) and emit audit events on
 successful writes.
 
+### External integrations (PR-30b)
+
+PR-30b ships **discovery only** for four out-of-process Thai government
+systems: e-GP (procurement), GFMIS (fiscal disbursement), PFMS-SP2
+(project / financial reporting), and PBMS (project budget monitoring).
+
+**No new tables, no new API routes, no HTTP clients.** Every track
+contributes only:
+
+- `src/lib/integrations/<system>/contract.ts` — Zod schemas for the
+  wire shape we expect.
+- `src/lib/integrations/<system>/fixtures/*.json` — synthetic request /
+  response payloads (`*.sample.json` for documented systems,
+  `*.stub.json` for placeholder systems). Every fixture parses cleanly
+  against the matching schema; the round-trip is locked by
+  `integration-manifest.test.ts`.
+- optional pure helpers (`e-gp/linker.ts` →
+  `eGpReferenceForContract(contract)`, `gfmis/cost-center-mapping.ts` →
+  `gfmisCostCenterFor(orgUnit)`) bridging PQM domain entities to the
+  external system's identifiers — no HTTP, no randomness.
+
+Maturity per system:
+
+| System | Maturity | Notes |
+|---|---|---|
+| e-GP | `documented` | Schema mirrors the public notice projection at procurement.rid.go.th |
+| GFMIS | `documented` | Schema mirrors the public ขบ./ขจ./PY document conventions |
+| PFMS-SP2 | `placeholder` | Wire format pending RID-IT validation at demo |
+| PBMS | `placeholder` | Wire format pending RID-IT validation at demo |
+
+**Authoring rule.** Adding a new fixture means:
+
+1. Drop the JSON under `src/lib/integrations/<system>/fixtures/`.
+2. Add the matching Zod schema export to the system's `contract.ts`.
+3. Append an entry to `INTEGRATION_FIXTURES` in
+   `src/lib/integrations/manifest.ts`.
+
+`integration-manifest.test.ts` fails loudly if any of those three steps
+is missing — it walks the disk and the manifest in both directions.
+
+The actual adapter PRs are post-MVP. See
+`docs/integrations/INTEGRATION_DISCOVERY.md` for the per-system
+discovery doc and `docs/integrations/POST_MVP_ROADMAP.md` for the
+roadmap entries.
+
 ### Mock Data Reference
 
 The primary demo project is "โครงการปรับปรุงนิทรรศการดาราศาสตร์" (PJ-2569-0012), budget 12.5M THB, progress 65%, SPI 0.92, CPI 1.05. All 15 JSON fixture files, personnel names, and EVM time-series data are documented in detail in the data schema comments within each `src/data/*.json` file.

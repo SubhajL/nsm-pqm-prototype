@@ -1,0 +1,12 @@
+{
+  "projectCode": "PJ-2569-0012",
+  "projectName": "โครงการตัวอย่างเพื่อทดสอบ schema (sample project, synthetic)",
+  "reportingPeriod": {
+    "startDate": "2026-03-01",
+    "endDate": "2026-03-31"
+  },
+  "physicalProgressPercent": 65,
+  "financialProgressPercent": 58.5,
+  "cumulativeDisbursementTHB": 7250000,
+  "note": "stub fixture — PFMS-SP2 wire format pending RID-IT validation at demo"
+}
