@@ -203,8 +203,11 @@ export default function WbsBOQPage() {
 
       <WbsActionBar onCreateNode={openCreateModal} onExportExcel={handleExportExcel} />
 
-      <Row gutter={16}>
-        <Col span={10}>
+      <Row gutter={[16, 16]}>
+        {/* PR-B1: stack on xs/sm/md (≤991px); side-by-side from lg (≥992px).
+            Replaces the previous fixed `span={10}/{14}` which broke layout
+            on tablet and mobile. */}
+        <Col xs={24} sm={24} md={24} lg={10}>
           <WbsTreePanel
             treeData={treeData}
             defaultExpandedKeys={defaultExpandedKeys}
@@ -212,7 +215,7 @@ export default function WbsBOQPage() {
             onSelect={setSelectedWbsId}
           />
         </Col>
-        <Col span={14}>
+        <Col xs={24} sm={24} md={24} lg={14}>
           <BoqTablePanel
             selectedWbsId={selectedWbsId}
             selectedNodeName={selectedNodeName}

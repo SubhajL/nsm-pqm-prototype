@@ -229,7 +229,7 @@ export default function AuditLogPage() {
       {/* Main Content: Table + Sidebar */}
       <Row gutter={[16, 16]}>
         {/* Left: Audit Log Table */}
-        <Col xs={24} lg={17}>
+        <Col xs={24} md={24} lg={24} xl={17}>
           <Card title="รายการ Audit Log">
             <Table<AuditLog>
               columns={columns}
@@ -247,7 +247,7 @@ export default function AuditLogPage() {
         </Col>
 
         {/* Right: Security & Integration */}
-        <Col xs={24} lg={7}>
+        <Col xs={24} md={24} lg={24} xl={7}>
           {/* Security Status */}
           <Card
             title="สถานะความปลอดภัย (Security Status)"

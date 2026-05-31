@@ -85,9 +85,12 @@ export default function ProjectEvaluationPage() {
         </Text>
       </div>
 
-      {/* Two columns */}
+      {/* PR-B1: lg=992-1199 (iPad-landscape range) split the page 14/10
+          which was an awkward two-column read on tablet. Bump the split
+          to xl (≥1200) so smaller viewports get the stacked full-width
+          layout instead. */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={14}>
+        <Col xs={24} md={24} lg={24} xl={14}>
           <Card title="ผลการประเมิน (Evaluation Results)">
             <Table<EvaluationCategory>
               columns={columns}
@@ -143,7 +146,7 @@ export default function ProjectEvaluationPage() {
           </Card>
         </Col>
 
-        <Col xs={24} lg={10}>
+        <Col xs={24} md={24} lg={24} xl={10}>
           <Card title="สรุปผลประเมิน (Summary)">
             {/* Large circular score display */}
             <div
