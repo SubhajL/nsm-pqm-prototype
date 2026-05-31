@@ -609,6 +609,46 @@ the executive dashboard wires this to the PDF print flow.
 
 ---
 
+### RID reporting templates (PR-29)
+
+PR-29 ships three deterministic RID e-GP progress-report builders. The
+discovery write-up + stakeholder-review checklist lives in
+`docs/rid-reporting-templates.md`.
+
+```
+src/lib/rid/reporting/
+├── reporting-types.ts        # RidReportKind, RidReportSection, RidReportData
+├── reporting-helpers.ts      # signatory block, period/header/photo helpers
+├── monthly-report.ts         # buildMonthlyReport(...)
+├── work-period-report.ts     # buildWorkPeriodReport(...)
+├── delay-report.ts           # buildDelayReport(...)
+└── *.test.ts                 # snapshot + unit tests
+```
+
+**No new tables.** Each `build*Report` is pure: domain objects in,
+`RidReportData` out. Snapshot tests lock the structural output exactly
+— field-label drift after stakeholder review = update the snapshot
+deliberately. All `generatedAt` and `evaluationDate` inputs are
+caller-supplied so tests stay deterministic (no `Date.now()`).
+
+**API.** `GET /api/reports?projectId=…&kind=monthly|work_period|delay`
+returns `RidReportData`. Auth via `getActiveUser` + `requireProjectAccess`.
+Monthly requires `periodStart` + `periodEnd`; work_period requires
+`workPeriodId`; delay accepts an optional `evaluationDate`. Use the
+`useRidReport()` React Query hook on the client.
+
+**Export.** `buildRidReportDocument(report)` in
+`src/lib/export-documents.ts` re-uses the existing
+`ExportDocument` / `openPrintableReport` pipeline (no new export
+dependencies). The "ออกรายงาน RID (Export Report)" dropdown on the
+project overview page wires the three kinds to the PDF print flow.
+
+**Signatory block.** Always three rows in PM → Engineer → Witness
+order. `name` is `null` when no candidate is known (renders as `—`
+for hand-fill); `signedAt` is never auto-filled.
+
+---
+
 ## Stitch Design Reference
 
 When implementing any screen, fetch the HTML from the Stitch project for visual reference:

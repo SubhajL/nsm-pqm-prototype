@@ -31,6 +31,10 @@ import {
   type PmqaCategory,
   type PmqaScore,
 } from '@/lib/pmqa/pmqa-types';
+import {
+  REPORT_KIND_LABELS,
+  type RidReportData,
+} from '@/lib/rid/reporting/reporting-types';
 
 function makeFilename(parts: string[], extension: string) {
   const stem = parts
@@ -502,6 +506,66 @@ export function buildAdminUserExportDocument(options: {
         ]),
         emptyMessage: 'ไม่มีผู้ใช้งานในหน่วยงานที่เลือก',
       },
+    ],
+  };
+}
+
+/**
+ * Build the RID progress report export document — PR-29.
+ *
+ * Accepts the deterministic `RidReportData` returned by the
+ * `build*Report` builders / the `/api/reports` route and produces an
+ * `ExportDocument` that the existing `openPrintableReport` pipeline
+ * renders. Each report section becomes one table; the signatory block
+ * is emitted as the final table.
+ */
+export function buildRidReportDocument(report: RidReportData): ExportDocument {
+  const kindLabel = REPORT_KIND_LABELS[report.kind];
+  const subtitle = (() => {
+    if (report.periodStart && report.periodEnd) {
+      return `${formatThaiDate(report.periodStart)} – ${formatThaiDate(report.periodEnd)}`;
+    }
+    return 'รายงานแบบ Ad-hoc (Ad-hoc Report)';
+  })();
+
+  const metadata = [
+    { label: 'รหัสโครงการ (Project ID)', value: report.projectId },
+    { label: 'ชนิดรายงาน (Report Kind)', value: `${kindLabel.th} (${kindLabel.en})` },
+    { label: 'สร้างเมื่อ (Generated At)', value: report.generatedAt },
+  ];
+
+  // One ExportTable per RidReportSection. We keep the report's section
+  // ordering so the audit binder reads top-to-bottom in the same order
+  // the snapshot tests lock in.
+  const tables = report.sections.map((section) => ({
+    title: section.heading,
+    columns: ['รายการ (Item)', 'ค่า (Value)'],
+    rows: section.rows.map((row) => [row.label, row.value]),
+    emptyMessage: 'ไม่มีข้อมูล',
+  }));
+
+  // Signatories ride along as a dedicated final table — the print
+  // pipeline doesn't have a first-class signatory primitive yet.
+  tables.push({
+    title: 'ลายมือชื่อ (Signatories)',
+    columns: ['ตำแหน่ง (Role)', 'ชื่อ (Name)', 'วันที่ลงนาม (Signed At)'],
+    rows: report.signatories.map((s) => [s.role, s.name ?? '—', s.signedAt ?? '—']),
+    emptyMessage: 'ไม่มีรายชื่อ',
+  });
+
+  return {
+    title: `${kindLabel.th} (${kindLabel.en})`,
+    subtitle,
+    filename: makeFilename(
+      ['rid-report', report.kind, report.projectId],
+      'pdf',
+    ),
+    orientation: 'portrait',
+    metadata,
+    tables,
+    notes: [
+      'เอกสารนี้ออกแบบสำหรับพิมพ์หรือ Save as PDF จากเบราว์เซอร์',
+      'ค่าฟิลด์ภาษาไทยจะถูกยืนยันที่ขั้นตอน Stakeholder Review (ดู docs/rid-reporting-templates.md)',
     ],
   };
 }

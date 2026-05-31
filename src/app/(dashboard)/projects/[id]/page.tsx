@@ -47,6 +47,7 @@ import { ProjectKPICards } from './_components/ProjectKPICards';
 import { ActivityTimelineCard } from './_components/ActivityTimelineCard';
 import { MilestonesCard } from './_components/MilestonesCard';
 import { QuickActionsCard } from './_components/QuickActionsCard';
+import { ReportExportButton } from './_components/ReportExportButton';
 
 const { Text } = Typography;
 
@@ -257,6 +258,10 @@ export default function ProjectOverviewPage() {
         projectScheduleHealth={projectScheduleHealth}
         projectProgressPercent={projectProgressPercent}
       />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <ReportExportButton projectId={projectId} />
+      </div>
 
       <ProjectKPICards
         projectId={projectId}

@@ -1,0 +1,119 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildDelayReport > returns deterministic snapshot for a delayed outsourced project 1`] = `
+{
+  "generatedAt": "2026-05-31T00:00:00.000Z",
+  "kind": "delay",
+  "periodEnd": null,
+  "periodStart": null,
+  "projectId": "proj-001",
+  "sections": [
+    {
+      "heading": "ข้อมูลโครงการ (Project Information)",
+      "rows": [
+        {
+          "label": "รหัสโครงการ (Project Code)",
+          "value": "PJ-2569-0012",
+        },
+        {
+          "label": "ชื่อโครงการ (Project Name)",
+          "value": "โครงการก่อสร้างฝายทดน้ำห้วยขุนแก้ว ตอน 1",
+        },
+        {
+          "label": "Project Name (English)",
+          "value": "Huai Khun Kaeo Weir Construction (Section 1)",
+        },
+        {
+          "label": "งบประมาณ (Budget)",
+          "value": "12,500,000 ฿",
+        },
+        {
+          "label": "วันที่เริ่ม (Start Date)",
+          "value": "05/01/2569",
+        },
+        {
+          "label": "วันที่สิ้นสุด (End Date)",
+          "value": "30/06/2569",
+        },
+      ],
+    },
+    {
+      "heading": "สถานะตารางเวลาปัจจุบัน (Current Schedule Health)",
+      "rows": [
+        {
+          "label": "สถานะ (Health)",
+          "value": "delayed",
+        },
+        {
+          "label": "SPI",
+          "value": "0.78",
+        },
+        {
+          "label": "วันที่ประเมิน (Evaluation Date)",
+          "value": "15/05/2569",
+        },
+      ],
+    },
+    {
+      "heading": "ประวัติช่วงโครงการล่าสุด (Recent Lifecycle History)",
+      "rows": [
+        {
+          "label": "รายการที่ 1: planning",
+          "value": "05/01/2569",
+        },
+        {
+          "label": "รายการที่ 2: procurement",
+          "value": "20/01/2569",
+        },
+        {
+          "label": "รายการที่ 3: construction",
+          "value": "10/02/2569",
+        },
+      ],
+    },
+    {
+      "heading": "กิจกรรมที่เสี่ยงหรือล่าช้า (Watch / Delayed Activities)",
+      "rows": [
+        {
+          "label": "งานฐานราก [delayed]",
+          "value": "วางแผน: 1 มี.ค. 69 → 30 เม.ย. 69",
+        },
+      ],
+    },
+    {
+      "heading": "สาเหตุและแผนฟื้นฟู (Cause + Recovery Plan)",
+      "rows": [
+        {
+          "label": "สาเหตุของความล่าช้า (Cause)",
+          "value": "—",
+        },
+        {
+          "label": "แผนฟื้นฟู (Recovery Plan)",
+          "value": "—",
+        },
+        {
+          "label": "วันที่คาดว่าจะกลับเข้าแผน (Expected Recovery Date)",
+          "value": "—",
+        },
+      ],
+    },
+  ],
+  "signatories": [
+    {
+      "name": "น.ส.วิภา ขจรศักดิ์",
+      "role": "ผู้จัดการโครงการ (Project Manager)",
+      "signedAt": null,
+    },
+    {
+      "name": "นายกิตติ คงเจริญ",
+      "role": "วิศวกรผู้ควบคุมงาน (Supervising Engineer)",
+      "signedAt": null,
+    },
+    {
+      "name": null,
+      "role": "พยาน (Witness)",
+      "signedAt": null,
+    },
+  ],
+}
+`;
