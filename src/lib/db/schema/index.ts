@@ -44,3 +44,7 @@ export * from './work-period.schema';
 export * from './delivery-slip.schema';
 export * from './committee-inspection.schema';
 export * from './payment-voucher.schema';
+// PR-30a — IT class extensions.
+export * from './vendor-sow.schema';
+export * from './sprint.schema';
+export * from './knowledge-area-note.schema';

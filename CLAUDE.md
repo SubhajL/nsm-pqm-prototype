@@ -545,6 +545,34 @@ Feature flag helper: `src/lib/feature-flags.ts` — `isFeatureEnabled(name)`
 returns `true` only for `'true' | '1' | 'on'` (case-insensitive). Default
 OFF.
 
+### IT projectClass extensions (PR-30a)
+
+PR-30a extends RID's IT-class project handling per the DT6 Digital
+Project Management Document. Three new entities + a tabset on the
+project detail page surface vendor contracts, sprints, and free-form
+DT6 notes:
+
+| Table | Owns | API route |
+|---|---|---|
+| `vendor_sows` | Statement of Work per phase + UAT criteria + warranty + state machine `draft → agreed → in_delivery → uat → accepted | rejected`, with `rejected → in_delivery` rework. `accepted` is terminal | `GET/POST /api/vendor-sows/by-project/[projectId]`, `POST /api/vendor-sows/[sowId]/transition` |
+| `it_sprints` | Hybrid-Agile sprints nested in lifecycle stage. Velocity + completed points drive a `on_track | at_risk | off_track` health band via `computeSprintHealth` | `GET/POST /api/it-sprints/by-project/[projectId]`, `PATCH /api/it-sprints/[sprintId]` |
+| `knowledge_area_notes` | DT6 per-area free-form notes. Three canonical areas — `integration`, `communication_plan`, `formal_procurement_plan` — drawn from RID's DT6 (NOT PMBOK). Versioning is monotonic per `(projectId, area)` | `GET/POST /api/knowledge-area-notes/by-project/[projectId]?area=…` |
+
+Pure helpers live in `src/lib/rid/it-class-helpers.ts`:
+
+- `canTransitionSow(from, to)` — gates every SOW state change.
+- `isSprintComplete(sprint, now)` — predicate for "ended in past + velocity recorded".
+- `computeSprintHealth(planned, completed)` — deterministic banding (≥ 0.85 / ≥ 0.60 / else).
+
+All routes are gated by `requireItProject(projectId)` in
+`src/lib/rid/it-project-guard.ts` — non-IT projects receive
+`422 IT_ONLY_FEATURE` BEFORE any write lands. The UI tabset
+(`_components/ItProjectTabs.tsx`) is rendered only when
+`project.projectClass === 'it'`.
+
+Per stakeholder guidance: do NOT introduce PMBOK terminology in any
+new code on this surface — DT6 is the canonical vocabulary.
+
 ---
 
 ## PMQA (PR-28)

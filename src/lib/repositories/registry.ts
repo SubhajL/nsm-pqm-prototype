@@ -65,6 +65,10 @@ import {
   DatabaseUserRepository,
   DatabaseWbsRepository,
   DatabaseWorkPeriodRepository,
+  // PR-30a — IT class extensions.
+  DatabaseItSprintRepository,
+  DatabaseKnowledgeAreaNoteRepository,
+  DatabaseVendorSowRepository,
 } from '@/lib/db/repositories';
 
 import type { AuditEventRepository } from './audit-event.repository';
@@ -100,6 +104,10 @@ import type { TorDocumentRepository } from './tor-document.repository';
 import type { UserRepository } from './user.repository';
 import type { WbsRepository } from './wbs.repository';
 import type { WorkPeriodRepository } from './work-period.repository';
+// PR-30a — IT class extensions.
+import type { ItSprintRepository } from './sprint.repository';
+import type { KnowledgeAreaNoteRepository } from './knowledge-area-note.repository';
+import type { VendorSowRepository } from './vendor-sow.repository';
 
 export interface RepositoryRegistry {
   auditEvents: AuditEventRepository;
@@ -135,6 +143,10 @@ export interface RepositoryRegistry {
   users: UserRepository;
   wbs: WbsRepository;
   workPeriods: WorkPeriodRepository;
+  // PR-30a — IT class extensions.
+  itSprints: ItSprintRepository;
+  knowledgeAreaNotes: KnowledgeAreaNoteRepository;
+  vendorSows: VendorSowRepository;
 }
 
 /**
@@ -212,6 +224,10 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     users: wrap(new DatabaseUserRepository(db)),
     wbs: wrap(new DatabaseWbsRepository(db)),
     workPeriods: wrap(new DatabaseWorkPeriodRepository(db)),
+    // PR-30a — IT class extensions.
+    itSprints: wrap(new DatabaseItSprintRepository(db)),
+    knowledgeAreaNotes: wrap(new DatabaseKnowledgeAreaNoteRepository(db)),
+    vendorSows: wrap(new DatabaseVendorSowRepository(db)),
   };
 }
 

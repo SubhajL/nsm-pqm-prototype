@@ -118,6 +118,10 @@ function buildRegistry(state: FakeState): RepositoryRegistry {
     deliverySlips: {} as RepositoryRegistry['deliverySlips'],
     committeeInspections: {} as RepositoryRegistry['committeeInspections'],
     paymentVouchers: {} as RepositoryRegistry['paymentVouchers'],
+    // PR-30a — IT class extensions (sync helper never touches these).
+    vendorSows: {} as RepositoryRegistry['vendorSows'],
+    itSprints: {} as RepositoryRegistry['itSprints'],
+    knowledgeAreaNotes: {} as RepositoryRegistry['knowledgeAreaNotes'],
   };
 }
 
