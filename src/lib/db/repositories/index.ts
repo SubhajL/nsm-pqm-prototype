@@ -33,4 +33,12 @@ export { DatabasePermitRepository } from './permit.repository';
 export { DatabaseEnvironmentalAssessmentRepository } from './environmental-assessment.repository';
 export { DatabasePublicHearingRepository } from './public-hearing.repository';
 export { DatabaseLandAcquisitionRepository } from './land-acquisition.repository';
+// PR-27 — Project approval workflow.
 export { DatabaseProjectApprovalRequestRepository } from './project-approval-request.repository';
+// PR-24 — Procurement / contract domain.
+export { DatabaseProcurementPackageRepository } from './procurement-package.repository';
+export { DatabaseTorDocumentRepository } from './tor-document.repository';
+export { DatabaseEngineeringEstimateRepository } from './engineering-estimate.repository';
+export { DatabaseAwardedContractRepository } from './awarded-contract.repository';
+export { DatabaseContractAmendmentRepository } from './contract-amendment.repository';
+export { DatabaseContractorPrequalificationRepository } from './contractor-prequalification.repository';

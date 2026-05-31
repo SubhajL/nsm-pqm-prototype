@@ -104,7 +104,15 @@ function buildRegistry(state: FakeState): RepositoryRegistry {
     landAcquisitionRecords: {} as RepositoryRegistry['landAcquisitionRecords'],
     // PR-27 — project-approval workflow (sync helper never touches it).
     projectApprovalRequests:
-      {} as RepositoryRegistry["projectApprovalRequests"],
+      {} as RepositoryRegistry['projectApprovalRequests'],
+    // PR-24 — procurement / contract domain (sync helper never touches them).
+    procurementPackages: {} as RepositoryRegistry['procurementPackages'],
+    torDocuments: {} as RepositoryRegistry['torDocuments'],
+    engineeringEstimates: {} as RepositoryRegistry['engineeringEstimates'],
+    awardedContracts: {} as RepositoryRegistry['awardedContracts'],
+    contractAmendments: {} as RepositoryRegistry['contractAmendments'],
+    contractorPrequalifications:
+      {} as RepositoryRegistry['contractorPrequalifications'],
   };
 }
 

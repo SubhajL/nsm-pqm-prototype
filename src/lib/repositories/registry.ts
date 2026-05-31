@@ -33,10 +33,14 @@ import { ensureDatabaseSeeded } from '@/lib/db/bootstrap';
 import { createDbClient, type Db } from '@/lib/db/client';
 import {
   DatabaseAuditEventRepository,
+  DatabaseAwardedContractRepository,
   DatabaseBoqRepository,
   DatabaseChangeRequestRepository,
+  DatabaseContractAmendmentRepository,
+  DatabaseContractorPrequalificationRepository,
   DatabaseDailyReportRepository,
   DatabaseDocumentRepository,
+  DatabaseEngineeringEstimateRepository,
   DatabaseEnvironmentalAssessmentRepository,
   DatabaseEvmRepository,
   DatabaseGanttRepository,
@@ -46,6 +50,7 @@ import {
   DatabaseNotificationRepository,
   DatabaseOrgStructureRepository,
   DatabasePermitRepository,
+  DatabaseProcurementPackageRepository,
   DatabaseProjectApprovalRequestRepository,
   DatabaseProjectRepository,
   DatabasePublicHearingRepository,
@@ -53,15 +58,20 @@ import {
   DatabaseQualityInspectionRepository,
   DatabaseRiskRepository,
   DatabaseTeamMembershipRepository,
+  DatabaseTorDocumentRepository,
   DatabaseUserRepository,
   DatabaseWbsRepository,
 } from '@/lib/db/repositories';
 
 import type { AuditEventRepository } from './audit-event.repository';
+import type { AwardedContractRepository } from './awarded-contract.repository';
 import type { BoqRepository } from './boq.repository';
 import type { ChangeRequestRepository } from './change-request.repository';
+import type { ContractAmendmentRepository } from './contract-amendment.repository';
+import type { ContractorPrequalificationRepository } from './contractor-prequalification.repository';
 import type { DailyReportRepository } from './daily-report.repository';
 import type { DocumentRepository } from './document.repository';
+import type { EngineeringEstimateRepository } from './engineering-estimate.repository';
 import type { EnvironmentalAssessmentRepository } from './environmental-assessment.repository';
 import type { EvmRepository } from './evm.repository';
 import type { GanttRepository } from './gantt.repository';
@@ -71,6 +81,7 @@ import type { MilestoneRepository } from './milestone.repository';
 import type { NotificationRepository } from './notification.repository';
 import type { OrgStructureRepository } from './org-structure.repository';
 import type { PermitRepository } from './permit.repository';
+import type { ProcurementPackageRepository } from './procurement-package.repository';
 import type { ProjectApprovalRequestRepository } from './project-approval-request.repository';
 import type { ProjectRepository } from './project.repository';
 import type { PublicHearingRepository } from './public-hearing.repository';
@@ -78,15 +89,20 @@ import type { QualityGateRepository } from './quality-gate.repository';
 import type { QualityInspectionRepository } from './quality-inspection.repository';
 import type { RiskRepository } from './risk.repository';
 import type { TeamMembershipRepository } from './team-membership.repository';
+import type { TorDocumentRepository } from './tor-document.repository';
 import type { UserRepository } from './user.repository';
 import type { WbsRepository } from './wbs.repository';
 
 export interface RepositoryRegistry {
   auditEvents: AuditEventRepository;
+  awardedContracts: AwardedContractRepository;
   boq: BoqRepository;
   changeRequests: ChangeRequestRepository;
+  contractAmendments: ContractAmendmentRepository;
+  contractorPrequalifications: ContractorPrequalificationRepository;
   dailyReports: DailyReportRepository;
   documents: DocumentRepository;
+  engineeringEstimates: EngineeringEstimateRepository;
   environmentalAssessments: EnvironmentalAssessmentRepository;
   evm: EvmRepository;
   gantt: GanttRepository;
@@ -96,6 +112,7 @@ export interface RepositoryRegistry {
   notifications: NotificationRepository;
   orgStructure: OrgStructureRepository;
   permits: PermitRepository;
+  procurementPackages: ProcurementPackageRepository;
   projectApprovalRequests: ProjectApprovalRequestRepository;
   projects: ProjectRepository;
   publicHearings: PublicHearingRepository;
@@ -103,6 +120,7 @@ export interface RepositoryRegistry {
   qualityInspections: QualityInspectionRepository;
   risks: RiskRepository;
   teamMemberships: TeamMembershipRepository;
+  torDocuments: TorDocumentRepository;
   users: UserRepository;
   wbs: WbsRepository;
 }
@@ -146,10 +164,16 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
 
   return {
     auditEvents: wrap(new DatabaseAuditEventRepository(db)),
+    awardedContracts: wrap(new DatabaseAwardedContractRepository(db)),
     boq: wrap(new DatabaseBoqRepository(db)),
     changeRequests: wrap(new DatabaseChangeRequestRepository(db)),
+    contractAmendments: wrap(new DatabaseContractAmendmentRepository(db)),
+    contractorPrequalifications: wrap(
+      new DatabaseContractorPrequalificationRepository(db),
+    ),
     dailyReports: wrap(new DatabaseDailyReportRepository(db)),
     documents: wrap(new DatabaseDocumentRepository(db)),
+    engineeringEstimates: wrap(new DatabaseEngineeringEstimateRepository(db)),
     environmentalAssessments: wrap(
       new DatabaseEnvironmentalAssessmentRepository(db),
     ),
@@ -161,6 +185,7 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     notifications: wrap(new DatabaseNotificationRepository(db)),
     orgStructure: wrap(new DatabaseOrgStructureRepository(db)),
     permits: wrap(new DatabasePermitRepository(db)),
+    procurementPackages: wrap(new DatabaseProcurementPackageRepository(db)),
     projectApprovalRequests: wrap(new DatabaseProjectApprovalRequestRepository(db)),
     projects: wrap(new DatabaseProjectRepository(db)),
     publicHearings: wrap(new DatabasePublicHearingRepository(db)),
@@ -168,6 +193,7 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     qualityInspections: wrap(new DatabaseQualityInspectionRepository(db)),
     risks: wrap(new DatabaseRiskRepository(db)),
     teamMemberships: wrap(new DatabaseTeamMembershipRepository(db)),
+    torDocuments: wrap(new DatabaseTorDocumentRepository(db)),
     users: wrap(new DatabaseUserRepository(db)),
     wbs: wrap(new DatabaseWbsRepository(db)),
   };

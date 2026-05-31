@@ -39,4 +39,12 @@ export type { PermitRepository } from './permit.repository';
 export type { EnvironmentalAssessmentRepository } from './environmental-assessment.repository';
 export type { PublicHearingRepository } from './public-hearing.repository';
 export type { LandAcquisitionRepository } from './land-acquisition.repository';
+// PR-27 — Project approval workflow.
 export type { ProjectApprovalRequestRepository } from './project-approval-request.repository';
+// PR-24 — Procurement / contract domain.
+export type { ProcurementPackageRepository } from './procurement-package.repository';
+export type { TorDocumentRepository } from './tor-document.repository';
+export type { EngineeringEstimateRepository } from './engineering-estimate.repository';
+export type { AwardedContractRepository } from './awarded-contract.repository';
+export type { ContractAmendmentRepository } from './contract-amendment.repository';
+export type { ContractorPrequalificationRepository } from './contractor-prequalification.repository';

@@ -418,6 +418,31 @@ for back-compat with seed fixtures and the existing
 `change-request/page.tsx` UI; both are mapped to
 `submitted` / `applied` semantics by the helpers.
 
+### Procurement & Contracts (PR-24)
+
+Six tables back the RID-fit procurement → contract workflow:
+
+| Table | Owns | API route |
+|---|---|---|
+| `procurement_packages` | Solicitation (e-bidding/specific-method/selection/reverse-auction) with state machine `draft → tor_review → tender_open → evaluation → awarded`, plus absorbing `cancelled` | `GET/POST /api/procurement-packages/by-project/[projectId]`, `POST /api/procurement-packages/[packageId]/transition` |
+| `tor_documents` | TOR revisions per package (incrementing `version`, optional approved-at timestamp) | `GET/POST /api/tor-documents/[packageId]` |
+| `engineering_estimates` | Cost basis (`unit_price | cost_plus | lump_sum`) per package, optional BOQ link | `GET/POST /api/engineering-estimates/[packageId]` |
+| `awarded_contracts` | Signed agreement coming out of `awarded`; `state` machine `draft → signed → in_force → closed | terminated`. `contracting_model` reuses the PR-RID-A enum | `GET/POST /api/awarded-contracts/[projectId]` |
+| `contract_amendments` | Per-contract incremental amount + schedule deltas (additive math via `applyAmendmentToContract`) | `GET/POST /api/contract-amendments/[contractId]` |
+| `contractor_prequalifications` | PQ-AHP reference records per project. Full AHP scoring deferred post-MVP; `ahpScore` nullable | `GET/POST /api/contractor-prequalifications/[projectId]` |
+
+Pure helpers live in `src/lib/rid/procurement-helpers.ts`:
+
+- `canTransitionProcurement(from, to)` — gates every package state change.
+- `isEstimateBasisCompatible(basis, contractingModel)` — guard against
+  estimating on a basis the eventual contract cannot price.
+- `applyAmendmentToContract(contract, amendment)` — derive effective
+  amount + expiration after applying one amendment. Compose by folding.
+
+All routes follow the standard auth pattern (`requireProjectAccess` +
+`canPerformProjectAction(..., 'edit_basic')`) and emit audit events on
+successful writes.
+
 ### Mock Data Reference
 
 The primary demo project is "โครงการปรับปรุงนิทรรศการดาราศาสตร์" (PJ-2569-0012), budget 12.5M THB, progress 65%, SPI 0.92, CPI 1.05. All 15 JSON fixture files, personnel names, and EVM time-series data are documented in detail in the data schema comments within each `src/data/*.json` file.

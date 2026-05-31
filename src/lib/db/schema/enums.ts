@@ -12,9 +12,15 @@
 
 import { pgEnum } from 'drizzle-orm/pg-core';
 
+import { CONTRACT_STATES } from '@/types/awarded-contract';
 import { EIA_STATUSES } from '@/types/environmental-assessment';
+import { ENGINEERING_ESTIMATE_BASES } from '@/types/engineering-estimate';
 import { LAND_ACQ_STATUSES } from '@/types/land-acquisition';
 import { PERMIT_STATUSES } from '@/types/permit';
+import {
+  PROCUREMENT_METHODS,
+  PROCUREMENT_STATES,
+} from '@/types/procurement-package';
 import {
   CONTRACTING_MODELS,
   DELIVERY_METHODS,
@@ -60,6 +66,28 @@ export const landAcquisitionStatusEnum = pgEnum(
   'land_acquisition_status',
   LAND_ACQ_STATUSES,
 );
+
+// PR-24 — Procurement / contract enums.
+//
+// `contracting_model` is already defined above (reused from PR-RID-A). The
+// three new enums declared here are:
+//   - procurement_state         — workflow status of a ProcurementPackage
+//   - procurement_method        — solicitation method (e-bidding, etc.)
+//   - engineering_estimate_basis — unit-price | cost-plus | lump-sum
+//   - contract_state            — workflow status of an AwardedContract
+export const procurementStateEnum = pgEnum(
+  'procurement_state',
+  PROCUREMENT_STATES,
+);
+export const procurementMethodEnum = pgEnum(
+  'procurement_method',
+  PROCUREMENT_METHODS,
+);
+export const engineeringEstimateBasisEnum = pgEnum(
+  'engineering_estimate_basis',
+  ENGINEERING_ESTIMATE_BASES,
+);
+export const contractStateEnum = pgEnum('contract_state', CONTRACT_STATES);
 
 // ProjectStatus + ProjectScheduleHealth + role labels are stored as text
 // (cheap, easy to extend without ALTER TYPE round-trips for the demo).

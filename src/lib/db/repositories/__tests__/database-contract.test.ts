@@ -19,10 +19,14 @@ import type { Db } from '@/lib/db/client';
 
 import {
   DatabaseAuditEventRepository,
+  DatabaseAwardedContractRepository,
   DatabaseBoqRepository,
   DatabaseChangeRequestRepository,
+  DatabaseContractAmendmentRepository,
+  DatabaseContractorPrequalificationRepository,
   DatabaseDailyReportRepository,
   DatabaseDocumentRepository,
+  DatabaseEngineeringEstimateRepository,
   DatabaseEnvironmentalAssessmentRepository,
   DatabaseEvmRepository,
   DatabaseGanttRepository,
@@ -32,12 +36,14 @@ import {
   DatabaseNotificationRepository,
   DatabaseOrgStructureRepository,
   DatabasePermitRepository,
+  DatabaseProcurementPackageRepository,
   DatabaseProjectRepository,
   DatabasePublicHearingRepository,
   DatabaseQualityGateRepository,
   DatabaseQualityInspectionRepository,
   DatabaseRiskRepository,
   DatabaseTeamMembershipRepository,
+  DatabaseTorDocumentRepository,
   DatabaseUserRepository,
   DatabaseWbsRepository,
 } from '@/lib/db/repositories';
@@ -64,6 +70,14 @@ import { runRiskRepositoryContract } from '@/lib/repositories/__tests__/contract
 import { runTeamMembershipRepositoryContract } from '@/lib/repositories/__tests__/contracts/team-membership.contract';
 import { runUserRepositoryContract } from '@/lib/repositories/__tests__/contracts/user.contract';
 import { runWbsRepositoryContract } from '@/lib/repositories/__tests__/contracts/wbs.contract';
+
+// PR-24 — Procurement / contract contracts.
+import { runAwardedContractRepositoryContract } from '@/lib/repositories/__tests__/contracts/awarded-contract.contract';
+import { runContractAmendmentRepositoryContract } from '@/lib/repositories/__tests__/contracts/contract-amendment.contract';
+import { runContractorPrequalificationRepositoryContract } from '@/lib/repositories/__tests__/contracts/contractor-prequalification.contract';
+import { runEngineeringEstimateRepositoryContract } from '@/lib/repositories/__tests__/contracts/engineering-estimate.contract';
+import { runProcurementPackageRepositoryContract } from '@/lib/repositories/__tests__/contracts/procurement-package.contract';
+import { runTorDocumentRepositoryContract } from '@/lib/repositories/__tests__/contracts/tor-document.contract';
 
 /**
  * Build a freshly-migrated pglite-backed Drizzle DB per call. Cheap (sub-100ms);
@@ -200,5 +214,30 @@ describe('Database repository contracts (pglite)', () => {
 
   runLandAcquisitionRepositoryContract(async () => {
     return new DatabaseLandAcquisitionRepository(await freshDb());
+  });
+
+  // PR-24 — procurement / contract domain.
+  runProcurementPackageRepositoryContract(async () => {
+    return new DatabaseProcurementPackageRepository(await freshDb());
+  });
+
+  runTorDocumentRepositoryContract(async () => {
+    return new DatabaseTorDocumentRepository(await freshDb());
+  });
+
+  runEngineeringEstimateRepositoryContract(async () => {
+    return new DatabaseEngineeringEstimateRepository(await freshDb());
+  });
+
+  runAwardedContractRepositoryContract(async () => {
+    return new DatabaseAwardedContractRepository(await freshDb());
+  });
+
+  runContractAmendmentRepositoryContract(async () => {
+    return new DatabaseContractAmendmentRepository(await freshDb());
+  });
+
+  runContractorPrequalificationRepositoryContract(async () => {
+    return new DatabaseContractorPrequalificationRepository(await freshDb());
   });
 });
