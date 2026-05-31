@@ -97,6 +97,11 @@ function buildRegistry(state: FakeState): RepositoryRegistry {
     teamMemberships: {} as RepositoryRegistry['teamMemberships'],
     users: {} as RepositoryRegistry['users'],
     auditEvents: {} as RepositoryRegistry['auditEvents'],
+    // PR-25 — compliance registers (sync helper never touches them).
+    permits: {} as RepositoryRegistry['permits'],
+    environmentalAssessments: {} as RepositoryRegistry['environmentalAssessments'],
+    publicHearings: {} as RepositoryRegistry['publicHearings'],
+    landAcquisitionRecords: {} as RepositoryRegistry['landAcquisitionRecords'],
   };
 }
 

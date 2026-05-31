@@ -7,12 +7,13 @@ import {
 import type { DocumentFile } from '@/types/document';
 
 // ---------------------------------------------------------------------------
-// canEnterStage tests (PR-16)
+// canEnterStage tests (PR-16, extended PR-25)
 //
 // Exercises the artifact-gate decision for each RID lifecycle stage. The MVP
-// rule is intentionally narrow:
-//   - `construction` REQUIRES one SOP 8.2 approval document (the only stage
-//     with a required artifact in the MVP starting set).
+// rule (post-PR-25) is:
+//   - `construction` REQUIRES TWO artifacts — the SOP 8.2 construction
+//     approval AND the new `pre_construction_clearance` document (EIA + land
+//     acquisition cleared, see PR-25 compliance registers).
 //   - Every other stage's required-count is zero, so the gate trivially
 //     passes regardless of attached documents.
 // ---------------------------------------------------------------------------
@@ -58,6 +59,29 @@ describe('LIFECYCLE_STAGE_ARTIFACTS — table shape', () => {
     expect(sop82?.sopReference).toMatch(/SOP 8\.2/);
   });
 
+  // PR-25 — pre-construction clearance gate.
+  it('construction stage REQUIRES the pre-construction clearance artifact (PR-25)', () => {
+    const constructionReqs = LIFECYCLE_STAGE_ARTIFACTS.construction;
+    const clearance = constructionReqs.find(
+      (req) => req.key === 'pre_construction_clearance',
+    );
+
+    expect(clearance).toBeDefined();
+    expect(clearance?.required).toBe(true);
+    expect(clearance?.sopReference).toMatch(/PR-25/);
+    expect(clearance?.label).toMatch(/EIA/);
+  });
+
+  it('construction stage now requires exactly TWO artifacts (PR-25)', () => {
+    const required = LIFECYCLE_STAGE_ARTIFACTS.construction.filter(
+      (r) => r.required,
+    );
+    expect(required.map((r) => r.key).sort()).toEqual([
+      'pre_construction_clearance',
+      'sop_8_2_construction_approval',
+    ]);
+  });
+
   it('planning stage has no required artifacts (initial state)', () => {
     const required = LIFECYCLE_STAGE_ARTIFACTS.planning.filter((r) => r.required);
     expect(required).toEqual([]);
@@ -71,37 +95,71 @@ describe('canEnterStage — pass paths', () => {
     expect(canEnterStage('procurement', [], [])).toEqual({ ok: true });
   });
 
-  it('passes when entering construction with at least one linked + valid document (SOP 8.2)', () => {
-    const sop82Doc = makeDoc('doc-001', 'หนังสืออนุมัติเปิดโครงการก่อสร้าง — SOP 8.2.pdf');
-    const result = canEnterStage('construction', ['doc-001'], [sop82Doc]);
+  it('passes when entering construction with TWO linked + valid documents (SOP 8.2 + PR-25 clearance)', () => {
+    // PR-25 adds a second required artifact; consumers must now attach two
+    // distinct documents (one per requirement slot).
+    const sop82Doc = makeDoc(
+      'doc-001',
+      'หนังสืออนุมัติเปิดโครงการก่อสร้าง — SOP 8.2.pdf',
+    );
+    const clearanceDoc = makeDoc(
+      'doc-002',
+      'หลักฐานเคลียร์เงื่อนไขก่อนก่อสร้าง — EIA + Land.pdf',
+    );
+    const result = canEnterStage(
+      'construction',
+      ['doc-001', 'doc-002'],
+      [sop82Doc, clearanceDoc],
+    );
     expect(result).toEqual({ ok: true });
   });
 });
 
 describe('canEnterStage — block paths', () => {
-  it('blocks entering construction with NO linked documents and reports SOP 8.2 as missing', () => {
+  it('blocks entering construction with NO linked documents and reports BOTH required artifacts as missing (PR-25)', () => {
     const result = canEnterStage('construction', [], []);
 
     expect(result.ok).toBe(false);
     if (result.ok) return; // type guard for TS
 
+    expect(result.missing).toHaveLength(2);
+    expect(result.missing.map((m) => m.key).sort()).toEqual([
+      'pre_construction_clearance',
+      'sop_8_2_construction_approval',
+    ]);
+    for (const m of result.missing) {
+      expect(m.required).toBe(true);
+    }
+  });
+
+  // PR-25 — single document is no longer enough; the second slot remains unsatisfied.
+  it('blocks entering construction when only ONE valid document is linked (PR-25)', () => {
+    const sop82Doc = makeDoc(
+      'doc-001',
+      'หนังสืออนุมัติเปิดโครงการก่อสร้าง — SOP 8.2.pdf',
+    );
+    const result = canEnterStage('construction', ['doc-001'], [sop82Doc]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    // The requirement consumed first depends on insertion order; we just
+    // assert exactly one slot remains unfilled.
     expect(result.missing).toHaveLength(1);
-    expect(result.missing[0].key).toBe('sop_8_2_construction_approval');
     expect(result.missing[0].required).toBe(true);
-    expect(result.missing[0].sopReference).toMatch(/SOP 8\.2/);
   });
 
   it('blocks entering construction when the linked doc id does not exist in the document store', () => {
-    // The caller cites doc-999 but it isn't in the document store — the
-    // requirement count remains unmet because the cited evidence is invalid.
+    // The caller cites doc-999 but it isn't in the document store — both
+    // requirements remain unmet because the cited evidence is invalid.
     const result = canEnterStage('construction', ['doc-999'], []);
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
 
-    expect(result.missing.map((m) => m.key)).toContain(
-      'sop_8_2_construction_approval',
-    );
+    const missingKeys = result.missing.map((m) => m.key);
+    expect(missingKeys).toContain('sop_8_2_construction_approval');
+    expect(missingKeys).toContain('pre_construction_clearance');
   });
 
   it('does NOT block entering land_acquisition even with zero documents (no required artifacts in MVP)', () => {
@@ -109,17 +167,23 @@ describe('canEnterStage — block paths', () => {
   });
 });
 
-describe('canEnterStage — duplicate-link consumption rule', () => {
-  it('does not let a single linked document satisfy multiple required slots', () => {
-    // The MVP table has only construction as a required-bearing stage with
-    // exactly one required artifact, so this test asserts shape — if a future
-    // PR adds a second required artifact to construction, this would correctly
-    // require two distinct documents.
+describe('canEnterStage — required-count shape (PR-25)', () => {
+  it('construction requires exactly TWO artifacts after PR-25', () => {
     const requiredCount = LIFECYCLE_STAGE_ARTIFACTS.construction.filter(
       (r) => r.required,
     ).length;
+    expect(requiredCount).toBe(2);
+  });
 
-    // Sanity-check the MVP shape:
-    expect(requiredCount).toBe(1);
+  it('a single linked document leaves exactly ONE required slot unfilled (PR-25)', () => {
+    // The MVP binding rule is permissive — one document per requirement
+    // slot. Linking only ONE document satisfies only ONE slot; the other
+    // requirement is reported as missing.
+    const oneDoc = makeDoc('doc-only', 'one-doc.pdf');
+    const result = canEnterStage('construction', ['doc-only'], [oneDoc]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.missing).toHaveLength(1);
   });
 });

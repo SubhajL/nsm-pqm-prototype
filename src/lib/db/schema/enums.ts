@@ -12,6 +12,9 @@
 
 import { pgEnum } from 'drizzle-orm/pg-core';
 
+import { EIA_STATUSES } from '@/types/environmental-assessment';
+import { LAND_ACQ_STATUSES } from '@/types/land-acquisition';
+import { PERMIT_STATUSES } from '@/types/permit';
 import {
   CONTRACTING_MODELS,
   DELIVERY_METHODS,
@@ -38,6 +41,16 @@ export const ridLifecycleStageEnum = pgEnum(
 export const ridOrgUnitKindEnum = pgEnum(
   'rid_org_unit_kind',
   RID_ORG_UNIT_KINDS,
+);
+
+// PR-25 — Compliance-register enums (permits, EIA, land acquisition).
+// Public hearings have no status enum; their workflow is the
+// "minute attached / not attached" boolean implicit in `signed_minute_doc_id`.
+export const permitStatusEnum = pgEnum('permit_status', PERMIT_STATUSES);
+export const eiaStatusEnum = pgEnum('eia_status', EIA_STATUSES);
+export const landAcquisitionStatusEnum = pgEnum(
+  'land_acquisition_status',
+  LAND_ACQ_STATUSES,
 );
 
 // ProjectStatus + ProjectScheduleHealth + role labels are stored as text

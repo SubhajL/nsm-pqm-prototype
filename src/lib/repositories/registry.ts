@@ -37,13 +37,17 @@ import {
   DatabaseChangeRequestRepository,
   DatabaseDailyReportRepository,
   DatabaseDocumentRepository,
+  DatabaseEnvironmentalAssessmentRepository,
   DatabaseEvmRepository,
   DatabaseGanttRepository,
   DatabaseIssueRepository,
+  DatabaseLandAcquisitionRepository,
   DatabaseMilestoneRepository,
   DatabaseNotificationRepository,
   DatabaseOrgStructureRepository,
+  DatabasePermitRepository,
   DatabaseProjectRepository,
+  DatabasePublicHearingRepository,
   DatabaseQualityGateRepository,
   DatabaseQualityInspectionRepository,
   DatabaseRiskRepository,
@@ -57,13 +61,17 @@ import type { BoqRepository } from './boq.repository';
 import type { ChangeRequestRepository } from './change-request.repository';
 import type { DailyReportRepository } from './daily-report.repository';
 import type { DocumentRepository } from './document.repository';
+import type { EnvironmentalAssessmentRepository } from './environmental-assessment.repository';
 import type { EvmRepository } from './evm.repository';
 import type { GanttRepository } from './gantt.repository';
 import type { IssueRepository } from './issue.repository';
+import type { LandAcquisitionRepository } from './land-acquisition.repository';
 import type { MilestoneRepository } from './milestone.repository';
 import type { NotificationRepository } from './notification.repository';
 import type { OrgStructureRepository } from './org-structure.repository';
+import type { PermitRepository } from './permit.repository';
 import type { ProjectRepository } from './project.repository';
+import type { PublicHearingRepository } from './public-hearing.repository';
 import type { QualityGateRepository } from './quality-gate.repository';
 import type { QualityInspectionRepository } from './quality-inspection.repository';
 import type { RiskRepository } from './risk.repository';
@@ -77,13 +85,17 @@ export interface RepositoryRegistry {
   changeRequests: ChangeRequestRepository;
   dailyReports: DailyReportRepository;
   documents: DocumentRepository;
+  environmentalAssessments: EnvironmentalAssessmentRepository;
   evm: EvmRepository;
   gantt: GanttRepository;
   issues: IssueRepository;
+  landAcquisitionRecords: LandAcquisitionRepository;
   milestones: MilestoneRepository;
   notifications: NotificationRepository;
   orgStructure: OrgStructureRepository;
+  permits: PermitRepository;
   projects: ProjectRepository;
+  publicHearings: PublicHearingRepository;
   qualityGates: QualityGateRepository;
   qualityInspections: QualityInspectionRepository;
   risks: RiskRepository;
@@ -135,13 +147,19 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     changeRequests: wrap(new DatabaseChangeRequestRepository(db)),
     dailyReports: wrap(new DatabaseDailyReportRepository(db)),
     documents: wrap(new DatabaseDocumentRepository(db)),
+    environmentalAssessments: wrap(
+      new DatabaseEnvironmentalAssessmentRepository(db),
+    ),
     evm: wrap(new DatabaseEvmRepository(db)),
     gantt: wrap(new DatabaseGanttRepository(db)),
     issues: wrap(new DatabaseIssueRepository(db)),
+    landAcquisitionRecords: wrap(new DatabaseLandAcquisitionRepository(db)),
     milestones: wrap(new DatabaseMilestoneRepository(db)),
     notifications: wrap(new DatabaseNotificationRepository(db)),
     orgStructure: wrap(new DatabaseOrgStructureRepository(db)),
+    permits: wrap(new DatabasePermitRepository(db)),
     projects: wrap(new DatabaseProjectRepository(db)),
+    publicHearings: wrap(new DatabasePublicHearingRepository(db)),
     qualityGates: wrap(new DatabaseQualityGateRepository(db)),
     qualityInspections: wrap(new DatabaseQualityInspectionRepository(db)),
     risks: wrap(new DatabaseRiskRepository(db)),

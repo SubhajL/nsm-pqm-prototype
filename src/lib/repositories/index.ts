@@ -35,3 +35,7 @@ export type { RiskRepository } from './risk.repository';
 export type { TeamMembershipRepository } from './team-membership.repository';
 export type { UserRepository } from './user.repository';
 export type { WbsRepository } from './wbs.repository';
+export type { PermitRepository } from './permit.repository';
+export type { EnvironmentalAssessmentRepository } from './environmental-assessment.repository';
+export type { PublicHearingRepository } from './public-hearing.repository';
+export type { LandAcquisitionRepository } from './land-acquisition.repository';

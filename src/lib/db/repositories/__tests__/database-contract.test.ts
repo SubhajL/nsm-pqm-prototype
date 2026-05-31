@@ -23,13 +23,17 @@ import {
   DatabaseChangeRequestRepository,
   DatabaseDailyReportRepository,
   DatabaseDocumentRepository,
+  DatabaseEnvironmentalAssessmentRepository,
   DatabaseEvmRepository,
   DatabaseGanttRepository,
   DatabaseIssueRepository,
+  DatabaseLandAcquisitionRepository,
   DatabaseMilestoneRepository,
   DatabaseNotificationRepository,
   DatabaseOrgStructureRepository,
+  DatabasePermitRepository,
   DatabaseProjectRepository,
+  DatabasePublicHearingRepository,
   DatabaseQualityGateRepository,
   DatabaseQualityInspectionRepository,
   DatabaseRiskRepository,
@@ -43,13 +47,17 @@ import { runBoqRepositoryContract } from '@/lib/repositories/__tests__/contracts
 import { runChangeRequestRepositoryContract } from '@/lib/repositories/__tests__/contracts/change-request.contract';
 import { runDailyReportRepositoryContract } from '@/lib/repositories/__tests__/contracts/daily-report.contract';
 import { runDocumentRepositoryContract } from '@/lib/repositories/__tests__/contracts/document.contract';
+import { runEnvironmentalAssessmentRepositoryContract } from '@/lib/repositories/__tests__/contracts/environmental-assessment.contract';
 import { runEvmRepositoryContract } from '@/lib/repositories/__tests__/contracts/evm.contract';
 import { runGanttRepositoryContract } from '@/lib/repositories/__tests__/contracts/gantt.contract';
 import { runIssueRepositoryContract } from '@/lib/repositories/__tests__/contracts/issue.contract';
+import { runLandAcquisitionRepositoryContract } from '@/lib/repositories/__tests__/contracts/land-acquisition.contract';
 import { runMilestoneRepositoryContract } from '@/lib/repositories/__tests__/contracts/milestone.contract';
 import { runNotificationRepositoryContract } from '@/lib/repositories/__tests__/contracts/notification.contract';
 import { runOrgStructureRepositoryContract } from '@/lib/repositories/__tests__/contracts/org-structure.contract';
+import { runPermitRepositoryContract } from '@/lib/repositories/__tests__/contracts/permit.contract';
 import { runProjectRepositoryContract } from '@/lib/repositories/__tests__/contracts/project.contract';
+import { runPublicHearingRepositoryContract } from '@/lib/repositories/__tests__/contracts/public-hearing.contract';
 import { runQualityGateRepositoryContract } from '@/lib/repositories/__tests__/contracts/quality-gate.contract';
 import { runQualityInspectionRepositoryContract } from '@/lib/repositories/__tests__/contracts/quality-inspection.contract';
 import { runRiskRepositoryContract } from '@/lib/repositories/__tests__/contracts/risk.contract';
@@ -175,5 +183,22 @@ describe('Database repository contracts (pglite)', () => {
 
   runNotificationRepositoryContract(async () => {
     return new DatabaseNotificationRepository(await freshDb());
+  });
+
+  // PR-25 — compliance registers.
+  runPermitRepositoryContract(async () => {
+    return new DatabasePermitRepository(await freshDb());
+  });
+
+  runEnvironmentalAssessmentRepositoryContract(async () => {
+    return new DatabaseEnvironmentalAssessmentRepository(await freshDb());
+  });
+
+  runPublicHearingRepositoryContract(async () => {
+    return new DatabasePublicHearingRepository(await freshDb());
+  });
+
+  runLandAcquisitionRepositoryContract(async () => {
+    return new DatabaseLandAcquisitionRepository(await freshDb());
   });
 });
