@@ -1,15 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import {
-  Alert,
-  Card,
-  Skeleton,
-  Space,
-  Tag,
-  Typography,
-} from 'antd';
-import { WarningOutlined } from '@ant-design/icons';
+import { Card, Skeleton, Tag, Typography } from 'antd';
 
 import { useInspection, useResolveChecklistItem, useUpdateInspectionStatus } from '@/hooks/useQuality';
 import { useRouteProjectId } from '@/hooks/useRouteProjectId';
@@ -19,6 +11,7 @@ import { COLORS } from '@/theme/antd-theme';
 import type { WorkflowStatus } from '@/types/quality';
 
 import { WORKFLOW_LABELS } from './_components/constants';
+import { InspectionAlertBanner } from './_components/InspectionAlertBanner';
 import { InspectionDetailsCard } from './_components/InspectionDetailsCard';
 import { ChecklistCard } from './_components/ChecklistCard';
 import { PhotoSection } from './_components/PhotoSection';
@@ -84,23 +77,28 @@ export default function QCInspectionPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* 1. Hold Point Alert Banner */}
-      <Alert
-        type="error"
-        showIcon
-        icon={<WarningOutlined />}
-        message={
-          <Text strong style={{ color: COLORS.error }}>
-            Hold Point — งานต้องหยุด รอวิศวกรอนุมัติ (Work must stop until
-            engineer approval)
-          </Text>
-        }
-        style={{ borderColor: COLORS.error }}
+      {/* PR-B2: single priority-ordered alert banner (was 3-4 stacked
+          Alerts on this page — UX gap G13 "alert fatigue"). */}
+      <InspectionAlertBanner
+        hasFailItems={hasFailItems}
+        failCount={failCount}
+        failItems={failItems}
+        workflowStatus={workflowStatus}
+        autoNCR={inspection.autoNCR}
       />
 
-      {/* 2. Title */}
+      {/* PR-B2: title row is now a flex container that wraps on narrow
+          viewports — previously `Space align="center"` truncated the
+          status Tag on mobile. */}
       <div>
-        <Space align="center" size="middle">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
           <Title level={3} style={{ marginBottom: 0 }}>
             แบบฟอร์มตรวจสอบคุณภาพ (QC Inspection Form)
           </Title>
@@ -110,20 +108,13 @@ export default function QCInspectionPage() {
           >
             {WORKFLOW_LABELS[workflowStatus].label}
           </Tag>
-        </Space>
+        </div>
         <Text type="secondary" style={{ fontSize: 16, display: 'block', marginTop: 4 }}>
           {inspection.title}
         </Text>
       </div>
 
       <InspectionDetailsCard inspection={inspection} />
-
-      {/* 4. Quick Tip */}
-      <Alert
-        type="info"
-        showIcon
-        message="Hold Point (H): งานต้องหยุด — ห้ามดำเนินการต่อจนกว่าจะได้รับอนุมัติจากวิศวกร"
-      />
 
       <ChecklistCard
         inspectionId={inspection.id}
@@ -193,39 +184,10 @@ export default function QCInspectionPage() {
         ) : null}
       </Card>
 
-      {/* 9. Auto-NCR Warning */}
-      {inspection.autoNCR ? (
-        <Alert
-          type="warning"
-          showIcon
-          icon={<WarningOutlined style={{ fontSize: 20 }} />}
-          message={
-            <Text strong>
-              Auto NCR — ระบบสร้าง Issue (NCR) อัตโนมัติ
-            </Text>
-          }
-          description="เมื่อ QC ไม่ผ่าน ระบบจะสร้าง Issue (NCR) อัตโนมัติ และไม่สามารถปิดโครงการได้จนกว่าจะแก้ไข (Auto NCR: Project cannot be closed until resolved)"
-          style={{
-            border: `1px solid ${COLORS.warning}`,
-          }}
-        />
-      ) : null}
-
-      {/* 10. Fail items blocking alert */}
-      {hasFailItems && workflowStatus !== 'signed' ? (
-        <Alert
-          type="error"
-          showIcon
-          icon={<WarningOutlined />}
-          message={
-            <Text strong style={{ color: COLORS.error }}>
-              ไม่สามารถยืนยันหรือลงนามได้ — ยังมี {failCount} รายการที่ไม่ผ่าน ({failItems})
-            </Text>
-          }
-          description="วิศวกรต้องแก้ไขรายการที่ไม่ผ่านให้เป็นผ่านก่อน จึงจะดำเนินการยืนยันผลตรวจและลงนามได้"
-          style={{ borderColor: COLORS.error }}
-        />
-      ) : null}
+      {/* PR-B2: Auto-NCR and fail-items alerts were previously rendered
+          here as separate banners. They are now consolidated into the
+          single InspectionAlertBanner at the top of the page (priority
+          order: fail-items > auto-NCR > hold-point). */}
 
       <WorkflowButtonsCard
         inspectionId={inspection.id}
