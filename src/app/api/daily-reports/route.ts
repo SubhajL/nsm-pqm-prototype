@@ -10,9 +10,28 @@ import {
 } from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
 import type { DailyReport } from '@/types/daily-report';
-import { persistMockUpload } from '@/lib/mock-upload-storage';
+import { persistMockUpload, refreshSignedUrl } from '@/lib/mock-upload-storage';
 import { parseRequestBody } from '@/lib/validation';
 import { createDailyReportRequestSchema } from '@/types/daily-report.schema';
+
+/**
+ * Persisted photo/attachment URLs are short-lived signed URLs (5-min TTL).
+ * Re-sign on read so older reports remain renderable. Pass-through for
+ * legacy non-signed URLs (local-FS, raw blob URLs from before PR-PH0).
+ */
+function withFreshlySignedAssets(report: DailyReport): DailyReport {
+  return {
+    ...report,
+    photos: report.photos.map((p) => ({
+      ...p,
+      url: p.url ? refreshSignedUrl(p.url) : p.url,
+    })),
+    attachments: report.attachments.map((a) => ({
+      ...a,
+      url: refreshSignedUrl(a.url),
+    })),
+  };
+}
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -36,7 +55,10 @@ export async function GET(request: Request) {
   // Sort by date descending (newest first)
   filtered.sort((a, b) => b.date.localeCompare(a.date));
 
-  return Response.json({ status: 'success', data: filtered });
+  return Response.json({
+    status: 'success',
+    data: filtered.map(withFreshlySignedAssets),
+  });
 }
 
 export async function POST(request: Request) {
@@ -143,7 +165,7 @@ export async function POST(request: Request) {
                 gpsLat: Number(meta?.gpsLat) || 0,
                 gpsLng: Number(meta?.gpsLng) || 0,
                 timestamp: meta?.timestamp?.trim() || uploadedAt,
-                url: result.url,
+                url: result.signedUrl,
                 mimeType: result.mimeType,
                 sizeBytes: result.sizeBytes,
               };
@@ -198,7 +220,7 @@ export async function POST(request: Request) {
               return {
                 id: `att-${reportId}-${index + 1}`,
                 filename: result.filename,
-                url: result.url,
+                url: result.signedUrl,
                 mimeType: result.mimeType,
                 sizeBytes: result.sizeBytes,
                 uploadedAt,

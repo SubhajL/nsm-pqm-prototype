@@ -7,6 +7,7 @@ import {
   getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
+import { refreshSignedUrl } from '@/lib/mock-upload-storage';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { updateDailyReportStatusRequestSchema } from '@/types/daily-report.schema';
@@ -33,7 +34,20 @@ export async function GET(
   const forbidden = await requireProjectAccess(report.projectId);
   if (forbidden) return forbidden;
 
-  return Response.json({ status: 'success', data: report });
+  // Phase 0 — re-sign asset URLs so reports older than 5 min still render.
+  const refreshed: DailyReport = {
+    ...report,
+    photos: report.photos.map((p) => ({
+      ...p,
+      url: p.url ? refreshSignedUrl(p.url) : p.url,
+    })),
+    attachments: report.attachments.map((a) => ({
+      ...a,
+      url: refreshSignedUrl(a.url),
+    })),
+  };
+
+  return Response.json({ status: 'success', data: refreshed });
 }
 
 export async function PATCH(
