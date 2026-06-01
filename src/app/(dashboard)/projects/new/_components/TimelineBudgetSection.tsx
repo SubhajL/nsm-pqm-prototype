@@ -11,6 +11,8 @@ import {
   Typography,
 } from 'antd';
 
+import { formatBahtLive, parseBahtLive } from '@/lib/baht-live-format';
+
 import {
   PROGRESS_METHOD_OPTIONS,
   type ProgressMethodInfo,
@@ -71,9 +73,12 @@ export function TimelineBudgetSection({
             <InputNumber
               style={{ width: '100%' }}
               min={0}
-              addonAfter="บาท"
-              formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(v) => Number(v?.replace(/,/g, '') || 0) as unknown as 0}
+              aria-label="งบประมาณ (Budget)"
+              // PR-D1b — use the shared formatBahtLive helper for Thai
+              // grouping + leading ฿. parseBahtLive returns a numeric
+              // string so AntD's InputNumber state remains a number.
+              formatter={(value) => formatBahtLive(value)}
+              parser={(value) => Number(parseBahtLive(value) || 0) as unknown as 0}
             />
           </Form.Item>
         </Col>

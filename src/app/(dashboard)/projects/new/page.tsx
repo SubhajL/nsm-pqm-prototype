@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
-import { Card, Form, message } from 'antd';
+import { Card, Form, Steps, message } from 'antd';
 
 import type { Project } from '@/types/project';
 import type { ContractingModel, DeliveryMethod, ProjectClass } from '@/types/rid/vocabulary';
@@ -11,14 +11,20 @@ import { useCreateProject } from '@/hooks/useProjects';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { canCreateProject as canCreateProjectForRole } from '@/lib/auth';
+import { COLORS } from '@/theme/antd-theme';
+import { WizardActionFooter, clampStepIndex } from '@/components/common';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
-import { ActionBar } from './_components/ActionBar';
 import { BasicInfoSection } from './_components/BasicInfoSection';
 import { DraftAlert } from './_components/DraftAlert';
 import { MilestonesSection } from './_components/MilestonesSection';
 import { NewProjectHeader } from './_components/NewProjectHeader';
 import { TeamSection } from './_components/TeamSection';
 import { TimelineBudgetSection } from './_components/TimelineBudgetSection';
+import {
+  NEW_PROJECT_STEPS,
+  getNewProjectWizardFieldNames,
+} from './_components/new-project-wizard-steps';
 import {
   DEFAULT_MILESTONES,
   DRAFT_STORAGE_KEY,
@@ -39,11 +45,17 @@ export default function NewProjectPage() {
   const [form] = Form.useForm();
   const [milestones, setMilestones] = useState<MilestoneRow[]>(DEFAULT_MILESTONES);
   const [savedDraftAt, setSavedDraftAt] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [dirty, setDirty] = useState(false);
+  const totalSteps = NEW_PROJECT_STEPS.length;
   const createProject = useCreateProject();
   const setCurrentProject = useAppStore((s) => s.setCurrentProject);
   const currentUser = useAuthStore((s) => s.currentUser);
   const progressMethod = Form.useWatch('progressMethod', form) as ProgressMethodInfo['value'] | undefined;
   const budgetValue = Form.useWatch('budget', form);
+
+  // PR-D1b — block reload/close while the user has unsaved edits.
+  useUnsavedChangesGuard({ dirty, submitting: createProject.isPending });
   const currentBudget =
     typeof budgetValue === 'number' && Number.isFinite(budgetValue) ? budgetValue : TOTAL_BUDGET;
   const draftStorageKey = currentUser ? `${DRAFT_STORAGE_KEY}:${currentUser.id}` : null;
@@ -184,6 +196,9 @@ export default function NewProjectPage() {
         window.localStorage.removeItem(draftStorageKey);
       }
       setSavedDraftAt(null);
+      // PR-D1b — clear dirty only after confirmed save success so a
+      // failed submit leaves the unsaved-changes guard armed.
+      setDirty(false);
       setCurrentProject(createdProject.id);
       message.success('สร้างโครงการสำเร็จ (Project created successfully)');
       router.push(`/projects/${createdProject.id}`);
@@ -195,10 +210,10 @@ export default function NewProjectPage() {
     }
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = (): boolean => {
     if (!draftStorageKey || !currentUser) {
       message.error('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่');
-      return;
+      return false;
     }
 
     const values = form.getFieldsValue(true) as DraftFormValues;
@@ -211,6 +226,10 @@ export default function NewProjectPage() {
     window.localStorage.setItem(draftStorageKey, JSON.stringify(payload));
     setSavedDraftAt(payload.savedAt);
     message.success('บันทึกร่างแล้ว (Draft saved)');
+    // PR-D1b — clear dirty only after the draft actually persisted so a
+    // missing-user precondition doesn't disarm the unsaved-changes guard.
+    setDirty(false);
+    return true;
   };
 
   const handleLoadDraft = () => {
@@ -300,6 +319,12 @@ export default function NewProjectPage() {
           boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
         }}
       >
+        <Steps
+          size="small"
+          current={currentStep}
+          items={NEW_PROJECT_STEPS.map((step) => ({ title: step.title }))}
+          style={{ marginBottom: 16 }}
+        />
         <Form
           form={form}
           layout="vertical"
@@ -309,25 +334,84 @@ export default function NewProjectPage() {
             deliveryMethod: 'in_house',
             contractingModel: null,
           }}
+          onValuesChange={() => setDirty(true)}
         >
-          <BasicInfoSection />
+          {/* PR-D1b — All panes stay visible so existing one-pass E2E specs
+              continue to pass. The Steps header + WizardActionFooter give
+              users a progress indicator; the active step gets a teal
+              accent on its left border. */}
+          <div
+            data-wizard-step="basics"
+            style={{
+              paddingLeft: 12,
+              borderLeft: `3px solid ${currentStep === 0 ? COLORS.accentTeal : 'transparent'}`,
+              transition: 'border-color 0.2s ease',
+            }}
+          >
+            <BasicInfoSection />
+          </div>
 
-          <TimelineBudgetSection progressMethod={progressMethod} />
+          <div
+            data-wizard-step="schedule"
+            style={{
+              paddingLeft: 12,
+              borderLeft: `3px solid ${currentStep === 1 ? COLORS.accentTeal : 'transparent'}`,
+              transition: 'border-color 0.2s ease',
+            }}
+          >
+            <TimelineBudgetSection progressMethod={progressMethod} />
 
-          <MilestonesSection
-            milestones={milestones}
-            currentBudget={currentBudget}
-            onMilestoneChange={handleMilestoneChange}
-            onAddMilestone={addMilestone}
-          />
+            <MilestonesSection
+              milestones={milestones}
+              currentBudget={currentBudget}
+              onMilestoneChange={handleMilestoneChange}
+              onAddMilestone={addMilestone}
+            />
+          </div>
 
-          <TeamSection defaultTeamMembers={defaultTeamMembers} />
+          <div
+            data-wizard-step="team"
+            style={{
+              paddingLeft: 12,
+              borderLeft: `3px solid ${currentStep === 2 ? COLORS.accentTeal : 'transparent'}`,
+              transition: 'border-color 0.2s ease',
+            }}
+          >
+            <TeamSection defaultTeamMembers={defaultTeamMembers} />
+          </div>
 
-          <ActionBar
+          <WizardActionFooter
+            current={currentStep}
+            total={totalSteps}
+            onPrev={() => setCurrentStep((c) => clampStepIndex(c - 1, totalSteps))}
+            onNext={async () => {
+              const fields = getNewProjectWizardFieldNames(currentStep);
+              try {
+                if (fields.length > 0) {
+                  await form.validateFields(fields as string[]);
+                }
+                setCurrentStep((c) => clampStepIndex(c + 1, totalSteps));
+              } catch {
+                message.error('กรุณาตรวจสอบข้อมูลที่จำเป็น (Please complete required fields)');
+              }
+            }}
+            onSubmit={() => {
+              // PR-D1b — handleSubmit owns the dirty=false clear on
+              // confirmed success; don't pre-clear here.
+              void handleSubmit();
+            }}
             onCancel={() => router.push('/dashboard')}
-            onSaveDraft={handleSaveDraft}
-            onSubmit={handleSubmit}
+            secondary={{
+              label: 'บันทึกร่าง (Save draft)',
+              onClick: () => {
+                handleSaveDraft();
+              },
+              ariaLabel: 'บันทึกร่าง (Save draft)',
+            }}
+            submitting={createProject.isPending}
+            sticky={false}
           />
+
         </Form>
       </Card>
     </div>
