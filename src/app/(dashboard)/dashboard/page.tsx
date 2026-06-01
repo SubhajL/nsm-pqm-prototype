@@ -6,6 +6,7 @@ import { Typography } from 'antd';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { canCreateProject as canCreateProjectForRole } from '@/lib/auth';
+import { buildPortfolioFreshness } from '@/lib/dashboard-kpi-context';
 
 import { CreateProjectFAB } from './_components/CreateProjectFAB';
 import { DashboardCharts } from './_components/DashboardCharts';
@@ -183,6 +184,7 @@ export default function PortfolioDashboardPage() {
         completedPct={completedPct}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        freshness={buildPortfolioFreshness(projects ?? [], new Date()).label}
       />
 
       <DashboardCharts

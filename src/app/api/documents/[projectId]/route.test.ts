@@ -215,7 +215,7 @@ describe('PATCH /api/documents/[projectId] (PR-Docs1)', () => {
         event.action === 'upload_document' &&
         event.resourceType === 'document_file' &&
         event.resourceId === 'file-3' &&
-        event.decisionReason.includes('rename file'),
+        (event.decisionReason ?? '').includes('rename file'),
     );
     expect(relevant.length).toBeGreaterThanOrEqual(1);
     const latest = relevant[relevant.length - 1];

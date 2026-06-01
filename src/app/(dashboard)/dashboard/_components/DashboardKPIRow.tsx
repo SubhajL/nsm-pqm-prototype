@@ -9,9 +9,12 @@ import {
 } from '@ant-design/icons';
 
 import { KPICard } from '@/components/common/KPICard';
+import { computeKpiDelta } from '@/lib/dashboard-kpi-context';
 import { COLORS, PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 
 import type { DashboardStatusFilter } from './helpers';
+
+const COMPARISON_LABEL = '(vs baseline)';
 
 export function DashboardKPIRow({
   totalProjects,
@@ -23,6 +26,8 @@ export function DashboardKPIRow({
   completedPct,
   statusFilter,
   onStatusFilterChange,
+  freshness,
+  baseline,
 }: {
   totalProjects: number;
   inProgressCount: number;
@@ -33,6 +38,18 @@ export function DashboardKPIRow({
   completedPct: string;
   statusFilter: DashboardStatusFilter;
   onStatusFilterChange: (next: DashboardStatusFilter) => void;
+  /** P-C1 — bilingual "Updated X ago" label rendered on the first KPI card. */
+  freshness?: string;
+  /**
+   * P-C1 — baseline counts to derive deltas. When omitted (eg the
+   * comparison data is not available) the cards hide the delta row.
+   */
+  baseline?: {
+    totalProjects?: number;
+    inProgressCount?: number;
+    planningCount?: number;
+    completedCount?: number;
+  };
 }) {
   return (
     <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -45,6 +62,14 @@ export function DashboardKPIRow({
           subtitle="งบประมาณปี 2569"
           active={statusFilter === 'all'}
           onClick={() => onStatusFilterChange('all')}
+          delta={
+            baseline?.totalProjects !== undefined
+              ? computeKpiDelta(totalProjects, baseline.totalProjects, {
+                  comparisonLabel: COMPARISON_LABEL,
+                })
+              : undefined
+          }
+          freshness={freshness}
         />
       </Col>
       <Col span={6}>
@@ -56,6 +81,13 @@ export function DashboardKPIRow({
           subtitle={`${inProgressPct}% ของทั้งหมด`}
           active={statusFilter === 'in_progress'}
           onClick={() => onStatusFilterChange('in_progress')}
+          delta={
+            baseline?.inProgressCount !== undefined
+              ? computeKpiDelta(inProgressCount, baseline.inProgressCount, {
+                  comparisonLabel: COMPARISON_LABEL,
+                })
+              : undefined
+          }
         />
       </Col>
       <Col span={6}>
@@ -67,6 +99,13 @@ export function DashboardKPIRow({
           subtitle={`${planningPct}% ของทั้งหมด`}
           active={statusFilter === 'planning'}
           onClick={() => onStatusFilterChange('planning')}
+          delta={
+            baseline?.planningCount !== undefined
+              ? computeKpiDelta(planningCount, baseline.planningCount, {
+                  comparisonLabel: COMPARISON_LABEL,
+                })
+              : undefined
+          }
         />
       </Col>
       <Col span={6}>
@@ -78,6 +117,13 @@ export function DashboardKPIRow({
           subtitle={`${completedPct}% ของทั้งหมด`}
           active={statusFilter === 'completed'}
           onClick={() => onStatusFilterChange('completed')}
+          delta={
+            baseline?.completedCount !== undefined
+              ? computeKpiDelta(completedCount, baseline.completedCount, {
+                  comparisonLabel: COMPARISON_LABEL,
+                })
+              : undefined
+          }
         />
       </Col>
     </Row>
