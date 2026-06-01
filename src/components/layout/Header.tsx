@@ -5,9 +5,13 @@ import { BellOutlined, MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined } from
 import { usePathname, useRouter } from 'next/navigation';
 import { useProject } from '@/hooks/useProjects';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useThemePreference } from '@/hooks/useThemePreference';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { COLORS } from '@/theme/antd-theme';
+import { DARK_COLORS } from '@/theme/dark-theme';
+
+import { ThemeToggle } from './ThemeToggle';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -46,6 +50,14 @@ export function Header() {
   const { data: notifications } = useNotifications();
   const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
   const currentUser = useAuthStore((s) => s.currentUser);
+  // Sprint 4 (E1) — shell surfaces are inline-styled, so they don't
+  // pick up AntD's darkAlgorithm automatically. Pick the right token
+  // bag based on the resolved theme.
+  const { resolved } = useThemePreference();
+  const isDark = resolved === 'dark';
+  const headerBg = isDark ? DARK_COLORS.surfaceMuted : COLORS.white;
+  const headerBorder = isDark ? DARK_COLORS.borderSoft : COLORS.borderLight;
+  const headerText = isDark ? DARK_COLORS.textDark : COLORS.textDark;
 
   const segments = pathname.split('/').filter(Boolean);
   const projectIdSegment =
@@ -69,12 +81,12 @@ export function Header() {
   return (
     <AntHeader
       style={{
-        background: COLORS.white,
+        background: headerBg,
         padding: isMobile ? '0 12px' : '0 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: `1px solid ${COLORS.borderLight}`,
+        borderBottom: `1px solid ${headerBorder}`,
         position: 'sticky',
         top: 0,
         zIndex: 99,
@@ -104,6 +116,7 @@ export function Header() {
       </Space>
 
       <Space size={isMobile ? 'small' : 'middle'}>
+        <ThemeToggle />
         <Badge count={unreadCount} size="small">
           <Button
             type="text"
@@ -120,7 +133,7 @@ export function Header() {
         </Badge>
         <Space size="small">
           <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: COLORS.accentTeal }} />
-          <span style={{ fontSize: isMobile ? 12 : 14, color: COLORS.textDark, maxWidth: isMobile ? 84 : undefined, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontSize: isMobile ? 12 : 14, color: headerText, maxWidth: isMobile ? 84 : undefined, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {currentUser?.name ?? 'ผู้ใช้ทดลอง'}
           </span>
         </Space>

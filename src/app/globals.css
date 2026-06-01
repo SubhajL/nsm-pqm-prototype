@@ -22,10 +22,10 @@ body {
   background: var(--color-bg-layout);
 }
 
-/* Ant Design sidebar active item left border */
-.ant-menu-dark .ant-menu-item-selected {
-  border-left: 3px solid var(--color-accent-teal) !important;
-}
+/* Sprint 4 (E2) — the sidebar selected-row accent is now a rounded
+   ::before pseudo injected by <style jsx global> inside Sidebar.tsx.
+   The legacy `border-left: 3px solid !important` rule that used to
+   live here was removed to avoid a doubled accent. */
 
 /* Quality Gate pulse animation */
 @keyframes pulse-amber {

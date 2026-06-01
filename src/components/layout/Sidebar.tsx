@@ -26,10 +26,12 @@ import type { ReactNode } from 'react';
 import { apiPost } from '@/lib/api-client';
 import { getAgencyBrand } from '@/lib/branding';
 import { useProjects } from '@/hooks/useProjects';
+import { useThemePreference } from '@/hooks/useThemePreference';
 import { canAccessMenuItem, isProjectScopedMenuItem, type AppMenuKey } from '@/lib/project-access-pure';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { COLORS } from '@/theme/antd-theme';
+import { DARK_COLORS } from '@/theme/dark-theme';
 import type { UserRole } from '@/types/admin';
 
 const { Sider } = Layout;
@@ -99,6 +101,10 @@ export const Sidebar = memo(function Sidebar() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const clearCurrentUser = useAuthStore((s) => s.clearCurrentUser);
   const currentRole = currentUser?.role ?? null;
+  // Sprint 4 (E1) — Sider/Drawer backgrounds are inline-styled and so
+  // don't auto-react to AntD's darkAlgorithm; pick the right token bag.
+  const { resolved } = useThemePreference();
+  const sidebarBg = resolved === 'dark' ? DARK_COLORS.sidebarDark : COLORS.primary;
   const { data: visibleProjects } = useProjects();
   const hasCurrentProjectAccess = Boolean(
     currentProjectId && visibleProjects?.some((project) => project.id === currentProjectId),
@@ -197,9 +203,34 @@ export const Sidebar = memo(function Sidebar() {
               closeMobileSidebar();
             }
           }}
+          // Sprint 4 (E2) — tighter inline indent so the new teal
+          // left-border accent (injected via <style jsx> below) reads
+          // as the primary "active row" signal.
+          inlineIndent={16}
           style={{ background: 'transparent', borderRight: 0, marginTop: 8 }}
         />
       </nav>
+      {/* Sprint 4 (E2) — teal left-border + bold selected row. The
+          :global rule targets AntD's generated `.ant-menu-item-selected`
+          class which scoped-CSS won't transform. Reuses the
+          COLORS.accentTeal accent pattern established by PR-A3 +
+          EmptyState. */}
+      <style jsx global>{`
+        .ant-menu-dark .ant-menu-item-selected {
+          position: relative;
+          font-weight: 600;
+        }
+        .ant-menu-dark .ant-menu-item-selected::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 6px;
+          bottom: 6px;
+          width: 3px;
+          background-color: ${COLORS.accentTeal};
+          border-radius: 0 2px 2px 0;
+        }
+      `}</style>
 
       {currentUser && (
         <div
@@ -248,7 +279,7 @@ export const Sidebar = memo(function Sidebar() {
         styles={{
           body: {
             padding: 0,
-            background: COLORS.primary,
+            background: sidebarBg,
             display: 'flex',
             flexDirection: 'column',
           },
@@ -265,7 +296,7 @@ export const Sidebar = memo(function Sidebar() {
       collapsedWidth={64}
       collapsed={collapsed}
       style={{
-        background: COLORS.primary,
+        background: sidebarBg,
         minHeight: '100vh',
         position: 'fixed',
         left: 0,
