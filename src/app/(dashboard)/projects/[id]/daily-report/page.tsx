@@ -23,6 +23,7 @@ import type { DailyReport, DailyReportStatus } from '@/types/daily-report';
 import { canReviewDailyReport } from '@/lib/auth';
 
 import { blankSignature } from '@/components/common';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 import { CreateReportModal } from './_components/CreateReportModal';
 import { PageHeader } from './_components/PageHeader';
@@ -53,6 +54,15 @@ export default function DailyReportPage() {
   // attachments still use the legacy queue state.
   const [attachmentFiles, setAttachmentFiles] = useState<UploadQueueItem[]>([]);
   const [createForm] = Form.useForm<DailyReportFormValues>();
+  // Stabilization PR — dirty flag drives the unsaved-changes guard for
+  // the Create Daily Report modal. Cleared on confirmed submit success
+  // or on explicit cancel (modal close) so the reload prompt never
+  // fires for a clean workspace.
+  const [createDirty, setCreateDirty] = useState(false);
+  useUnsavedChangesGuard({
+    dirty: isCreateModalOpen && createDirty,
+    submitting: createDailyReport.isPending,
+  });
 
   const selectedReport =
     localSelectedReport?.id === selectedReportId
@@ -122,6 +132,9 @@ export default function DailyReportPage() {
       setIsCreateModalOpen(false);
       createForm.resetFields();
       setAttachmentFiles([]);
+      // Stabilization PR — disarm the unsaved-changes guard only after
+      // the create-mutation succeeded (matches the New Project pattern).
+      setCreateDirty(false);
       setSelectedReportId(createdReport.id);
       setLocalSelectedReport(createdReport);
       message.success('สร้างรายงานประจำวันแล้ว');
@@ -187,6 +200,7 @@ export default function DailyReportPage() {
             issues: '',
           });
           setAttachmentFiles([]);
+          setCreateDirty(false);
           setIsCreateModalOpen(true);
         }}
       />
@@ -229,9 +243,13 @@ export default function DailyReportPage() {
         onCancel={() => {
           setIsCreateModalOpen(false);
           setAttachmentFiles([]);
+          // Stabilization PR — explicit Cancel disarms the guard so the
+          // browser doesn't prompt on a subsequent reload.
+          setCreateDirty(false);
         }}
         onOk={handleCreateDailyReport}
         setAttachmentFiles={setAttachmentFiles}
+        onDirty={() => setCreateDirty(true)}
       />
     </div>
   );

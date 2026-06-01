@@ -55,6 +55,12 @@ interface CreateReportModalProps {
   onCancel: () => void;
   onOk: () => void;
   setAttachmentFiles: React.Dispatch<React.SetStateAction<UploadQueueItem[]>>;
+  /**
+   * Stabilization PR — Notifies the parent that the user has edited
+   * any form value, so the page can arm `useUnsavedChangesGuard`.
+   * Fires on every `Form.onValuesChange` call.
+   */
+  onDirty?: () => void;
 }
 
 export function CreateReportModal({
@@ -67,6 +73,7 @@ export function CreateReportModal({
   onCancel,
   onOk,
   setAttachmentFiles,
+  onDirty,
 }: CreateReportModalProps) {
   // PR-D1b — Steps wizard state. Non-current panes stay in the DOM but
   // are hidden via `display: none` so existing Playwright specs that
@@ -134,7 +141,11 @@ export function CreateReportModal({
         items={DAILY_REPORT_STEPS.map((step) => ({ title: step.title }))}
         style={{ marginBottom: 16 }}
       />
-      <Form form={createForm} layout="vertical">
+      <Form
+        form={createForm}
+        layout="vertical"
+        onValuesChange={() => onDirty?.()}
+      >
         <div data-wizard-step="site-info" style={stepStyleFor(0)}>
         <Form.Item label="วันที่" name="date" rules={[{ required: true, message: 'กรุณาเลือกวันที่' }]}>
           <DatePicker aria-label="วันที่" style={{ width: '100%' }} format="DD/MM/YYYY" />
