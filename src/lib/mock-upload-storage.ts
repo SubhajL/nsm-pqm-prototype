@@ -100,6 +100,32 @@ export function getSignedDocumentUrl(
   return `/api/documents/_blob/signed?${params.toString()}`;
 }
 
+/**
+ * Re-sign a previously persisted signed URL so the caller gets a fresh
+ * 5-minute window. Signed URLs in this prototype have a finite TTL (300s
+ * by default) — persisting them as the canonical asset URL on document
+ * files / daily-report photos will work for a single render but expire
+ * before any later detail view. The fix is to keep the persisted URL
+ * (which encodes the blob `key` as a query param), then re-sign it at
+ * response time. Pass-through behaviour for legacy `/mock-uploads/...`
+ * paths (local-FS uploads), Vercel-direct URLs, or anything that doesn't
+ * match the proxied shape.
+ */
+export function refreshSignedUrl(maybePersistedUrl: string): string {
+  if (!maybePersistedUrl || !maybePersistedUrl.includes('/api/documents/_blob/signed')) {
+    return maybePersistedUrl;
+  }
+  try {
+    // Parsing with a synthetic origin is fine — only the searchParams matter.
+    const parsed = new URL(maybePersistedUrl, 'http://localhost');
+    const key = parsed.searchParams.get('key');
+    if (!key) return maybePersistedUrl;
+    return getSignedDocumentUrl(key);
+  } catch {
+    return maybePersistedUrl;
+  }
+}
+
 export function signSignedUrlPayload(blobKey: string, expiresAt: number): string {
   const secret = getSigningSecret();
   return createHmac('sha256', secret).update(`${blobKey}:${expiresAt}`).digest('hex');

@@ -13,7 +13,7 @@
 - Lint: `npm run lint`
 - Build: `npm run build`
 - Full local gate: `npm run typecheck && npm run lint && npm run build`
-- Note: the commands above come from `CLAUDE.md`; no `package.json` is present in this checkout yet.
+- Note: the commands above come from `CLAUDE.md`. `package.json` is checked in at the repo root — run `npm install` once, then any of the scripts above directly.
 
 ## Universal Conventions
 - TypeScript strict mode only; do not introduce `any`, `@ts-ignore`, or `@ts-expect-error`.
