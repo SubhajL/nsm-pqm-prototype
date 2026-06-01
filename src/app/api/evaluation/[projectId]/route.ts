@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 
+import { requireExecutiveUser } from '@/lib/project-api-access';
+
 interface EvaluationCategory {
   name: string;
   nameEn: string;
@@ -47,6 +49,8 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ projectId: string }> },
 ) {
+  const guard = await requireExecutiveUser();
+  if (guard) return guard;
   const { projectId } = await params;
   const evaluation = evaluationStore[projectId];
 

@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { requireAdminUser } from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
 import type { AuditEvent } from '@/types/audit';
 
@@ -86,6 +87,8 @@ function withLegacyAliases(event: AuditEvent, userNamesById: Map<string, string>
  *   - `endDate`    ISO date — keep events with timestamp <= endDate+T23:59:59
  */
 export async function GET(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   await new Promise((resolve) => setTimeout(resolve, 150));
   const repos = getRepositories();
   const store: AuditEvent[] = [...(await repos.auditEvents.list())];

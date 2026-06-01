@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { recordAuditEvent } from '@/lib/audit-helpers';
+import { requireAdminUser } from '@/lib/project-api-access';
 import type { RidOrgUnitTreeNode } from '@/lib/repositories/org-structure.repository';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
@@ -32,6 +33,8 @@ function decorateTreeWithUserCount(
 }
 
 export async function GET(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   await new Promise((resolve) => setTimeout(resolve, 150));
   const { searchParams } = new URL(request.url);
   const asTree = searchParams.get('asTree') === 'true';
@@ -59,6 +62,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   await new Promise((resolve) => setTimeout(resolve, 150));
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createOrgUnitRequestSchema, rawBody);
@@ -89,6 +94,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   await new Promise((resolve) => setTimeout(resolve, 150));
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateOrgUnitRequestSchema, rawBody);
@@ -121,6 +128,8 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   await new Promise((resolve) => setTimeout(resolve, 150));
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(deleteOrgUnitRequestSchema, rawBody);

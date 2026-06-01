@@ -1,8 +1,9 @@
 export const dynamic = 'force-dynamic';
 
-import { getAssignedProjectCountForUser } from '@/lib/project-access';
-import { getRepositories } from '@/lib/repositories';
 import { recordAuditEvent } from '@/lib/audit-helpers';
+import { getAssignedProjectCountForUser } from '@/lib/project-access';
+import { requireAdminUser } from '@/lib/project-api-access';
+import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { User } from '@/types/admin';
 import {
@@ -11,6 +12,8 @@ import {
 } from '@/types/admin.schema';
 
 export async function GET(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   await new Promise((resolve) => setTimeout(resolve, 150));
   const { searchParams } = new URL(request.url);
   const department = searchParams.get('department');
@@ -33,6 +36,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   await new Promise((resolve) => setTimeout(resolve, 150));
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(createUserRequestSchema, rawBody);
@@ -61,6 +66,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   await new Promise((resolve) => setTimeout(resolve, 150));
   const rawBody: unknown = await request.json().catch(() => null);
   const parsed = parseRequestBody(updateUserRequestSchema, rawBody);
