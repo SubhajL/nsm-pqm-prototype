@@ -16,3 +16,22 @@ export const createWbsNodeRequestSchema = z
   .strict();
 
 export type CreateWbsNodeRequest = z.infer<typeof createWbsNodeRequestSchema>;
+
+/** PR-C2 — PATCH body. All editable fields are optional. */
+export const updateWbsNodeRequestSchema = z
+  .object({
+    id: z.string().min(1, 'id is required'),
+    name: z.string().min(1, 'name cannot be empty').optional(),
+    weight: z.number().min(0).max(100).optional(),
+    progress: z.number().min(0).max(100).optional(),
+  })
+  .strict();
+
+export type UpdateWbsNodeRequest = z.infer<typeof updateWbsNodeRequestSchema>;
+
+/** PR-C2 — DELETE body. The route cascades to descendants + BOQ rows. */
+export const deleteWbsNodeRequestSchema = z
+  .object({ id: z.string().min(1, 'id is required') })
+  .strict();
+
+export type DeleteWbsNodeRequest = z.infer<typeof deleteWbsNodeRequestSchema>;

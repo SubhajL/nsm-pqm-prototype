@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost } from '@/lib/api-client';
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api-client';
 
 export interface BOQItem {
   id: string;
@@ -35,6 +35,34 @@ export function useCreateBOQItem(wbsId: string | undefined) {
     mutationFn: (payload) => apiPost<BOQItem>(`/boq/${wbsId}`, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['boq', wbsId] });
+    },
+  });
+}
+
+/** PR-C2 — edit a BOQ item (server recomputes total). */
+export function useUpdateBOQItem(wbsId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<
+    BOQItem,
+    Error,
+    { id: string; description?: string; quantity?: number; unit?: string; unitPrice?: number }
+  >({
+    mutationFn: (payload) => apiPatch<BOQItem>(`/boq/${wbsId}`, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['boq', wbsId] });
+      void queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+    },
+  });
+}
+
+/** PR-C2 — delete a BOQ item. */
+export function useDeleteBOQItem(wbsId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<BOQItem, Error, { id: string }>({
+    mutationFn: (payload) => apiDelete<BOQItem>(`/boq/${wbsId}`, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['boq', wbsId] });
+      void queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
     },
   });
 }

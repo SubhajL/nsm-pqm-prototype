@@ -7,12 +7,17 @@ import { useProject } from '@/hooks/useProjects';
 import { useRouteProjectId } from '@/hooks/useRouteProjectId';
 import {
   useCreateWBSNode,
+  useDeleteWBSNode,
+  useUpdateWBSNode,
   useWBS,
   type CreateWBSNodeInput,
 } from '@/hooks/useWBS';
 import {
   useBOQ,
   useCreateBOQItem,
+  useDeleteBOQItem,
+  useUpdateBOQItem,
+  type BOQItem,
   type CreateBOQItemInput,
 } from '@/hooks/useBOQ';
 import { buildWbsExportDocument } from '@/lib/export-documents';
@@ -22,6 +27,14 @@ import { isOutsourcedProject } from '@/types/project';
 import { BoqTablePanel } from './_components/BoqTablePanel';
 import { CreateBoqItemModal } from './_components/CreateBoqItemModal';
 import { CreateWbsNodeModal } from './_components/CreateWbsNodeModal';
+import {
+  EditBoqItemModal,
+  type EditBoqItemFormValues,
+} from './_components/EditBoqItemModal';
+import {
+  EditWbsNodeModal,
+  type EditWbsNodeFormValues,
+} from './_components/EditWbsNodeModal';
 import { WbsActionBar } from './_components/WbsActionBar';
 import { WbsLoading } from './_components/WbsLoading';
 import { WbsStatsBar } from './_components/WbsStatsBar';
@@ -35,13 +48,22 @@ export default function WbsBOQPage() {
   const { data: project } = useProject(projectId);
   const { data: wbsNodes, isLoading: wbsLoading } = useWBS(projectId);
   const createWbsNode = useCreateWBSNode(projectId);
+  const updateWbsNode = useUpdateWBSNode(projectId);
+  const deleteWbsNode = useDeleteWBSNode(projectId);
   const [selectedWbsId, setSelectedWbsId] = useState<string | undefined>(undefined);
   const createBoqItem = useCreateBOQItem(selectedWbsId);
+  const updateBoqItem = useUpdateBOQItem(selectedWbsId);
+  const deleteBoqItem = useDeleteBOQItem(selectedWbsId);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateBoqModalOpen, setIsCreateBoqModalOpen] = useState(false);
+  const [isEditNodeOpen, setIsEditNodeOpen] = useState(false);
+  const [isEditBoqOpen, setIsEditBoqOpen] = useState(false);
+  const [editBoqTarget, setEditBoqTarget] = useState<BOQItem | null>(null);
   const [pendingSelectedWbsId, setPendingSelectedWbsId] = useState<string | null>(null);
   const [createForm] = Form.useForm<CreateWBSNodeInput>();
   const [createBoqForm] = Form.useForm<CreateBOQItemInput>();
+  const [editNodeForm] = Form.useForm<EditWbsNodeFormValues>();
+  const [editBoqForm] = Form.useForm<EditBoqItemFormValues>();
 
   const { data: boqItems, isLoading: boqLoading } = useBOQ(
     selectedWbsId || undefined,
@@ -185,6 +207,84 @@ export default function WbsBOQPage() {
     }
   };
 
+  const openEditNode = () => {
+    if (!selectedWbsId || !wbsNodes) return;
+    const node = wbsNodes.find((n) => n.id === selectedWbsId);
+    if (!node) return;
+    editNodeForm.setFieldsValue({
+      name: node.name,
+      weight: node.weight,
+      progress: node.progress,
+    });
+    setIsEditNodeOpen(true);
+  };
+
+  const handleEditNode = async () => {
+    if (!selectedWbsId) return;
+    try {
+      const values = await editNodeForm.validateFields();
+      await updateWbsNode.mutateAsync({ id: selectedWbsId, ...values });
+      setIsEditNodeOpen(false);
+      editNodeForm.resetFields();
+      message.success('บันทึก WBS แล้ว (WBS saved)');
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        message.error(error.message);
+      }
+    }
+  };
+
+  const handleDeleteNode = async () => {
+    if (!selectedWbsId) return;
+    try {
+      await deleteWbsNode.mutateAsync({ id: selectedWbsId });
+      setSelectedWbsId(undefined);
+      message.success('ลบ WBS แล้ว (WBS deleted)');
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        message.error(error.message);
+      }
+    }
+  };
+
+  const openEditBoq = (item: BOQItem) => {
+    setEditBoqTarget(item);
+    editBoqForm.setFieldsValue({
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+      unitPrice: item.unitPrice,
+    });
+    setIsEditBoqOpen(true);
+  };
+
+  const handleEditBoq = async () => {
+    if (!editBoqTarget) return;
+    try {
+      const values = await editBoqForm.validateFields();
+      await updateBoqItem.mutateAsync({ id: editBoqTarget.id, ...values });
+      setIsEditBoqOpen(false);
+      setEditBoqTarget(null);
+      editBoqForm.resetFields();
+      message.success('บันทึกรายการ BOQ แล้ว (BOQ saved)');
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        message.error(error.message);
+      }
+    }
+  };
+
+  const handleDeleteBoq = async (item: BOQItem) => {
+    try {
+      await deleteBoqItem.mutateAsync({ id: item.id });
+      message.success(`ลบรายการ ${item.description} แล้ว`);
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        message.error(error.message);
+      }
+    }
+  };
+
   // Loading state
   if (wbsLoading) {
     return <WbsLoading />;
@@ -201,7 +301,14 @@ export default function WbsBOQPage() {
         </Text>
       </div>
 
-      <WbsActionBar onCreateNode={openCreateModal} onExportExcel={handleExportExcel} />
+      <WbsActionBar
+        onCreateNode={openCreateModal}
+        onExportExcel={handleExportExcel}
+        selectedWbsId={selectedWbsId}
+        onEditNode={openEditNode}
+        onDeleteNode={handleDeleteNode}
+        deletePending={deleteWbsNode.isPending}
+      />
 
       <Row gutter={[16, 16]}>
         {/* PR-B1: stack on xs/sm/md (≤991px); side-by-side from lg (≥992px).
@@ -225,6 +332,9 @@ export default function WbsBOQPage() {
             boqTotalSum={boqTotalSum}
             canCreateBoq={canCreateBoq}
             onOpenCreateBoq={openCreateBoqModal}
+            onEditBoq={canCreateBoq ? openEditBoq : undefined}
+            onDeleteBoq={canCreateBoq ? handleDeleteBoq : undefined}
+            deletePending={deleteBoqItem.isPending}
           />
         </Col>
       </Row>
@@ -247,6 +357,31 @@ export default function WbsBOQPage() {
           onOk={handleCreateBoqItem}
           confirmLoading={createBoqItem.isPending}
           form={createBoqForm}
+        />
+      ) : null}
+
+      <EditWbsNodeModal
+        open={isEditNodeOpen}
+        onCancel={() => {
+          setIsEditNodeOpen(false);
+          editNodeForm.resetFields();
+        }}
+        onOk={handleEditNode}
+        confirmLoading={updateWbsNode.isPending}
+        form={editNodeForm}
+      />
+
+      {canCreateBoq ? (
+        <EditBoqItemModal
+          open={isEditBoqOpen}
+          onCancel={() => {
+            setIsEditBoqOpen(false);
+            setEditBoqTarget(null);
+            editBoqForm.resetFields();
+          }}
+          onOk={handleEditBoq}
+          confirmLoading={updateBoqItem.isPending}
+          form={editBoqForm}
         />
       ) : null}
     </div>
