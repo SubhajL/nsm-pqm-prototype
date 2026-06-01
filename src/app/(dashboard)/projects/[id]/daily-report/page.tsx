@@ -22,11 +22,14 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import type { DailyReport, DailyReportStatus } from '@/types/daily-report';
 import { canReviewDailyReport } from '@/lib/auth';
 
+import { blankSignature } from '@/components/common';
+
 import { CreateReportModal } from './_components/CreateReportModal';
 import { PageHeader } from './_components/PageHeader';
 import { ReportDetail } from './_components/ReportDetail';
 import { ReportListCard } from './_components/ReportListCard';
 import { ReportStatsCards } from './_components/ReportStatsCards';
+import { buildDailyReportFormData } from './_components/submit-mapper';
 import type { DailyReportFormValues, UploadQueueItem } from './_components/types';
 
 const { Title } = Typography;
@@ -45,7 +48,9 @@ export default function DailyReportPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | DailyReportStatus>('all');
-  const [photoFiles, setPhotoFiles] = useState<UploadQueueItem[]>([]);
+  // PR-D1c — photo upload queue is now owned by the
+  // `<Form.Item name="photos">` value via PhotoCaptureField; only
+  // attachments still use the legacy queue state.
   const [attachmentFiles, setAttachmentFiles] = useState<UploadQueueItem[]>([]);
   const [createForm] = Form.useForm<DailyReportFormValues>();
 
@@ -92,66 +97,30 @@ export default function DailyReportPage() {
   const handleCreateDailyReport = async () => {
     try {
       const values = await createForm.validateFields();
-      const personnel = (values.personnel ?? []).filter(
-        (entry) => entry?.type?.trim() && Number(entry.count) > 0,
-      );
-      const activities = (values.activities ?? [])
-        .filter((entry) => entry?.task?.trim())
-        .map((entry) => ({
-          wbsId: entry.wbsId,
-          task: entry.task.trim(),
-          quantity: Number(entry.quantity) || 0,
-          unit: entry.unit.trim(),
-          cumulativeProgress: Math.min(
-            1,
-            Math.max(0, (Number(entry.cumulativeProgress) || 0) / 100),
-          ),
-        }));
-      const photoMetadata = (values.photoMetadata ?? []).map((entry) => ({
-        gpsLat: Number(entry.gpsLat) || 0,
-        gpsLng: Number(entry.gpsLng) || 0,
-        timestamp: entry.timestamp.trim(),
-      }));
-      const formData = new FormData();
-      formData.append(
-        'metadata',
-        JSON.stringify({
-          projectId,
-          date: values.date.format('YYYY-MM-DD'),
-          weather: values.weather,
-          temperature: values.temperature,
-          totalPersonnel: personnel.reduce((sum, entry) => sum + Number(entry.count || 0), 0),
-          personnel,
-          linkedWbs: values.linkedWbs ?? [],
-          activities,
-          photoMetadata,
-          issues: values.issues || 'ไม่พบปัญหา',
-          signatures: {
-            reporter: {
-              name: values.reporterName.trim(),
-              signed: values.reporterSigned,
-              timestamp: values.reporterSigned ? new Date().toISOString() : null,
-            },
-            inspector: {
-              name: values.inspectorName.trim(),
-              signed: values.inspectorSigned,
-              timestamp: values.inspectorSigned ? new Date().toISOString() : null,
-            },
-          },
-          status: 'draft',
-        }),
-      );
-      photoFiles.forEach((photo) => {
-        formData.append('photoFiles', photo.file, photo.name);
-      });
-      attachmentFiles.forEach((attachment) => {
-        formData.append('attachmentFiles', attachment.file, attachment.name);
+      // PR-D1c — Delegate the FormData payload assembly to the pure
+      // `buildDailyReportFormData` mapper so the legacy shape stays
+      // locked by `submit-mapper.test.ts`. The mapper consumes the new
+      // `values.photos` (CapturedPhoto[]) + `values.signatures` shapes.
+      const formData = buildDailyReportFormData({
+        projectId,
+        date: values.date,
+        weather: values.weather,
+        temperature: values.temperature,
+        linkedWbs: values.linkedWbs ?? [],
+        personnel: values.personnel ?? [],
+        activities: values.activities ?? [],
+        photos: values.photos ?? [],
+        attachments: attachmentFiles.map((entry) => ({
+          file: entry.file,
+          name: entry.name,
+        })),
+        signatures: values.signatures,
+        issues: values.issues,
       });
 
       const createdReport = await createDailyReport.mutateAsync(formData);
       setIsCreateModalOpen(false);
       createForm.resetFields();
-      setPhotoFiles([]);
       setAttachmentFiles([]);
       setSelectedReportId(createdReport.id);
       setLocalSelectedReport(createdReport);
@@ -207,14 +176,16 @@ export default function DailyReportPage() {
             linkedWbs: [],
             personnel: [],
             activities: [],
-            photoMetadata: [],
-            reporterName: currentUser?.name ?? '',
-            reporterSigned: false,
-            inspectorName: '',
-            inspectorSigned: false,
+            // PR-D1c — Migrated to PhotoCaptureField + SignatureCaptureField
+            // controlled values. `photos` carries CapturedPhoto[]; signatures
+            // start blank with the current user's name pre-filled on reporter.
+            photos: [],
+            signatures: {
+              reporter: blankSignature(currentUser?.name ?? ''),
+              inspector: blankSignature(''),
+            },
             issues: '',
           });
-          setPhotoFiles([]);
           setAttachmentFiles([]);
           setIsCreateModalOpen(true);
         }}
@@ -253,16 +224,13 @@ export default function DailyReportPage() {
         isMobile={isMobile}
         createForm={createForm}
         wbsOptions={wbsOptions}
-        photoFiles={photoFiles}
         attachmentFiles={attachmentFiles}
         confirmLoading={createDailyReport.isPending}
         onCancel={() => {
           setIsCreateModalOpen(false);
-          setPhotoFiles([]);
           setAttachmentFiles([]);
         }}
         onOk={handleCreateDailyReport}
-        setPhotoFiles={setPhotoFiles}
         setAttachmentFiles={setAttachmentFiles}
       />
     </div>

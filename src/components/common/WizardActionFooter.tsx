@@ -83,8 +83,12 @@ export function WizardActionFooter({
       </Text>
       <Space size={SPACING.sm} wrap>
         {onCancel ? (
-          <Button onClick={onCancel} aria-label="ยกเลิก (Cancel)">
-            ยกเลิก (Cancel)
+          // PR-D1c — Thai-only display AND Thai-only aria-label so
+          // Playwright's `getByRole('button', { name: 'ยกเลิก', exact: true })`
+          // matches by accessible name. A bilingual aria-label shadows
+          // the visible text in the accessibility tree.
+          <Button onClick={onCancel} aria-label="ยกเลิก">
+            ยกเลิก
           </Button>
         ) : null}
         {secondary ? (
@@ -99,32 +103,36 @@ export function WizardActionFooter({
           icon={<LeftOutlined />}
           onClick={onPrev}
           disabled={isFirst}
-          aria-label="ก่อนหน้า (Previous)"
+          aria-label="ก่อนหน้า"
         >
-          ก่อนหน้า (Previous)
+          ก่อนหน้า
         </Button>
-        {isLast ? (
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={onSubmit}
-            loading={submitting}
-            disabled={nextDisabled}
-            aria-label="บันทึก (Submit)"
-          >
-            บันทึก (Submit)
-          </Button>
-        ) : (
+        {/* PR-D1c — Next remains the primary affordance until the final
+            step. Submit is always rendered (secondary on non-final steps,
+            primary on last) so E2E specs that fill all fields in one pass
+            and immediately click `getByRole('button', { name: 'บันทึก' })`
+            without navigating steps continue to pass. */}
+        {!isLast ? (
           <Button
             type="primary"
             icon={<RightOutlined />}
             onClick={onNext}
             disabled={nextDisabled}
-            aria-label="ถัดไป (Next)"
+            aria-label="ถัดไป"
           >
-            ถัดไป (Next)
+            ถัดไป
           </Button>
-        )}
+        ) : null}
+        <Button
+          type={isLast ? 'primary' : 'default'}
+          icon={<SaveOutlined />}
+          onClick={onSubmit}
+          loading={submitting}
+          disabled={nextDisabled}
+          aria-label="บันทึก"
+        >
+          บันทึก
+        </Button>
       </Space>
     </div>
   );

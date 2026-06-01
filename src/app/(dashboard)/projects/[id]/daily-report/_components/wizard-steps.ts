@@ -35,7 +35,10 @@ export function getDailyReportWizardFieldNames(
     case 2:
       return ['activities'];
     case 3:
-      return ['photoMetadata', 'reporterName', 'inspectorName', 'issues'];
+      // PR-D1c — Step 4 fields after capture-primitive wiring:
+      // `photos` is a CapturedPhoto[] from PhotoCaptureField;
+      // `signatures` is `{reporter, inspector}` from SignatureCaptureField.
+      return ['photos', 'signatures', 'issues'];
     default:
       return [];
   }

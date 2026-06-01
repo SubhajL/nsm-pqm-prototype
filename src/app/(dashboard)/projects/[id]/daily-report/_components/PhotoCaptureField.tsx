@@ -1,7 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Card, Col, InputNumber, Row, Space, Typography, message } from 'antd';
+import {
+  Button,
+  Card,
+  Col,
+  Input,
+  InputNumber,
+  Row,
+  Space,
+  Typography,
+  message,
+} from 'antd';
 import { CameraOutlined, DeleteOutlined, EnvironmentOutlined } from '@ant-design/icons';
 
 import { formatGpsLabel, requestGpsAsync } from '@/components/common';
@@ -13,9 +23,13 @@ const { Text } = Typography;
 
 /**
  * PR-D1b — controlled multi-image capture field with per-photo GPS.
+ * PR-D1c — wired into Daily Report Step 4 with back-compat data-testid
+ * + 1-based indexed aria-labels + per-photo timestamp Input so the
+ * existing batch4-daily-report-file-uploads E2E spec continues to pass.
  *
  * Output shape is intentionally rich so the Daily Report submit handler
- * can map directly into the `DailyReport.photos[]` array.
+ * can map directly into the `DailyReport.photos[]` array via the pure
+ * `submit-mapper.ts` helper.
  */
 export interface CapturedPhoto {
   /** Unique key for React reconciliation. */
@@ -58,21 +72,43 @@ export function PhotoCaptureField({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
-  // Revoke object URLs on unmount so we don't leak memory between modal sessions.
+  // PR-D1b — Track every object URL we ever created so the unmount
+  // sweep catches photos added AFTER the first render. Per-add pushes
+  // happen in `handleFilesSelected`; per-remove revokes in `handleRemove`.
+  const createdUrlsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
+    const urls = createdUrlsRef.current;
     return () => {
-      for (const photo of photos) {
+      Array.from(urls).forEach((url) => {
         try {
-          URL.revokeObjectURL(photo.previewUrl);
+          URL.revokeObjectURL(url);
         } catch {
           // ignore
         }
-      }
+      });
+      urls.clear();
     };
-    // We intentionally read `photos` once at unmount; per-add revokes
-    // happen inline in handleRemove.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // PR-D1c (Codex MEDIUM fix) — Revoke tracked URLs that are no longer
+  // present in the current `value`. Without this, URLs from a parent-
+  // driven reset (form.resetFields() / setFieldsValue({photos: []}) /
+  // modal close-reopen) linger until full unmount.
+  useEffect(() => {
+    const tracked = createdUrlsRef.current;
+    if (tracked.size === 0) return;
+    const present = new Set(photos.map((p) => p.previewUrl));
+    Array.from(tracked).forEach((url) => {
+      if (!present.has(url)) {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+        tracked.delete(url);
+      }
+    });
+  }, [photos]);
 
   const emit = (next: CapturedPhoto[]) => {
     onChange?.(next);
@@ -96,17 +132,21 @@ export function PhotoCaptureField({
         announce(reasonText, 'polite');
       }
 
-      const nextPhotos: CapturedPhoto[] = Array.from(files).map((file, index) => ({
-        id: `photo-${Date.now()}-${index}-${file.name}`,
-        filename: file.name,
-        sizeBytes: file.size,
-        mimeType: file.type,
-        previewUrl: URL.createObjectURL(file),
-        gpsLat: lat,
-        gpsLng: lng,
-        timestamp: stamp,
-        file,
-      }));
+      const nextPhotos: CapturedPhoto[] = Array.from(files).map((file, index) => {
+        const previewUrl = URL.createObjectURL(file);
+        createdUrlsRef.current.add(previewUrl);
+        return {
+          id: `photo-${Date.now()}-${index}-${file.name}`,
+          filename: file.name,
+          sizeBytes: file.size,
+          mimeType: file.type,
+          previewUrl,
+          gpsLat: lat,
+          gpsLng: lng,
+          timestamp: stamp,
+          file,
+        };
+      });
 
       emit([...photos, ...nextPhotos]);
       announce(`เพิ่ม ${nextPhotos.length} ภาพแล้ว (${nextPhotos.length} photos added)`);
@@ -124,6 +164,7 @@ export function PhotoCaptureField({
       } catch {
         // ignore
       }
+      createdUrlsRef.current.delete(target.previewUrl);
     }
     emit(photos.filter((p) => p.id !== photoId));
   };
@@ -136,6 +177,10 @@ export function PhotoCaptureField({
   const handleManualLng = (photoId: string, lng: number | null) => {
     if (lng === null) return;
     emit(photos.map((p) => (p.id === photoId ? { ...p, gpsLng: lng } : p)));
+  };
+
+  const handleManualTimestamp = (photoId: string, value: string) => {
+    emit(photos.map((p) => (p.id === photoId ? { ...p, timestamp: value } : p)));
   };
 
   return (
@@ -153,9 +198,11 @@ export function PhotoCaptureField({
           <EnvironmentOutlined /> GPS จับอัตโนมัติเมื่อเลือกภาพ (GPS captured per batch)
         </Text>
       </Space>
+      {/* PR-D1c — Back-compat data-testid for batch4-daily-report-file-uploads
+          spec that uses `setInputFiles` against `daily-report-photo-upload`. */}
       <input
         ref={fileInputRef}
-        data-testid="photo-capture-input"
+        data-testid="daily-report-photo-upload"
         type="file"
         accept="image/*"
         multiple
@@ -170,67 +217,76 @@ export function PhotoCaptureField({
         <Text type="secondary">ยังไม่ได้เลือกภาพ (No photos yet)</Text>
       ) : (
         <Row gutter={[SPACING.md, SPACING.md]}>
-          {photos.map((photo) => (
-            <Col xs={24} sm={12} key={photo.id}>
-              <Card
-                size="small"
-                styles={{ body: { padding: SPACING.md } }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.previewUrl}
-                  alt={`ภาพถ่าย ${photo.filename}`}
-                  style={{
-                    width: '100%',
-                    maxHeight: 160,
-                    objectFit: 'cover',
-                    borderRadius: 4,
-                    border: `1px solid ${COLORS.borderSoft}`,
-                  }}
-                />
-                <div style={{ marginTop: SPACING.sm }}>
-                  <Text strong ellipsis>
-                    {photo.filename}
-                  </Text>
-                  <div>
-                    <Text type="secondary">
-                      {formatGpsLabel({ lat: photo.gpsLat, lng: photo.gpsLng })}
+          {photos.map((photo, index) => {
+            // PR-D1c — 1-based aria-labels match the legacy batch4 spec
+            // selectors `ละติจูดภาพ 1` / `ลองจิจูดภาพ 1` / `เวลาถ่ายภาพ 1`.
+            const oneBased = index + 1;
+            return (
+              <Col xs={24} sm={12} key={photo.id}>
+                <Card size="small" styles={{ body: { padding: SPACING.md } }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.previewUrl}
+                    alt={`ภาพถ่าย ${photo.filename}`}
+                    style={{
+                      width: '100%',
+                      maxHeight: 160,
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                      border: `1px solid ${COLORS.borderSoft}`,
+                    }}
+                  />
+                  <div style={{ marginTop: SPACING.sm }}>
+                    <Text strong ellipsis>
+                      {photo.filename}
                     </Text>
+                    <div>
+                      <Text type="secondary">
+                        {formatGpsLabel({ lat: photo.gpsLat, lng: photo.gpsLng })}
+                      </Text>
+                    </div>
                   </div>
-                </div>
-                <Row gutter={SPACING.sm} style={{ marginTop: SPACING.sm }}>
-                  <Col span={12}>
-                    <InputNumber
-                      aria-label={`ปรับละติจูดภาพ ${photo.filename} (Adjust latitude)`}
-                      value={photo.gpsLat}
-                      step={0.0001}
-                      onChange={(next) => handleManualLat(photo.id, next as number | null)}
-                      style={{ width: '100%' }}
-                    />
-                  </Col>
-                  <Col span={12}>
-                    <InputNumber
-                      aria-label={`ปรับลองจิจูดภาพ ${photo.filename} (Adjust longitude)`}
-                      value={photo.gpsLng}
-                      step={0.0001}
-                      onChange={(next) => handleManualLng(photo.id, next as number | null)}
-                      style={{ width: '100%' }}
-                    />
-                  </Col>
-                </Row>
-                <Button
-                  block
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleRemove(photo.id)}
-                  style={{ marginTop: SPACING.sm }}
-                  aria-label={`ลบภาพ ${photo.filename} (Remove photo)`}
-                >
-                  ลบภาพ (Remove)
-                </Button>
-              </Card>
-            </Col>
-          ))}
+                  <Row gutter={SPACING.sm} style={{ marginTop: SPACING.sm }}>
+                    <Col span={12}>
+                      <InputNumber
+                        aria-label={`ละติจูดภาพ ${oneBased}`}
+                        value={photo.gpsLat}
+                        step={0.0001}
+                        onChange={(next) => handleManualLat(photo.id, next as number | null)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <InputNumber
+                        aria-label={`ลองจิจูดภาพ ${oneBased}`}
+                        value={photo.gpsLng}
+                        step={0.0001}
+                        onChange={(next) => handleManualLng(photo.id, next as number | null)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                  </Row>
+                  <Input
+                    aria-label={`เวลาถ่ายภาพ ${oneBased}`}
+                    value={photo.timestamp}
+                    onChange={(event) => handleManualTimestamp(photo.id, event.target.value)}
+                    placeholder="YYYY-MM-DDTHH:mm:ss"
+                    style={{ marginTop: SPACING.sm }}
+                  />
+                  <Button
+                    block
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleRemove(photo.id)}
+                    style={{ marginTop: SPACING.sm }}
+                    aria-label={`ลบภาพ ${photo.filename} (Remove photo)`}
+                  >
+                    ลบภาพ (Remove)
+                  </Button>
+                </Card>
+              </Col>
+            );
+          })}
         </Row>
       )}
     </div>
