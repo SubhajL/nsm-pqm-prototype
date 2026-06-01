@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPatch, apiPost } from '@/lib/api-client';
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api-client';
 import type { Issue } from '@/types/risk';
 
 export function useIssues(projectId: string | undefined, filters?: { status?: string }) {
@@ -39,6 +39,45 @@ export function useCreateIssue(projectId: string | undefined) {
     mutationFn: (payload) => apiPost<Issue>(`/issues/${projectId}`, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['issues', projectId] });
+    },
+  });
+}
+
+/** PR-L — full-edit PATCH (severity, assignee, linkedWbs, …). */
+export function useUpdateIssue(projectId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<
+    Issue,
+    Error,
+    {
+      id: string;
+      title?: string;
+      severity?: Issue['severity'];
+      status?: Issue['status'];
+      assignee?: string;
+      linkedWbs?: string;
+      slaHours?: number;
+      resolution?: string;
+      progress?: number;
+      tags?: string[];
+    }
+  >({
+    mutationFn: (payload) => apiPatch<Issue>(`/issues/${projectId}`, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['issues', projectId] });
+      void queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+    },
+  });
+}
+
+/** PR-L — DELETE an issue. */
+export function useDeleteIssue(projectId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<Issue, Error, { id: string }>({
+    mutationFn: (payload) => apiDelete<Issue>(`/issues/${projectId}`, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['issues', projectId] });
+      void queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
     },
   });
 }
