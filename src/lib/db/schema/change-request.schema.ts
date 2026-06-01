@@ -1,4 +1,4 @@
-import { integer, jsonb, pgTable, real, text } from 'drizzle-orm/pg-core';
+import { integer, jsonb, numeric, pgTable, real, text } from 'drizzle-orm/pg-core';
 
 import type { CRWorkflowStep } from '@/types/document';
 
@@ -21,7 +21,7 @@ export const changeRequests = pgTable('change_requests', {
   projectId: text('project_id').notNull(),
   title: text('title').notNull(),
   reason: text('reason').notNull(),
-  budgetImpact: real('budget_impact').notNull(),
+  budgetImpact: numeric('budget_impact', { precision: 14, scale: 2, mode: 'number' }).notNull(),
   scheduleImpact: real('schedule_impact').notNull(),
   linkedWbs: text('linked_wbs').notNull(),
   priority: text('priority').notNull(),
@@ -34,7 +34,9 @@ export const changeRequests = pgTable('change_requests', {
   workflow: jsonb('workflow').$type<CRWorkflowStep[]>().notNull().default([]),
   // PR-27 — impact analysis (delta to project schedule/budget/scope).
   impactScheduleDays: integer('impact_schedule_days').notNull().default(0),
-  impactBudgetTHB: real('impact_budget_thb').notNull().default(0),
+  impactBudgetTHB: numeric('impact_budget_thb', { precision: 14, scale: 2, mode: 'number' })
+    .notNull()
+    .default(0),
   impactScope: text('impact_scope').notNull().default(''),
   // PR-27 — append-only chain of user ids who approved at each tier.
   approvedByChain: jsonb('approved_by_chain')

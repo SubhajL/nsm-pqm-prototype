@@ -1,4 +1,4 @@
-import { integer, jsonb, pgTable, real, text } from 'drizzle-orm/pg-core';
+import { integer, jsonb, numeric, pgTable, real, text } from 'drizzle-orm/pg-core';
 
 import {
   contractingModelEnum,
@@ -29,7 +29,7 @@ export const projects = pgTable('projects', {
   contractingModel: contractingModelEnum('contracting_model'),
   sizeTier: projectSizeTierEnum('size_tier').notNull(),
   status: text('status').notNull(),
-  budget: real('budget').notNull(),
+  budget: numeric('budget', { precision: 14, scale: 2, mode: 'number' }).notNull(),
   progress: real('progress').notNull(),
   scheduleHealth: text('schedule_health'),
   startDate: text('start_date').notNull(),

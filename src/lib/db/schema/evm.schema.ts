@@ -1,4 +1,4 @@
-import { pgTable, real, text } from 'drizzle-orm/pg-core';
+import { numeric, pgTable, real, text } from 'drizzle-orm/pg-core';
 
 /**
  * EVM data points — one row per (projectId, month). The InMemory impl
@@ -10,10 +10,10 @@ export const evmDataPoints = pgTable('evm_data_points', {
   projectId: text('project_id').notNull(),
   month: text('month').notNull(),
   monthThai: text('month_thai').notNull(),
-  pv: real('pv').notNull(),
-  ev: real('ev').notNull(),
-  ac: real('ac').notNull(),
-  paidToDate: real('paid_to_date'),
+  pv: numeric('pv', { precision: 14, scale: 2, mode: 'number' }).notNull(),
+  ev: numeric('ev', { precision: 14, scale: 2, mode: 'number' }).notNull(),
+  ac: numeric('ac', { precision: 14, scale: 2, mode: 'number' }).notNull(),
+  paidToDate: numeric('paid_to_date', { precision: 14, scale: 2, mode: 'number' }),
   spi: real('spi').notNull(),
   cpi: real('cpi').notNull(),
 });

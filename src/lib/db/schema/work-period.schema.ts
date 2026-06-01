@@ -12,7 +12,7 @@
  * ALTER TABLE migrations as related tables move around.
  */
 
-import { integer, jsonb, pgTable, real, text } from 'drizzle-orm/pg-core';
+import { integer, jsonb, numeric, pgTable, real, text } from 'drizzle-orm/pg-core';
 
 import { workPeriodStateEnum } from './enums';
 
@@ -25,7 +25,7 @@ export const workPeriods = pgTable('work_periods', {
   deliverables: jsonb('deliverables').$type<string[]>().notNull(),
   plannedStartDate: text('planned_start_date').notNull(),
   plannedEndDate: text('planned_end_date').notNull(),
-  amount: real('amount').notNull(),
+  amount: numeric('amount', { precision: 14, scale: 2, mode: 'number' }).notNull(),
   percentage: real('percentage').notNull(),
   state: workPeriodStateEnum('state').notNull(),
   createdAt: text('created_at').notNull(),

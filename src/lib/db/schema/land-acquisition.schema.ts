@@ -1,4 +1,4 @@
-import { pgTable, real, text } from 'drizzle-orm/pg-core';
+import { numeric, pgTable, real, text } from 'drizzle-orm/pg-core';
 
 import { landAcquisitionStatusEnum } from './enums';
 
@@ -9,7 +9,7 @@ export const landAcquisitionRecords = pgTable('land_acquisition_records', {
   landownerName: text('landowner_name').notNull(),
   areaRai: real('area_rai').notNull(),
   status: landAcquisitionStatusEnum('status').notNull(),
-  compensationAmount: real('compensation_amount'),
+  compensationAmount: numeric('compensation_amount', { precision: 14, scale: 2, mode: 'number' }),
   notes: text('notes').notNull(),
 });
 

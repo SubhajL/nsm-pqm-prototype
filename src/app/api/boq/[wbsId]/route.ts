@@ -123,19 +123,22 @@ export async function POST(
     total: quantity * unitPrice,
   };
 
-  await repos.boq.create(newItem);
+  // Phase 2-B — capture the PERSISTED row (numeric columns may round
+  // to 2 decimals on insert; the locally-constructed `newItem` would
+  // otherwise carry a sub-cent value the DB doesn't store).
+  const created = await repos.boq.create(newItem);
   await recordAuditEvent(request, {
     action: 'edit_boq',
     resourceType: 'boq',
-    resourceId: newItem.id,
+    resourceId: created.id,
     projectId: wbsNode.projectId,
     before: null,
-    after: newItem,
+    after: created,
     decisionReason: 'create',
     authorityBasis: 'AUTHZ_MATRIX:edit_boq',
   });
 
-  return Response.json({ status: 'success', data: newItem }, { status: 201 });
+  return Response.json({ status: 'success', data: created }, { status: 201 });
 }
 
 /** PR-C2 — PATCH a BOQ item. Total is server-derived. */
