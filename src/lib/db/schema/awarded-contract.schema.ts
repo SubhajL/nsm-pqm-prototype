@@ -1,4 +1,4 @@
-import { integer, pgTable, real, text } from 'drizzle-orm/pg-core';
+import { integer, numeric, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { contractStateEnum, contractingModelEnum } from './enums';
 
@@ -9,7 +9,7 @@ export const awardedContracts = pgTable('awarded_contracts', {
   contractNumber: text('contract_number').notNull(),
   contractorName: text('contractor_name').notNull(),
   contractorTaxId: text('contractor_tax_id'),
-  awardAmount: real('award_amount').notNull(),
+  awardAmount: numeric('award_amount', { precision: 14, scale: 2, mode: 'number' }).notNull(),
   contractingModel: contractingModelEnum('contracting_model').notNull(),
   state: contractStateEnum('state').notNull(),
   signedAt: text('signed_at'),

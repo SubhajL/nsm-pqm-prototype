@@ -1,4 +1,4 @@
-import { integer, pgTable, real, text } from 'drizzle-orm/pg-core';
+import { integer, numeric, pgTable, real, text } from 'drizzle-orm/pg-core';
 
 /**
  * Project milestones. `projectId` kept as a plain text column without FK
@@ -11,7 +11,7 @@ export const milestones = pgTable('milestones', {
   number: integer('number').notNull(),
   name: text('name').notNull(),
   dueDate: text('due_date').notNull(),
-  amount: real('amount').notNull(),
+  amount: numeric('amount', { precision: 14, scale: 2, mode: 'number' }).notNull(),
   percentage: real('percentage').notNull(),
   deliverables: text('deliverables').notNull(),
   status: text('status').notNull(),

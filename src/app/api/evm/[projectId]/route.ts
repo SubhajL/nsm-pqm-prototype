@@ -123,19 +123,22 @@ export async function POST(
     cpi: ac > 0 ? ev / ac : 0,
   };
 
-  await repos.evm.create(newPoint);
+  // Phase 2-B — capture the PERSISTED row so the audit log + response
+  // reflect numeric(14,2) rounding (the locally-constructed `newPoint`
+  // could otherwise carry sub-cent precision the DB does not store).
+  const created = await repos.evm.create(newPoint);
   await recordAuditEvent(request, {
     action: 'edit_evm',
     resourceType: 'evm_data_point',
-    resourceId: newPoint.id,
+    resourceId: created.id,
     projectId: params.projectId,
     before: null,
-    after: newPoint,
-    decisionReason: `create month ${newPoint.month}`,
+    after: created,
+    decisionReason: `create month ${created.month}`,
     authorityBasis: 'AUTHZ_MATRIX:edit_evm',
   });
 
-  return Response.json({ status: 'success', data: newPoint }, { status: 201 });
+  return Response.json({ status: 'success', data: created }, { status: 201 });
 }
 
 export async function DELETE(

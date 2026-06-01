@@ -5,7 +5,7 @@
  * Postgres enum so finance reporting can JOIN against it cleanly.
  */
 
-import { pgTable, real, text } from 'drizzle-orm/pg-core';
+import { numeric, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { paymentVoucherStateEnum } from './enums';
 
@@ -13,8 +13,8 @@ export const paymentVouchers = pgTable('payment_vouchers', {
   id: text('id').primaryKey(),
   workPeriodId: text('work_period_id').notNull(),
   state: paymentVoucherStateEnum('state').notNull(),
-  requestedAmount: real('requested_amount').notNull(),
-  approvedAmount: real('approved_amount'),
+  requestedAmount: numeric('requested_amount', { precision: 14, scale: 2, mode: 'number' }).notNull(),
+  approvedAmount: numeric('approved_amount', { precision: 14, scale: 2, mode: 'number' }),
   voucherNumber: text('voucher_number'),
   paidAt: text('paid_at'),
   notes: text('notes').notNull(),
