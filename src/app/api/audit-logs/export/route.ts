@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { requireAdminUser } from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
 import type { AuditEvent } from '@/types/audit';
 
@@ -10,9 +11,10 @@ import type { AuditEvent } from '@/types/audit';
  * full AuditEvent stream (with optional date/project filters) as either
  * JSON or CSV.
  *
- * Authorization: gated by middleware.ts — the `/api/audit-logs/*` prefix
- * is restricted to System Admin via `canAccessAdmin(role)`. No
- * additional check is needed here.
+ * Authorization: gated by `requireAdminUser()` at the top of the GET
+ * handler (Phase 1). Middleware no longer enforces role/status at the
+ * edge — it only checks cookie presence. The DB-backed guard here is
+ * the canonical admin check.
  *
  * Query parameters:
  *   - `format`     'json' (default) | 'csv'
@@ -59,6 +61,8 @@ function buildFilename(format: 'json' | 'csv'): string {
 }
 
 export async function GET(request: Request) {
+  const guard = await requireAdminUser();
+  if (guard) return guard;
   const { searchParams } = new URL(request.url);
   const formatParam = (searchParams.get('format') ?? 'json').toLowerCase();
   const format: 'json' | 'csv' = formatParam === 'csv' ? 'csv' : 'json';
