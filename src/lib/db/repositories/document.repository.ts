@@ -88,6 +88,19 @@ export class DatabaseDocumentRepository implements DocumentRepository {
     return rowToFolder(row);
   }
 
+  async renameFolder(
+    projectId: string,
+    folderId: string,
+    name: string,
+  ): Promise<Folder | null> {
+    const [row] = await this.db
+      .update(documentFolders)
+      .set({ name })
+      .where(and(eq(documentFolders.projectId, projectId), eq(documentFolders.id, folderId)))
+      .returning();
+    return row ? rowToFolder(row) : null;
+  }
+
   async deleteFolder(projectId: string, folderId: string): Promise<Folder | null> {
     const [row] = await this.db
       .delete(documentFolders)

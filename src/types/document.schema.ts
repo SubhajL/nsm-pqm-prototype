@@ -95,6 +95,44 @@ export const documentDeleteRequestSchema = z.discriminatedUnion('kind', [
 
 export type DocumentDeleteRequest = z.infer<typeof documentDeleteRequestSchema>;
 
+/**
+ * PR-Docs1 — PATCH /api/documents/[projectId] body. Three sub-actions:
+ * rename a folder, rename a file, or move a file to a different folder.
+ * Each branch is intentionally narrow so the route handler can branch on
+ * `kind` and call exactly one repository method.
+ */
+export const renameDocumentFolderRequestSchema = z
+  .object({
+    kind: z.literal('rename_folder'),
+    id: z.string().min(1, 'id is required'),
+    name: z.string().min(1, 'name is required'),
+  })
+  .strict();
+
+export const renameDocumentFileRequestSchema = z
+  .object({
+    kind: z.literal('rename_file'),
+    id: z.string().min(1, 'id is required'),
+    name: z.string().min(1, 'name is required'),
+  })
+  .strict();
+
+export const moveDocumentFileRequestSchema = z
+  .object({
+    kind: z.literal('move_file'),
+    id: z.string().min(1, 'id is required'),
+    toFolderId: z.string().min(1, 'toFolderId is required'),
+  })
+  .strict();
+
+export const documentPatchRequestSchema = z.discriminatedUnion('kind', [
+  renameDocumentFolderRequestSchema,
+  renameDocumentFileRequestSchema,
+  moveDocumentFileRequestSchema,
+]);
+
+export type DocumentPatchRequest = z.infer<typeof documentPatchRequestSchema>;
+
 const crPrioritySchema = z.enum(['high', 'medium', 'low']);
 
 export const createChangeRequestRequestSchema = z

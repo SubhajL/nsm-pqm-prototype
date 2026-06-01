@@ -4,6 +4,7 @@ import {
   createChangeRequestRequestSchema,
   decideChangeRequestRequestSchema,
   documentDeleteRequestSchema,
+  documentPatchRequestSchema,
   documentWriteRequestSchema,
 } from './document.schema';
 
@@ -76,6 +77,69 @@ describe('documentDeleteRequestSchema', () => {
 
   it('rejects a delete missing id', () => {
     const result = documentDeleteRequestSchema.safeParse({ kind: 'file' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('documentPatchRequestSchema (PR-Docs1)', () => {
+  it('accepts a rename_folder body', () => {
+    const result = documentPatchRequestSchema.safeParse({
+      kind: 'rename_folder',
+      id: 'folder-1',
+      name: 'สัญญาฉบับใหม่',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a rename_file body', () => {
+    const result = documentPatchRequestSchema.safeParse({
+      kind: 'rename_file',
+      id: 'file-1',
+      name: 'TOR-final.pdf',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a move_file body', () => {
+    const result = documentPatchRequestSchema.safeParse({
+      kind: 'move_file',
+      id: 'file-1',
+      toFolderId: 'folder-2',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an unknown kind', () => {
+    const result = documentPatchRequestSchema.safeParse({
+      kind: 'rename_anything',
+      id: 'x',
+      name: 'y',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects rename_folder missing name', () => {
+    const result = documentPatchRequestSchema.safeParse({
+      kind: 'rename_folder',
+      id: 'folder-1',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects rename_folder with empty name', () => {
+    const result = documentPatchRequestSchema.safeParse({
+      kind: 'rename_folder',
+      id: 'folder-1',
+      name: '',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects move_file missing toFolderId', () => {
+    const result = documentPatchRequestSchema.safeParse({
+      kind: 'move_file',
+      id: 'file-1',
+    });
     expect(result.success).toBe(false);
   });
 });
