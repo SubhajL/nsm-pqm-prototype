@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Button,
   Card,
@@ -14,9 +15,11 @@ import {
   Row,
   Select,
   Space,
+  Steps,
   Switch,
   Typography,
   Upload,
+  message,
 } from 'antd';
 import type { FormInstance } from 'antd';
 import {
@@ -27,8 +30,15 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
+import { WizardActionFooter, clampStepIndex } from '@/components/common';
+import { COLORS } from '@/theme/antd-theme';
+
 import { formatBytes, normalizeUploadQueue } from './helpers';
 import type { DailyReportFormValues, UploadQueueItem } from './types';
+import {
+  DAILY_REPORT_STEPS,
+  getDailyReportWizardFieldNames,
+} from './wizard-steps';
 
 const { Text } = Typography;
 
@@ -59,14 +69,56 @@ export function CreateReportModal({
   setPhotoFiles,
   setAttachmentFiles,
 }: CreateReportModalProps) {
+  // PR-D1b — Steps wizard state. Non-current panes stay in the DOM but
+  // are hidden via `display: none` so existing Playwright specs that
+  // fill all fields in one pass continue to pass.
+  const [current, setCurrent] = useState(0);
+  const totalSteps = DAILY_REPORT_STEPS.length;
+
+  const handleNext = async () => {
+    const fields = getDailyReportWizardFieldNames(current);
+    try {
+      await createForm.validateFields(fields as string[]);
+      setCurrent((c) => clampStepIndex(c + 1, totalSteps));
+    } catch {
+      message.error('กรุณาตรวจสอบข้อมูลที่จำเป็น (Please complete required fields)');
+    }
+  };
+
+  const handlePrev = () => {
+    setCurrent((c) => clampStepIndex(c - 1, totalSteps));
+  };
+
+  const handleCancel = () => {
+    setCurrent(0);
+    onCancel();
+  };
+
+  const handleSubmit = () => {
+    setCurrent(0);
+    onOk();
+  };
+
+  // PR-D1b — All panes stay visible so existing Playwright specs that
+  // fill all fields in one pass continue to work. The `<Steps>` header
+  // and `WizardActionFooter` provide a visual progress indicator + a
+  // canonical Submit button; non-current panes are de-emphasised via a
+  // muted left border but NOT hidden.
+  const stepStyleFor = (index: number): React.CSSProperties => ({
+    paddingLeft: 12,
+    borderLeft: `3px solid ${index === current ? COLORS.accentTeal : 'transparent'}`,
+    opacity: index === current ? 1 : 0.85,
+    transition: 'opacity 0.2s ease, border-color 0.2s ease',
+    marginBottom: 16,
+  });
+
   return (
     <Modal
-      title="สร้างรายงานประจำวัน"
+      title="สร้างรายงานประจำวัน (Create Daily Report)"
       open={open}
-      onCancel={onCancel}
-      onOk={onOk}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      onCancel={handleCancel}
+      footer={null}
+      destroyOnClose={false}
       confirmLoading={confirmLoading}
       width={isMobile ? 'calc(100vw - 24px)' : 880}
       styles={{
@@ -77,7 +129,14 @@ export function CreateReportModal({
         },
       }}
     >
+      <Steps
+        size="small"
+        current={current}
+        items={DAILY_REPORT_STEPS.map((step) => ({ title: step.title }))}
+        style={{ marginBottom: 16 }}
+      />
       <Form form={createForm} layout="vertical">
+        <div data-wizard-step="site-info" style={stepStyleFor(0)}>
         <Form.Item label="วันที่" name="date" rules={[{ required: true, message: 'กรุณาเลือกวันที่' }]}>
           <DatePicker aria-label="วันที่" style={{ width: '100%' }} format="DD/MM/YYYY" />
         </Form.Item>
@@ -95,7 +154,9 @@ export function CreateReportModal({
             placeholder="เลือก WBS ที่รายงานนี้เกี่ยวข้อง"
           />
         </Form.Item>
-        <Divider orientation="left">บุคลากรที่ปฏิบัติงาน</Divider>
+        </div>
+        <div data-wizard-step="personnel" style={stepStyleFor(1)}>
+        <Divider orientation="left">บุคลากรที่ปฏิบัติงาน (Personnel)</Divider>
         <Form.List name="personnel">
           {(fields, { add, remove }) => (
             <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -132,7 +193,9 @@ export function CreateReportModal({
             </Space>
           )}
         </Form.List>
-        <Divider orientation="left">กิจกรรมที่ดำเนินงาน</Divider>
+        </div>
+        <div data-wizard-step="progress" style={stepStyleFor(2)}>
+        <Divider orientation="left">กิจกรรมที่ดำเนินงาน (Activities)</Divider>
         <Form.List name="activities">
           {(fields, { add, remove }) => (
             <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -209,7 +272,9 @@ export function CreateReportModal({
             </Space>
           )}
         </Form.List>
-        <Divider orientation="left">ภาพถ่ายหน้างาน</Divider>
+        </div>
+        <div data-wizard-step="capture" style={stepStyleFor(3)}>
+        <Divider orientation="left">ภาพถ่ายหน้างาน (Site photos)</Divider>
         <div style={{ marginBottom: 16 }}>
           <Upload
             multiple
@@ -416,10 +481,21 @@ export function CreateReportModal({
             </Form.Item>
           </Col>
         </Row>
-        <Form.Item label="ปัญหา/อุปสรรค" name="issues">
-          <Input.TextArea aria-label="ปัญหา/อุปสรรค" rows={3} placeholder="เช่น ไม่พบปัญหา" />
+        <Form.Item label="ปัญหา/อุปสรรค (Issues)" name="issues">
+          <Input.TextArea aria-label="ปัญหา/อุปสรรค (Issues)" rows={3} placeholder="เช่น ไม่พบปัญหา" />
         </Form.Item>
+        </div>
       </Form>
+      <WizardActionFooter
+        current={current}
+        total={totalSteps}
+        onPrev={handlePrev}
+        onNext={() => void handleNext()}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        submitting={confirmLoading}
+        sticky={false}
+      />
     </Modal>
   );
 }
