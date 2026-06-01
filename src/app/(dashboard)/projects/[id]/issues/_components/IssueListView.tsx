@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
+import { EmptyState } from '@/components/common';
 import { COLORS } from '@/theme/antd-theme';
 import { formatThaiDate } from '@/lib/date-utils';
 import type { Issue } from '@/types/risk';
@@ -110,6 +111,14 @@ export function IssueListView({
           onClick: () => router.push(issueDestinations[record.id]?.href ?? `/projects/${projectId}`),
           style: { cursor: 'pointer' },
         })}
+        locale={{
+          emptyText: (
+            <EmptyState
+              size="small"
+              title="ยังไม่มีปัญหาในโครงการนี้ (No issues yet)"
+            />
+          ),
+        }}
       />
     </Card>
   );

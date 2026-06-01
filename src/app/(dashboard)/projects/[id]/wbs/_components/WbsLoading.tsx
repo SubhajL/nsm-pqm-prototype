@@ -1,6 +1,8 @@
 'use client';
 
-import { Card, Col, Row, Skeleton, Typography } from 'antd';
+import { Col, Row, Typography } from 'antd';
+
+import { LoadingSkeleton } from '@/components/common';
 
 const { Title } = Typography;
 
@@ -13,14 +15,10 @@ export function WbsLoading() {
       <Row gutter={[16, 16]}>
         {/* PR-B1: matches the live WBS page's responsive layout. */}
         <Col xs={24} sm={24} md={24} lg={10}>
-          <Card>
-            <Skeleton active paragraph={{ rows: 12 }} />
-          </Card>
+          <LoadingSkeleton variant="table" rows={12} />
         </Col>
         <Col xs={24} sm={24} md={24} lg={14}>
-          <Card>
-            <Skeleton active paragraph={{ rows: 12 }} />
-          </Card>
+          <LoadingSkeleton variant="table" rows={12} />
         </Col>
       </Row>
     </div>

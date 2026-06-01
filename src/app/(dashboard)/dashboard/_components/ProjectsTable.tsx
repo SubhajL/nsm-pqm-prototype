@@ -5,6 +5,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { SearchOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
+import { EmptyState } from '@/components/common';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { formatBaht } from '@/lib/date-utils';
 import { COLORS } from '@/theme/antd-theme';
@@ -181,6 +182,15 @@ export function ProjectsTable({
           position: ['bottomLeft'],
         }}
         size="middle"
+        locale={{
+          emptyText: (
+            <EmptyState
+              size="small"
+              title="ไม่พบโครงการ (No projects found)"
+              description="ลองล้างตัวกรองหรือสร้างโครงการใหม่ (Try clearing filters or create a new project)"
+            />
+          ),
+        }}
       />
     </Card>
   );

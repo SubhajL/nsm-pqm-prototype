@@ -295,6 +295,8 @@ describe('Database repository contracts (pglite)', () => {
 
   runKnowledgeAreaNoteRepositoryContract(async () => {
     return new DatabaseKnowledgeAreaNoteRepository(await freshDb());
+  });
+
   // PR-26 — handover workflow.
   runHandoverPacketRepositoryContract(async () => {
     return new DatabaseHandoverPacketRepository(await freshDb());
