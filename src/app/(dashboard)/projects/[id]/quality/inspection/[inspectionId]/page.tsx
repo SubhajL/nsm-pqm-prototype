@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, Skeleton, Tag, Typography } from 'antd';
+import { Button, Card, Skeleton, Space, Tag, Typography } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
 
 import { useInspection, useResolveChecklistItem, useUpdateInspectionStatus } from '@/hooks/useQuality';
 import { useRouteProjectId } from '@/hooks/useRouteProjectId';
@@ -11,6 +13,7 @@ import { COLORS } from '@/theme/antd-theme';
 import type { WorkflowStatus } from '@/types/quality';
 
 import { WORKFLOW_LABELS } from './_components/constants';
+import { EditInspectionModal } from './_components/EditInspectionModal';
 import { InspectionAlertBanner } from './_components/InspectionAlertBanner';
 import { InspectionDetailsCard } from './_components/InspectionDetailsCard';
 import { ChecklistCard } from './_components/ChecklistCard';
@@ -31,6 +34,7 @@ export default function QCInspectionPage() {
     canAccessAdmin(currentUser?.role) ||
     currentUser?.role === 'Project Manager' ||
     currentUser?.role === 'Engineer';
+  const [editOpen, setEditOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -108,6 +112,17 @@ export default function QCInspectionPage() {
           >
             {WORKFLOW_LABELS[workflowStatus].label}
           </Tag>
+          {canResolve && (
+            <Space style={{ marginLeft: 'auto' }}>
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => setEditOpen(true)}
+                aria-label="แก้ไขการตรวจ (Edit inspection)"
+              >
+                แก้ไข (Edit)
+              </Button>
+            </Space>
+          )}
         </div>
         <Text type="secondary" style={{ fontSize: 16, display: 'block', marginTop: 4 }}>
           {inspection.title}
@@ -201,6 +216,16 @@ export default function QCInspectionPage() {
           await updateStatus.mutateAsync({ id: inspection.id, workflowStatus: 'signed' });
         }}
       />
+
+      {/* PR-PRQM-K — inspection metadata edit modal */}
+      {projectId && (
+        <EditInspectionModal
+          open={editOpen}
+          inspection={inspection}
+          projectId={projectId}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
     </div>
   );
 }
