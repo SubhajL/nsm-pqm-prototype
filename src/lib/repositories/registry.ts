@@ -30,7 +30,7 @@
  */
 
 import { ensureDatabaseSeeded } from '@/lib/db/bootstrap';
-import { createDbClient, type Db } from '@/lib/db/client';
+import { getDb, type Db } from '@/lib/db/client';
 import {
   DatabaseAsBuiltDrawingRepository,
   DatabaseAssetRegistrationRepository,
@@ -198,6 +198,27 @@ function createDatabaseRegistry(db: Db): RepositoryRegistry {
     }) as T;
   };
 
+  return assembleRegistry(db, wrap);
+}
+
+/**
+ * Phase 2-A — Build a registry bound to an explicit `Db` handle WITHOUT
+ * the `ensureDatabaseSeeded` gate. Used by `withTransactionalAudit` to
+ * scope all repository calls to an in-flight `db.transaction(...)`. The
+ * caller is responsible for ensuring schema + seed are already in place
+ * (the outer request scope will have triggered `ensureDatabaseSeeded`
+ * via `getRepositories()`; running it again inside the transaction
+ * would attempt to nest transactions).
+ */
+export function createScopedRepositoryRegistry(db: Db): RepositoryRegistry {
+  const identity = <T extends object>(repo: T): T => repo;
+  return assembleRegistry(db, identity);
+}
+
+function assembleRegistry(
+  db: Db,
+  wrap: <T extends object>(repo: T) => T,
+): RepositoryRegistry {
   return {
     asBuiltDrawings: wrap(new DatabaseAsBuiltDrawingRepository(db)),
     assetRegistrations: wrap(new DatabaseAssetRegistrationRepository(db)),
@@ -278,7 +299,12 @@ export function getRepositories(): RepositoryRegistry {
   // canonical Database mode).
   readBackendFromEnv();
 
-  const db = createDbClient();
+  // Phase 2-A — share the SAME Db handle as `getDb()` (and therefore as
+  // `withTransactionalAudit`'s `db.transaction(...)`). Using a fresh
+  // `createDbClient()` here would build a second pglite instance whose
+  // schema migrations live in a different in-memory image; transaction-
+  // scoped writes would then hit an empty schema and 42P01.
+  const db = getDb();
   activeRegistry = createDatabaseRegistry(db);
   return activeRegistry;
 }

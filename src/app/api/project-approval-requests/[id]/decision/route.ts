@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -152,18 +152,22 @@ export async function POST(
   };
 
   const before = structuredClone(par);
-  const updated = await repos.projectApprovalRequests.update(par.id, patch);
 
-  await recordAuditEvent(request, {
-    action: 'decide_project_approval_request',
-    resourceType: 'project_approval_request',
-    resourceId: par.id,
-    projectId: par.projectId,
-    before,
-    after: updated,
-    decisionReason: `${par.state} → ${nextState} (${body.decision})`,
-    authorityBasis: 'AUTHZ_MATRIX:approve_change_request + approval-routing',
-    actor,
+  // Phase 2-A — transaction-wrap the state-machine advance + audit.
+  const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.projectApprovalRequests.update(par.id, patch);
+    await appendAudit({
+      action: 'decide_project_approval_request',
+      resourceType: 'project_approval_request',
+      resourceId: par.id,
+      projectId: par.projectId,
+      before,
+      after: result,
+      decisionReason: `${par.state} → ${nextState} (${body.decision})`,
+      authorityBasis: 'AUTHZ_MATRIX:approve_change_request + approval-routing',
+      actor,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: updated });
