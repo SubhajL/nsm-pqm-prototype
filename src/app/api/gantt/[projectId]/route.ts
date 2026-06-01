@@ -11,12 +11,13 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { parseRequestBody } from '@/lib/validation';
-import type { GanttData, GanttLinkType, GanttTask } from '@/types/gantt';
+import type { GanttData, GanttLink, GanttLinkType, GanttTask } from '@/types/gantt';
 import {
   createGanttTaskRequestSchema,
   deleteGanttTaskRequestSchema,
   updateGanttTaskRequestSchema,
 } from '@/types/gantt.schema';
+import { wouldCreateCycle } from '@/lib/gantt/dependency-graph';
 
 interface GanttRequestBody {
   id?: number;
@@ -137,6 +138,7 @@ function validatePredecessors(
   taskId: number | null,
   predecessors: ParsedPredecessor[],
   tasks: GanttTask[],
+  existingLinks: GanttLink[] = [],
 ) {
   const seen = new Set<number>();
 
@@ -153,6 +155,31 @@ function validatePredecessors(
 
     if (taskId !== null && predecessor.taskId === taskId) {
       return badRequest('task cannot depend on itself');
+    }
+
+    // PR-3.5 — Cycle prevention. The new predecessors REPLACE the
+    // target's incoming links, so we exclude any existing link with the
+    // same target before running the DFS reachability check.
+    if (taskId !== null) {
+      const linksMinusReplaced = existingLinks.filter(
+        (link) => link.target !== taskId,
+      );
+      const cycles = wouldCreateCycle(linksMinusReplaced, {
+        predecessorId: predecessor.taskId,
+        successorId: taskId,
+      });
+      if (cycles) {
+        return Response.json(
+          {
+            status: 'error',
+            error: {
+              code: 'DEPENDENCY_CYCLE',
+              message: 'การกำหนด predecessor นี้จะสร้างวงจร (Would create a dependency cycle)',
+            },
+          },
+          { status: 409 },
+        );
+      }
     }
   }
 
@@ -251,15 +278,19 @@ export async function POST(
     return badRequest('parent task not found');
   }
 
+  // PR-3.5 — Reserve the id up-front so cycle prevention can reason
+  // about predecessors pointing at the about-to-be-created task.
+  const nextTaskId = await repos.gantt.nextTaskId(params.projectId);
   const predecessorError = validatePredecessors(
-    null,
+    nextTaskId,
     parsed.value.predecessors,
     store.data,
+    store.links,
   );
   if (predecessorError) return predecessorError;
 
   const newTask: GanttTask = {
-    id: await repos.gantt.nextTaskId(params.projectId),
+    id: nextTaskId,
     text: parsed.value.text,
     owner: parsed.value.owner,
     start_date: parsed.value.start_date,
@@ -337,6 +368,7 @@ export async function PATCH(
     task.id,
     parsed.value.predecessors,
     store.data,
+    store.links,
   );
   if (predecessorError) return predecessorError;
 

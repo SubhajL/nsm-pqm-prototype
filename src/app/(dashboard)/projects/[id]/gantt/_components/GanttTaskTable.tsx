@@ -33,6 +33,12 @@ interface GanttTaskTableProps {
   predecessorLabelsByTargetId: Map<number, string[]>;
   taskScheduleHealthById: Map<number, TaskScheduleHealth>;
   projectScheduleHealthByParentId: Map<number, TaskScheduleHealth>;
+  /**
+   * PR-3.5 — Task ids on the critical path (zero slack). When a row's
+   * id is in this set, the activity cell renders a red left-border
+   * accent + bilingual "Critical (วิกฤต)" tag.
+   */
+  criticalTaskIds?: ReadonlySet<number>;
   onEditTask: (task: GanttTask) => void;
   onDeleteTask: (id: number) => Promise<void>;
 }
@@ -46,6 +52,7 @@ export function GanttTaskTable({
   predecessorLabelsByTargetId,
   taskScheduleHealthById,
   projectScheduleHealthByParentId,
+  criticalTaskIds,
   onEditTask,
   onDeleteTask,
 }: GanttTaskTableProps) {
@@ -69,9 +76,19 @@ export function GanttTaskTable({
         render: (text: string, record: GanttRow) => {
           const isParent = record.level === 0;
           const isMilestone = record.type === 'milestone';
+          const isCritical = criticalTaskIds?.has(record.id) ?? false;
           const predecessors = predecessorLabelsByTargetId.get(record.id) ?? [];
           return (
-            <div>
+            <div
+              style={
+                isCritical
+                  ? {
+                      paddingLeft: 8,
+                      borderLeft: `3px solid ${COLORS.error}`,
+                    }
+                  : undefined
+              }
+            >
               <span
                 style={{
                   fontWeight: isParent ? 600 : 400,
@@ -85,6 +102,15 @@ export function GanttTaskTable({
                 )}
                 {text}
               </span>
+              {isCritical ? (
+                <Tag
+                  color="red"
+                  style={{ marginLeft: 6, fontSize: 11, lineHeight: '14px' }}
+                  aria-label="งานวิกฤต (Critical path task)"
+                >
+                  วิกฤต (Critical)
+                </Tag>
+              ) : null}
               {predecessors.length > 0 ? (
                 <div style={{ marginTop: 4 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
