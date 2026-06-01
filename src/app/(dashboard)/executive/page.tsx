@@ -30,6 +30,10 @@ import { KPICard } from '@/components/common/KPICard';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { getAgencyBrand } from '@/lib/branding';
 import {
+  buildPortfolioFreshness,
+  computeKpiDelta,
+} from '@/lib/dashboard-kpi-context';
+import {
   buildExecutiveExportDocument,
   buildPmqaExportDocument,
 } from '@/lib/export-documents';
@@ -143,6 +147,16 @@ export default function ExecutiveDashboardPage() {
   const spentAmount = 38200000;
   const spentPercent = Math.round((spentAmount / totalBudget) * 1000) / 10;
 
+  // P-C1 — portfolio freshness from real `lifecycleStageHistory[*].enteredAt`
+  // instead of the previously-hardcoded "อัปเดตล่าสุด" timestamp.
+  const portfolioFreshness = buildPortfolioFreshness(allProjects, new Date()).label;
+  // Baseline: zero delayed projects is the operational target, so the
+  // delayed-count delta is computed against zero with lower_is_better tone.
+  const delayedDelta = computeKpiDelta(delayedProjects, 0, {
+    direction: 'lower_is_better',
+    comparisonLabel: '(vs target 0)',
+  });
+
   const handleExportPdf = () => {
     const opened = openPrintableReport(buildExecutiveExportDocument(allProjects));
     if (!opened) {
@@ -173,7 +187,7 @@ export default function ExecutiveDashboardPage() {
               แดชบอร์ดผู้บริหาร (Executive Dashboard)
             </Title>
             <Text type="secondary">
-              ปีงบประมาณ 2569 | อัปเดตล่าสุด: 15/07/2569 14:30
+              ปีงบประมาณ 2569 | {portfolioFreshness}
             </Text>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -212,11 +226,12 @@ export default function ExecutiveDashboardPage() {
         </Col>
         <Col xs={24} sm={12} lg={5}>
           <KPICard
-            title="ล่าช้า"
+            title="ล่าช้า (Delayed)"
             value={delayedProjects}
             icon={<WarningOutlined />}
             color={COLORS.error}
             suffix="โครงการ"
+            delta={delayedDelta}
           />
         </Col>
         <Col xs={24} sm={12} lg={5}>

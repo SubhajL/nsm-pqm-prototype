@@ -3,6 +3,7 @@
 import { Card, Statistic } from 'antd';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { COLORS } from '@/theme/antd-theme';
+import type { KpiTone } from '@/lib/dashboard-kpi-context';
 
 interface KPICardProps {
   title: string;
@@ -15,7 +16,21 @@ interface KPICardProps {
   extraContent?: ReactNode;
   active?: boolean;
   onClick?: () => void;
+  /**
+   * P-C1 — optional KPI context. `delta` shows a comparison line
+   * ("+2 vs baseline") tinted by `tone`. `freshness` shows when the
+   * underlying data last changed ("Updated 5 min ago"). Both are
+   * additive — existing callers continue to render unchanged.
+   */
+  delta?: { label: string; tone: KpiTone };
+  freshness?: string;
 }
+
+const TONE_COLORS: Record<KpiTone, string> = {
+  positive: COLORS.successText,
+  negative: COLORS.errorText,
+  neutral: COLORS.textMuted,
+};
 
 export function KPICard({
   title,
@@ -28,6 +43,8 @@ export function KPICard({
   extraContent,
   active = false,
   onClick,
+  delta,
+  freshness,
 }: KPICardProps) {
   const isInteractive = Boolean(onClick);
 
@@ -78,6 +95,27 @@ export function KPICard({
           {subtitle && (
             <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4 }}>
               {subtitle}
+            </div>
+          )}
+          {delta && (
+            <div
+              style={{
+                fontSize: 12,
+                color: TONE_COLORS[delta.tone],
+                marginTop: 4,
+                fontWeight: 500,
+              }}
+              aria-label={`การเปลี่ยนแปลง (Change): ${delta.label}`}
+            >
+              {delta.label}
+            </div>
+          )}
+          {freshness && (
+            <div
+              style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}
+              aria-label={`สถานะข้อมูล (Data freshness): ${freshness}`}
+            >
+              {freshness}
             </div>
           )}
           {extraContent && <div style={{ marginTop: 12 }}>{extraContent}</div>}
