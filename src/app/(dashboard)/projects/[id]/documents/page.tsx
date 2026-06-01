@@ -2,15 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Card,
   Col,
   Form,
   Row,
-  Skeleton,
   Typography,
   message,
 } from 'antd';
 
+import { LoadingSkeleton } from '@/components/common';
 import {
   useCreateDocumentFolder,
   useDeleteDocumentEntry,
@@ -209,9 +208,7 @@ export default function DocumentLibraryPage() {
     return (
       <div>
         <Title level={3}>คลังเอกสารโครงการ (Document Library)</Title>
-        <Card>
-          <Skeleton active paragraph={{ rows: 10 }} />
-        </Card>
+        <LoadingSkeleton variant="table" rows={10} />
       </div>
     );
   }

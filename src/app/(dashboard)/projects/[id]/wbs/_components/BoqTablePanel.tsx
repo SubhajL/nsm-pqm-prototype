@@ -1,6 +1,8 @@
 'use client';
 
-import { Alert, Button, Card, Empty, Skeleton, Table, Typography } from 'antd';
+import { Alert, Button, Card, Table, Typography } from 'antd';
+
+import { EmptyState, LoadingSkeleton } from '@/components/common';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined } from '@ant-design/icons';
 
@@ -97,9 +99,12 @@ export function BoqTablePanel({
         />
       ) : null}
       {!selectedWbsId ? (
-        <Empty description="เลือก WBS node เพื่อดู BOQ" />
+        <EmptyState
+          size="default"
+          title="เลือก WBS node เพื่อดู BOQ (Select a WBS node to view BOQ)"
+        />
       ) : boqLoading ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
+        <LoadingSkeleton variant="paragraph" rows={6} />
       ) : boqItems && boqItems.length > 0 ? (
         <>
           <Table<BOQItem>
@@ -138,19 +143,19 @@ export function BoqTablePanel({
           ) : null}
         </>
       ) : (
-        <>
-          <Empty description="ไม่มีรายการ BOQ สำหรับ WBS node นี้" />
-          {canCreateBoq ? (
-            <Button
-              type="dashed"
-              icon={<PlusOutlined />}
-              onClick={onOpenCreateBoq}
-              style={{ marginTop: 12, width: '100%' }}
-            >
-              + เพิ่มรายการ BOQ
-            </Button>
-          ) : null}
-        </>
+        <EmptyState
+          size="small"
+          title="ไม่มีรายการ BOQ สำหรับ WBS node นี้ (No BOQ items for this WBS node)"
+          action={
+            canCreateBoq
+              ? {
+                  label: 'เพิ่มรายการ BOQ (Add BOQ item)',
+                  icon: <PlusOutlined />,
+                  onClick: onOpenCreateBoq,
+                }
+              : undefined
+          }
+        />
       )}
     </Card>
   );

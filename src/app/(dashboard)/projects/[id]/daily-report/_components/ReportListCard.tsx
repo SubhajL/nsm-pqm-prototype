@@ -4,6 +4,7 @@ import { Button, Card, Input, Select, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { EyeOutlined } from '@ant-design/icons';
 
+import { EmptyState } from '@/components/common';
 import { formatThaiDate } from '@/lib/date-utils';
 import { COLORS } from '@/theme/antd-theme';
 import type { DailyReport, DailyReportStatus } from '@/types/daily-report';
@@ -152,6 +153,15 @@ export function ReportListCard({
                 : undefined,
           },
         })}
+        locale={{
+          emptyText: (
+            <EmptyState
+              size="small"
+              title="ไม่พบรายงาน (No reports found)"
+              description="ปรับตัวกรองหรือสร้างรายงานใหม่ (Adjust filters or create a new report)"
+            />
+          ),
+        }}
       />
     </Card>
   );

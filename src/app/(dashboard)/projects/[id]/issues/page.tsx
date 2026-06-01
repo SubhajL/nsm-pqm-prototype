@@ -6,10 +6,11 @@ import {
   Card,
   Form,
   Segmented,
-  Skeleton,
   Typography,
   message,
 } from 'antd';
+
+import { LoadingSkeleton } from '@/components/common';
 import {
   AppstoreOutlined,
   PlusOutlined,
@@ -85,9 +86,7 @@ export default function IssueTrackingPage() {
     return (
       <div>
         <Title level={3}>ติดตามปัญหา (Issue Tracking)</Title>
-        <Card>
-          <Skeleton active paragraph={{ rows: 10 }} />
-        </Card>
+        <LoadingSkeleton variant="table" rows={10} />
       </div>
     );
   }

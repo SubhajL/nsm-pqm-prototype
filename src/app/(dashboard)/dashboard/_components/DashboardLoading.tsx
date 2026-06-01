@@ -1,6 +1,8 @@
 'use client';
 
-import { Card, Col, Row, Skeleton, Typography } from 'antd';
+import { Col, Row, Typography } from 'antd';
+
+import { LoadingSkeleton } from '@/components/common';
 
 const { Title } = Typography;
 
@@ -11,27 +13,21 @@ export function DashboardLoading() {
       <Row gutter={16}>
         {[1, 2, 3, 4].map((i) => (
           <Col span={6} key={i}>
-            <Card>
-              <Skeleton active paragraph={{ rows: 2 }} />
-            </Card>
+            <LoadingSkeleton variant="card" rows={2} />
           </Col>
         ))}
       </Row>
       <Row gutter={16} style={{ marginTop: 16 }}>
         <Col span={14}>
-          <Card>
-            <Skeleton active paragraph={{ rows: 8 }} />
-          </Card>
+          <LoadingSkeleton variant="card" rows={8} />
         </Col>
         <Col span={10}>
-          <Card>
-            <Skeleton active paragraph={{ rows: 8 }} />
-          </Card>
+          <LoadingSkeleton variant="card" rows={8} />
         </Col>
       </Row>
-      <Card style={{ marginTop: 16 }}>
-        <Skeleton active paragraph={{ rows: 6 }} />
-      </Card>
+      <div style={{ marginTop: 16 }}>
+        <LoadingSkeleton variant="card" rows={6} />
+      </div>
     </div>
   );
 }

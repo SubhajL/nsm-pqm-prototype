@@ -12,12 +12,13 @@ import {
   InputNumber,
   Modal,
   Row,
-  Skeleton,
   Statistic,
   Table,
   Tag,
   Typography,
 } from 'antd';
+
+import { EmptyState, LoadingSkeleton } from '@/components/common';
 import type { ColumnsType } from 'antd/es/table';
 import {
   AlertOutlined,
@@ -47,7 +48,7 @@ const EMPTY_RISKS: Risk[] = [];
 
 const RiskHeatMap = dynamic(
   () => import('@/components/charts/RiskHeatMap').then((mod) => ({ default: mod.RiskHeatMap })),
-  { ssr: false, loading: () => <Skeleton active paragraph={{ rows: 8 }} /> },
+  { ssr: false, loading: () => <LoadingSkeleton variant="paragraph" rows={8} /> },
 );
 
 export default function RiskManagementPage() {
@@ -187,9 +188,7 @@ export default function RiskManagementPage() {
     return (
       <div>
         <Title level={3}>บริหารความเสี่ยง (Risk Management)</Title>
-        <Card>
-          <Skeleton active paragraph={{ rows: 10 }} />
-        </Card>
+        <LoadingSkeleton variant="table" rows={10} />
       </div>
     );
   }
@@ -327,6 +326,15 @@ export default function RiskManagementPage() {
           pagination={{ pageSize: 10 }}
           size="middle"
           scroll={{ x: 1000 }}
+          locale={{
+            emptyText: (
+              <EmptyState
+                size="small"
+                title="ยังไม่มีความเสี่ยงในโครงการนี้ (No risks yet)"
+                description="บันทึกความเสี่ยงเพื่อเริ่มติดตามการลดผลกระทบ (Add a risk to start tracking mitigation)"
+              />
+            ),
+          }}
         />
       </Card>
 

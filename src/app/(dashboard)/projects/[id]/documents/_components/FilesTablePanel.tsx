@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Card, Empty, Popconfirm, Table, Tag, message } from 'antd';
+import { Button, Card, Popconfirm, Table, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, FileOutlined } from '@ant-design/icons';
 
@@ -8,6 +8,8 @@ import { formatThaiDate } from '@/lib/date-utils';
 import { COLORS } from '@/theme/antd-theme';
 import type { DocumentFile, Folder } from '@/types/document';
 import { DOC_STATUS_LABELS } from '@/types/document';
+
+import { EmptyState } from '@/components/common';
 
 import { WorkflowDots } from './helpers';
 
@@ -141,10 +143,20 @@ export function FilesTablePanel({
           onRow={(file) => ({
             onClick: () => onSelectFile(file.id),
           })}
-          locale={{ emptyText: <Empty description="ไม่มีเอกสารในโฟลเดอร์นี้" /> }}
+          locale={{
+            emptyText: (
+              <EmptyState
+                size="small"
+                title="ไม่มีเอกสารในโฟลเดอร์นี้ (No documents in this folder)"
+              />
+            ),
+          }}
         />
       ) : (
-        <Empty description="เลือกโฟลเดอร์เพื่อดูเอกสาร" />
+        <EmptyState
+          size="default"
+          title="เลือกโฟลเดอร์เพื่อดูเอกสาร (Select a folder to view documents)"
+        />
       )}
     </Card>
   );
