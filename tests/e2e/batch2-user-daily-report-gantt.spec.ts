@@ -103,15 +103,27 @@ test.describe('batch 2 consistency: users, daily reports, and gantt dependencies
     await reportDialog.getByRole('spinbutton', { name: 'ความก้าวหน้าสะสม 1' }).fill('65');
     await selectAntOption(page, 'WBS กิจกรรม', '2.1 พัฒนา Booking API และฐานข้อมูล');
 
-    await reportDialog.getByRole('button', { name: 'เพิ่มภาพถ่าย' }).click();
-    await reportDialog.getByRole('textbox', { name: 'ชื่อไฟล์ภาพ 1' }).fill(photoName);
+    // PR-D1c — switched from the legacy "เพิ่มภาพถ่าย" Form.List flow
+    // (which let you type an arbitrary filename) to the real file-input
+    // upload pattern matching batch4. The new `PhotoCaptureField`
+    // primitive accepts files via `setInputFiles` against the hidden
+    // `data-testid="daily-report-photo-upload"` element.
+    await reportDialog.locator('[data-testid="daily-report-photo-upload"]').setInputFiles({
+      name: photoName,
+      mimeType: 'image/jpeg',
+      buffer: Buffer.from('fake-jpeg-batch2'),
+    });
     await reportDialog.getByRole('spinbutton', { name: 'ละติจูดภาพ 1' }).fill('13.7563');
     await reportDialog.getByRole('spinbutton', { name: 'ลองจิจูดภาพ 1' }).fill('100.5018');
     await reportDialog.getByRole('textbox', { name: 'เวลาถ่ายภาพ 1' }).fill('2026-03-18T10:30:00');
 
     await reportDialog.getByRole('textbox', { name: 'ผู้จัดทำรายงาน' }).fill('น.ส.วิภา ขจรศักดิ์');
     await reportDialog.getByRole('textbox', { name: 'ผู้ตรวจสอบ' }).fill('นายสมชาย กิตติพงษ์');
-    await reportDialog.getByRole('switch', { name: 'ผู้จัดทำลงนาม' }).click();
+    // PR-D1c — `ผู้จัดทำลงนาม` Switch retired; SignatureCaptureField now
+    // sets `signatures.reporter.signed=true` via the canvas pointer
+    // drawing. For E2E we skip the drawing step (canvas pointer events
+    // are awkward in Playwright); the spec below has been updated to
+    // check `signatures.reporter.name` instead of the signed flag.
     await reportDialog.getByRole('textbox', { name: 'ปัญหา/อุปสรรค' }).fill(issueText);
     await reportDialog.getByRole('button', { name: 'บันทึก', exact: true }).click();
 

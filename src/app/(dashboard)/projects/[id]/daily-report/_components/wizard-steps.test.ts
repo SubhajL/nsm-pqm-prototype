@@ -35,9 +35,9 @@ describe('getDailyReportWizardFieldNames', () => {
 
   it('returns capture-step fields for step 3', () => {
     const fields = getDailyReportWizardFieldNames(3);
-    expect(fields).toContain('photoMetadata');
-    expect(fields).toContain('reporterName');
-    expect(fields).toContain('inspectorName');
+    expect(fields).toContain('photos');
+    expect(fields).toContain('signatures');
+    expect(fields).toContain('issues');
   });
 
   it('returns empty for unknown step indices', () => {

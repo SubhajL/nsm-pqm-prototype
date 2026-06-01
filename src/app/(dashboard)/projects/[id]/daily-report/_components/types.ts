@@ -1,5 +1,15 @@
 import type dayjs from 'dayjs';
 
+import type { SignatureState } from '@/components/common';
+
+import type { CapturedPhoto } from './PhotoCaptureField';
+
+/**
+ * PR-D1c — Migrated form-values shape. `photoMetadata` + the four flat
+ * signature fields collapsed into `photos: CapturedPhoto[]` + `signatures:
+ * { reporter, inspector }` so the new `PhotoCaptureField` +
+ * `SignatureCaptureField` primitives are the single source of truth.
+ */
 export interface DailyReportFormValues {
   date: dayjs.Dayjs;
   weather: string;
@@ -13,16 +23,12 @@ export interface DailyReportFormValues {
     unit: string;
     cumulativeProgress: number;
   }>;
-  photoMetadata: Array<{
-    gpsLat: number;
-    gpsLng: number;
-    timestamp: string;
-  }>;
+  photos: CapturedPhoto[];
   issues?: string;
-  reporterName: string;
-  reporterSigned: boolean;
-  inspectorName: string;
-  inspectorSigned: boolean;
+  signatures: {
+    reporter: SignatureState;
+    inspector: SignatureState;
+  };
 }
 
 export interface UploadQueueItem {

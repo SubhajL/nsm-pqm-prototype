@@ -16,7 +16,6 @@ import {
   Select,
   Space,
   Steps,
-  Switch,
   Typography,
   Upload,
   message,
@@ -26,14 +25,14 @@ import {
   DeleteOutlined,
   MinusCircleOutlined,
   PaperClipOutlined,
-  UploadOutlined,
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
 
 import { WizardActionFooter, clampStepIndex } from '@/components/common';
 import { COLORS } from '@/theme/antd-theme';
 
 import { formatBytes, normalizeUploadQueue } from './helpers';
+import { PhotoCaptureField } from './PhotoCaptureField';
+import { SignatureCaptureField } from './SignatureCaptureField';
 import type { DailyReportFormValues, UploadQueueItem } from './types';
 import {
   DAILY_REPORT_STEPS,
@@ -47,12 +46,14 @@ interface CreateReportModalProps {
   isMobile: boolean;
   createForm: FormInstance<DailyReportFormValues>;
   wbsOptions: Array<{ label: string; value: string }>;
-  photoFiles: UploadQueueItem[];
+  /**
+   * PR-D1c — `photoFiles` is no longer a prop. Photos are now owned by
+   * the `<Form.Item name="photos">` value (CapturedPhoto[]).
+   */
   attachmentFiles: UploadQueueItem[];
   confirmLoading: boolean;
   onCancel: () => void;
   onOk: () => void;
-  setPhotoFiles: React.Dispatch<React.SetStateAction<UploadQueueItem[]>>;
   setAttachmentFiles: React.Dispatch<React.SetStateAction<UploadQueueItem[]>>;
 }
 
@@ -61,12 +62,10 @@ export function CreateReportModal({
   isMobile,
   createForm,
   wbsOptions,
-  photoFiles,
   attachmentFiles,
   confirmLoading,
   onCancel,
   onOk,
-  setPhotoFiles,
   setAttachmentFiles,
 }: CreateReportModalProps) {
   // PR-D1b — Steps wizard state. Non-current panes stay in the DOM but
@@ -275,130 +274,15 @@ export function CreateReportModal({
         </div>
         <div data-wizard-step="capture" style={stepStyleFor(3)}>
         <Divider orientation="left">ภาพถ่ายหน้างาน (Site photos)</Divider>
-        <div style={{ marginBottom: 16 }}>
-          <Upload
-            multiple
-            accept="image/*"
-            beforeUpload={() => false}
-            fileList={photoFiles.map((file) => ({
-              uid: file.uid,
-              name: file.name,
-              size: file.size,
-              type: file.type,
-            }))}
-            onChange={({ fileList }) => {
-              const nextFiles = normalizeUploadQueue(fileList);
-              const previousMetadata = createForm.getFieldValue('photoMetadata') ?? [];
-              createForm.setFieldValue(
-                'photoMetadata',
-                nextFiles.map((_, index) => previousMetadata[index] ?? {
-                  gpsLat: 13.7563,
-                  gpsLng: 100.5018,
-                  timestamp: dayjs().format('YYYY-MM-DDTHH:mm:ss'),
-                }),
-              );
-              setPhotoFiles(nextFiles);
-            }}
-            onRemove={(file) => {
-              const nextFiles = photoFiles.filter((item) => item.uid !== file.uid);
-              const nextMetadata = (createForm.getFieldValue('photoMetadata') ?? []).filter(
-                (_entry: DailyReportFormValues['photoMetadata'][number], index: number) =>
-                  nextFiles[index] !== undefined,
-              );
-              createForm.setFieldValue('photoMetadata', nextMetadata);
-              setPhotoFiles(nextFiles);
-            }}
-          >
-            <Button icon={<UploadOutlined />}>เลือกภาพถ่ายจริง</Button>
-          </Upload>
-          <input
-            data-testid="daily-report-photo-upload"
-            type="file"
-            accept="image/*"
-            multiple
-            style={{ display: 'none' }}
-            onChange={(event) => {
-              const nextFiles = Array.from(event.target.files ?? []).map((file, index) => ({
-                uid: `${file.name}-${file.lastModified}-${index}`,
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                file,
-              }));
-              const previousMetadata = createForm.getFieldValue('photoMetadata') ?? [];
-              createForm.setFieldValue(
-                'photoMetadata',
-                nextFiles.map((_, index) => previousMetadata[index] ?? {
-                  gpsLat: 13.7563,
-                  gpsLng: 100.5018,
-                  timestamp: dayjs().format('YYYY-MM-DDTHH:mm:ss'),
-                }),
-              );
-              setPhotoFiles(nextFiles);
-            }}
-          />
-        </div>
-        <Form.List name="photoMetadata">
-          {(fields, { remove }) => (
-            <Space direction="vertical" size={12} style={{ width: '100%' }}>
-              {fields.map((field, index) => (
-                <Card key={field.key} size="small">
-                  <Row gutter={12}>
-                    <Col xs={24} sm={12}>
-                      <Text strong>{photoFiles[index]?.name ?? `ภาพถ่าย ${index + 1}`}</Text>
-                      <div>
-                        <Text type="secondary">{photoFiles[index] ? formatBytes(photoFiles[index].size) : 'ยังไม่เลือกไฟล์'}</Text>
-                      </div>
-                    </Col>
-                    <Col xs={12} sm={6}>
-                      <Form.Item
-                        {...field}
-                        label="ละติจูดภาพ"
-                        name={[field.name, 'gpsLat']}
-                        rules={[{ required: true, message: 'กรุณาระบุละติจูด' }]}
-                      >
-                        <InputNumber aria-label={`ละติจูดภาพ ${index + 1}`} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12} sm={6}>
-                      <Form.Item
-                        {...field}
-                        label="ลองจิจูดภาพ"
-                        name={[field.name, 'gpsLng']}
-                        rules={[{ required: true, message: 'กรุณาระบุลองจิจูด' }]}
-                      >
-                        <InputNumber aria-label={`ลองจิจูดภาพ ${index + 1}`} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={18}>
-                      <Form.Item
-                        {...field}
-                        label="เวลาถ่ายภาพ"
-                        name={[field.name, 'timestamp']}
-                        rules={[{ required: true, message: 'กรุณาระบุเวลาถ่ายภาพ' }]}
-                      >
-                        <Input aria-label={`เวลาถ่ายภาพ ${index + 1}`} placeholder="YYYY-MM-DDTHH:mm:ss" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={6} style={{ display: 'flex', alignItems: 'end', justifyContent: isMobile ? 'flex-start' : 'flex-end' }}>
-                      <Button
-                        aria-label={`ลบภาพ ${index + 1}`}
-                        icon={<MinusCircleOutlined />}
-                        onClick={() => {
-                          remove(field.name);
-                          setPhotoFiles((current) => current.filter((_entry, currentIndex) => currentIndex !== index));
-                        }}
-                      >
-                        ลบภาพ
-                      </Button>
-                    </Col>
-                  </Row>
-                </Card>
-              ))}
-              {fields.length === 0 ? <Text type="secondary">ยังไม่ได้เลือกภาพถ่าย</Text> : null}
-            </Space>
-          )}
-        </Form.List>
+        {/* PR-D1c — `<PhotoCaptureField>` replaces the legacy
+            AntD Upload + Form.List photoMetadata pattern. The component
+            internally exposes data-testid="daily-report-photo-upload"
+            + indexed aria-labels (ละติจูดภาพ N / ลองจิจูดภาพ N /
+            เวลาถ่ายภาพ N) so the existing batch4-daily-report-file-uploads
+            E2E spec continues to pass. */}
+        <Form.Item name="photos" valuePropName="value" trigger="onChange">
+          <PhotoCaptureField />
+        </Form.Item>
         <Divider orientation="left">เอกสารแนบ</Divider>
         <div style={{ marginBottom: 16 }}>
           <Upload
@@ -458,26 +342,28 @@ export function CreateReportModal({
             ))
           )}
         </Space>
-        <Divider orientation="left">ลายเซ็น</Divider>
+        <Divider orientation="left">ลายเซ็น (Signatures)</Divider>
+        {/* PR-D1c — Two `<SignatureCaptureField>` replace the four flat
+            reporterName / reporterSigned / inspectorName / inspectorSigned
+            fields. The name `<Input>` aria-label inside each pad still
+            matches "ผู้จัดทำรายงาน" / "ผู้ตรวจสอบ" so the existing
+            batch4 spec's `getByRole('textbox', { name: ... })` selectors
+            still work. */}
         <Row gutter={12}>
           <Col xs={24} sm={12}>
-            <Form.Item label="ผู้จัดทำรายงาน" name="reporterName" rules={[{ required: true, message: 'กรุณาระบุผู้จัดทำ' }]}>
-              <Input aria-label="ผู้จัดทำรายงาน" />
+            <Form.Item name={['signatures', 'reporter']} valuePropName="value" trigger="onChange">
+              <SignatureCaptureField
+                label="ผู้จัดทำรายงาน (Reporter)"
+                nameInputLabel="ผู้จัดทำรายงาน"
+              />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item label="ผู้ตรวจสอบ" name="inspectorName" rules={[{ required: true, message: 'กรุณาระบุผู้ตรวจสอบ' }]}>
-              <Input aria-label="ผู้ตรวจสอบ" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12}>
-            <Form.Item label="ผู้จัดทำลงนาม" name="reporterSigned" valuePropName="checked">
-              <Switch aria-label="ผู้จัดทำลงนาม" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12}>
-            <Form.Item label="ผู้ตรวจสอบลงนาม" name="inspectorSigned" valuePropName="checked">
-              <Switch aria-label="ผู้ตรวจสอบลงนาม" />
+            <Form.Item name={['signatures', 'inspector']} valuePropName="value" trigger="onChange">
+              <SignatureCaptureField
+                label="ผู้ตรวจสอบ (Inspector)"
+                nameInputLabel="ผู้ตรวจสอบ"
+              />
             </Form.Item>
           </Col>
         </Row>
