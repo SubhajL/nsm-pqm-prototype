@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, Form, message, Skeleton, Typography } from 'antd';
 
 import { useCreateGanttTask, useDeleteGanttTask, useGantt, useUpdateGanttTask } from '@/hooks/useGantt';
+import { computeCriticalPath } from '@/lib/gantt/dependency-graph';
 import type { GanttTask } from '@/types/gantt';
 import { useProject } from '@/hooks/useProjects';
 import { useRouteProjectId } from '@/hooks/useRouteProjectId';
@@ -76,6 +77,14 @@ export default function GanttChartPage() {
   );
   const predecessorLabelsByTargetId = useMemo(
     () => buildPredecessorLabelsByTargetId(ganttData?.data ?? [], ganttData?.links ?? []),
+    [ganttData?.data, ganttData?.links],
+  );
+
+  // PR-3.5 — Compute the critical path from the current task + link
+  // graph. Returned ids are rendered with a red left-border accent and
+  // "วิกฤต (Critical)" tag inside `GanttTaskTable`.
+  const criticalPath = useMemo(
+    () => computeCriticalPath(ganttData?.data ?? [], ganttData?.links ?? []),
     [ganttData?.data, ganttData?.links],
   );
 
@@ -192,6 +201,7 @@ export default function GanttChartPage() {
         predecessorLabelsByTargetId={predecessorLabelsByTargetId}
         taskScheduleHealthById={taskScheduleHealthById}
         projectScheduleHealthByParentId={projectScheduleHealthByParentId}
+        criticalTaskIds={criticalPath.criticalTaskIds}
         onEditTask={openEditModal}
         onDeleteTask={handleDeleteTask}
       />

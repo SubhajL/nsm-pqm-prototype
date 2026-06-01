@@ -53,3 +53,40 @@ export const deleteGanttTaskRequestSchema = z
 export type CreateGanttTaskRequest = z.infer<typeof createGanttTaskRequestSchema>;
 export type UpdateGanttTaskRequest = z.infer<typeof updateGanttTaskRequestSchema>;
 export type DeleteGanttTaskRequest = z.infer<typeof deleteGanttTaskRequestSchema>;
+
+/**
+ * PR-3.5 — Dedicated dependency CRUD endpoints. The data already lives in
+ * `GanttData.links`; these endpoints offer a focused surface for the new
+ * UI's add-link / edit-link / delete-link actions without forcing a full
+ * task PATCH.
+ */
+export const createGanttDependencyRequestSchema = z
+  .object({
+    predecessorId: z.number().int().positive(),
+    successorId: z.number().int().positive(),
+    type: ganttLinkTypeSchema.optional(),
+    lagDays: z.number().int().optional(),
+  })
+  .strict();
+
+export const updateGanttDependencyRequestSchema = z
+  .object({
+    id: z.number().int().positive(),
+    type: ganttLinkTypeSchema.optional(),
+    lagDays: z.number().int().optional(),
+  })
+  .strict();
+
+export const deleteGanttDependencyRequestSchema = z
+  .object({ id: z.number().int().positive() })
+  .strict();
+
+export type CreateGanttDependencyRequest = z.infer<
+  typeof createGanttDependencyRequestSchema
+>;
+export type UpdateGanttDependencyRequest = z.infer<
+  typeof updateGanttDependencyRequestSchema
+>;
+export type DeleteGanttDependencyRequest = z.infer<
+  typeof deleteGanttDependencyRequestSchema
+>;
