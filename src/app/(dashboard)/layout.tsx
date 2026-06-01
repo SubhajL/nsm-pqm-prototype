@@ -6,8 +6,10 @@ import { Suspense, useEffect } from 'react';
 import { LiveRegion, SKIP_LINK_TARGET_ID, SkipLink } from '@/components/a11y';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
+import { useThemePreference } from '@/hooks/useThemePreference';
 import { useAppStore } from '@/stores/useAppStore';
 import { COLORS } from '@/theme/antd-theme';
+import { DARK_COLORS } from '@/theme/dark-theme';
 import DashboardLoading from './loading';
 
 const { Content } = Layout;
@@ -20,6 +22,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const marginLeft = isMobile ? 0 : collapsed ? 64 : 240;
   const router = useRouter();
   const activeProjectId = currentProjectId ?? 'proj-001';
+  // Sprint 4 (E1) — Content background is inline-styled, so darkAlgorithm
+  // won't reach it. Pick the matching token bag manually.
+  const { resolved } = useThemePreference();
+  const contentBg = resolved === 'dark' ? DARK_COLORS.bgLayout : COLORS.bgLayout;
 
   // Pre-warm all routes after initial mount so dev compilation happens in background.
   // Dev-only: this is a dev-speedup; running it in prod would prefetch 12 routes on
@@ -56,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <Layout style={{ marginLeft, transition: 'margin-left 0.2s' }}>
         <Header />
-        <Content style={{ padding: isMobile ? 12 : 24, background: COLORS.bgLayout, minHeight: 'calc(100vh - 60px)' }}>
+        <Content style={{ padding: isMobile ? 12 : 24, background: contentBg, minHeight: 'calc(100vh - 60px)' }}>
           {/* PR-A2 — `<main>` landmark + tabIndex=-1 so the skip-link
               can programmatically move focus here without making the
               element a regular tab stop. */}

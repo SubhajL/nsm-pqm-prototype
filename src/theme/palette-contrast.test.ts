@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { COLORS } from './antd-theme';
+import { DARK_COLORS } from './dark-theme';
 import { getContrastRatio } from './contrast';
 
 /**
@@ -79,6 +80,57 @@ describe('COLORS palette — WCAG-AA on dark backgrounds', () => {
  * The corresponding `*Text` variants exist for any "status color
  * rendered as text on white" call site.
  */
+/**
+ * Sprint 4 (E1) — DARK_COLORS lock-in. Mirror of the light-mode rules
+ * above for the dark token bag. Brand status colors remain identity-
+ * tinted; reading load routes through the lightened `*Text` variants.
+ */
+const DARK_BG_LAYOUT = DARK_COLORS.bgLayout;
+const DARK_SIDEBAR = DARK_COLORS.sidebarDark;
+
+const DARK_NORMAL_TEXT_ON_LAYOUT: Array<{ token: keyof typeof DARK_COLORS; bg: string }> = [
+  { token: 'textDark', bg: DARK_BG_LAYOUT },
+  { token: 'textMuted', bg: DARK_BG_LAYOUT },
+  { token: 'accentTealText', bg: DARK_BG_LAYOUT },
+  { token: 'warningText', bg: DARK_BG_LAYOUT },
+  { token: 'successText', bg: DARK_BG_LAYOUT },
+  { token: 'errorText', bg: DARK_BG_LAYOUT },
+];
+
+const DARK_NORMAL_TEXT_ON_SIDEBAR: Array<{ token: keyof typeof DARK_COLORS; bg: string }> = [
+  { token: 'white', bg: DARK_SIDEBAR },
+  { token: 'textDark', bg: DARK_SIDEBAR },
+  // PR-S4 — the selected-row accent + brand identity on the sidebar
+  // also needs to satisfy AA for any text-on-sidebar usage.
+  { token: 'accentTealText', bg: DARK_SIDEBAR },
+];
+
+describe('DARK_COLORS palette — WCAG-AA on dark `bgLayout`', () => {
+  it.each(DARK_NORMAL_TEXT_ON_LAYOUT)(
+    '`$token` on dark `$bg` ≥ 4.5:1 (AA normal text)',
+    ({ token, bg }) => {
+      const ratio = getContrastRatio(DARK_COLORS[token], bg);
+      expect(
+        ratio,
+        `dark ${token} (${DARK_COLORS[token]}) on ${bg}: got ratio ${ratio.toFixed(2)}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+});
+
+describe('DARK_COLORS palette — WCAG-AA on dark sidebar', () => {
+  it.each(DARK_NORMAL_TEXT_ON_SIDEBAR)(
+    '`$token` on dark `$bg` ≥ 4.5:1 (AA normal text)',
+    ({ token, bg }) => {
+      const ratio = getContrastRatio(DARK_COLORS[token], bg);
+      expect(
+        ratio,
+        `dark ${token} (${DARK_COLORS[token]}) on ${bg}: got ratio ${ratio.toFixed(2)}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+});
+
 describe('COLORS palette — documented brand-color exemptions', () => {
   const brandExempt = ['accentTeal', 'warning', 'success', 'error'] as const;
   it.each(brandExempt)(

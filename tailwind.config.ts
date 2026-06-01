@@ -11,6 +11,10 @@ import type { Config } from "tailwindcss";
  * module — `palette-contrast.test.ts` only audits COLORS, not Tailwind.
  */
 const config: Config = {
+  // Sprint 4 (E1) — `class` strategy: dark variants activate when the
+  // root `<html>` element gets a `.dark` class. `useThemePreference`
+  // toggles it in sync with the AntD ConfigProvider algorithm swap.
+  darkMode: 'class',
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
