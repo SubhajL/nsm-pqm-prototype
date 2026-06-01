@@ -21,6 +21,16 @@ export interface DocumentRepository {
   allByProject(): Promise<Record<string, DocumentData>>;
 
   addFolder(projectId: string, folder: Folder): Promise<Folder>;
+  /**
+   * PR-Docs1 — rename a folder. Returns the updated row, or `null` when the
+   * folder does not exist. Files inside the folder are NOT cascade-renamed —
+   * only the folder's own `name` column changes.
+   */
+  renameFolder(
+    projectId: string,
+    folderId: string,
+    name: string,
+  ): Promise<Folder | null>;
   deleteFolder(projectId: string, folderId: string): Promise<Folder | null>;
 
   addFile(projectId: string, file: DocumentFile): Promise<DocumentFile>;

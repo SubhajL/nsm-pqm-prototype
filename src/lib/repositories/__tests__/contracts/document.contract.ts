@@ -83,5 +83,37 @@ export function runDocumentRepositoryContract(
       expect(data.folders.some((f) => f.id === folder.id)).toBe(false);
       expect(data.files.some((f) => f.id === file.id)).toBe(false);
     });
+
+    // PR-Docs1 — rename + move coverage.
+    it('renameFolder updates the folder name and leaves files untouched', async () => {
+      const folder = await repo.addFolder(projectId, sampleFolder('fld-doc-c-5'));
+      const file = await repo.addFile(projectId, sampleFile('file-doc-c-5', folder.id));
+      const renamed = await repo.renameFolder(projectId, folder.id, 'ชื่อใหม่');
+      expect(renamed?.id).toBe(folder.id);
+      expect(renamed?.name).toBe('ชื่อใหม่');
+      const data = await repo.getDataForProject(projectId);
+      expect(data.folders.find((f) => f.id === folder.id)?.name).toBe('ชื่อใหม่');
+      // File metadata (including name) must remain unchanged.
+      const persistedFile = data.files.find((f) => f.id === file.id);
+      expect(persistedFile?.name).toBe(file.name);
+    });
+
+    it('renameFolder returns null when the folder is unknown', async () => {
+      expect(await repo.renameFolder(projectId, 'no-such-folder', 'anything')).toBeNull();
+    });
+
+    it('updateFileMetadata patches name (file rename) and folderId (file move)', async () => {
+      const fromFolder = await repo.addFolder(projectId, sampleFolder('fld-doc-c-6'));
+      const toFolder = await repo.addFolder(projectId, sampleFolder('fld-doc-c-7'));
+      const file = await repo.addFile(projectId, sampleFile('file-doc-c-6', fromFolder.id));
+
+      const renamed = await repo.updateFileMetadata(projectId, file.id, { name: 'TOR-final.pdf' });
+      expect(renamed?.name).toBe('TOR-final.pdf');
+      expect(renamed?.folderId).toBe(fromFolder.id);
+
+      const moved = await repo.updateFileMetadata(projectId, file.id, { folderId: toFolder.id });
+      expect(moved?.folderId).toBe(toFolder.id);
+      expect(moved?.name).toBe('TOR-final.pdf');
+    });
   });
 }

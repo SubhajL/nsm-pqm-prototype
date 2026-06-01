@@ -107,6 +107,124 @@ describe('POST /api/documents/[projectId] (PR-06)', () => {
   });
 });
 
+async function patchDocument(body: unknown) {
+  const { PATCH } = await import('./route');
+  return PATCH(
+    new Request(`http://localhost/api/documents/${PROJECT_ID}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+    { params: { projectId: PROJECT_ID } },
+  );
+}
+
+describe('PATCH /api/documents/[projectId] (PR-Docs1)', () => {
+  it('rename_folder updates the folder name and returns 200', async () => {
+    const { GET } = await import('./route');
+    const dataBefore = (await GET(new Request(`http://localhost/api/documents/${PROJECT_ID}`), {
+      params: { projectId: PROJECT_ID },
+    }).then((r) => r.json())) as { data: { folders: Array<{ id: string }> } };
+
+    const targetFolderId = dataBefore.data.folders.find((f) => f.id !== 'folder-root')?.id;
+    expect(targetFolderId).toBeTruthy();
+
+    const response = await patchDocument({
+      kind: 'rename_folder',
+      id: targetFolderId,
+      name: 'ชื่อใหม่ (Renamed)',
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; data: { name: string } };
+    expect(body.status).toBe('success');
+    expect(body.data.name).toBe('ชื่อใหม่ (Renamed)');
+  });
+
+  it('rename_file updates the file name and returns 200', async () => {
+    // Seed contains file-3 with status:'under_review' (not locked).
+    const response = await patchDocument({
+      kind: 'rename_file',
+      id: 'file-3',
+      name: 'TOR-renamed.pdf',
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; data: { name: string } };
+    expect(body.data.name).toBe('TOR-renamed.pdf');
+  });
+
+  it('move_file updates folderId and returns 200', async () => {
+    // Pick a real second folder to move to.
+    const { GET } = await import('./route');
+    const dataBefore = (await GET(new Request(`http://localhost/api/documents/${PROJECT_ID}`), {
+      params: { projectId: PROJECT_ID },
+    }).then((r) => r.json())) as { data: { folders: Array<{ id: string }> } };
+    const targetFolderId = dataBefore.data.folders.find((f) => f.id !== 'folder-root')?.id;
+    expect(targetFolderId).toBeTruthy();
+
+    const response = await patchDocument({
+      kind: 'move_file',
+      id: 'file-3',
+      toFolderId: targetFolderId,
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; data: { folderId: string } };
+    expect(body.data.folderId).toBe(targetFolderId);
+  });
+
+  it('rename_folder returns 404 for an unknown folder id', async () => {
+    const response = await patchDocument({
+      kind: 'rename_folder',
+      id: 'no-such-folder',
+      name: 'anything',
+    });
+    expect(response.status).toBe(404);
+    const body = (await response.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe('NOT_FOUND');
+  });
+
+  it('move_file returns 404 when the target folder does not exist', async () => {
+    const response = await patchDocument({
+      kind: 'move_file',
+      id: 'file-3',
+      toFolderId: 'no-such-folder',
+    });
+    expect(response.status).toBe(404);
+    const body = (await response.json()) as { error?: { code?: string; message?: string } };
+    expect(body.error?.code).toBe('NOT_FOUND');
+    expect(body.error?.message).toMatch(/target folder/i);
+  });
+
+  it('rejects an invalid PATCH body with 400', async () => {
+    const response = await patchDocument({ kind: 'rename_folder' }); // missing id+name
+    expect(response.status).toBe(400);
+  });
+
+  it('records one audit event per successful rename_file PATCH (before/after present)', async () => {
+    const { getRepositories } = await import('@/lib/repositories');
+
+    const response = await patchDocument({
+      kind: 'rename_file',
+      id: 'file-3',
+      name: 'TOR-audited.pdf',
+    });
+    expect(response.status).toBe(200);
+
+    const events = await getRepositories().auditEvents.list();
+    const relevant = events.filter(
+      (event) =>
+        event.action === 'upload_document' &&
+        event.resourceType === 'document_file' &&
+        event.resourceId === 'file-3' &&
+        event.decisionReason.includes('rename file'),
+    );
+    expect(relevant.length).toBeGreaterThanOrEqual(1);
+    const latest = relevant[relevant.length - 1];
+    expect(latest.before).not.toBeNull();
+    expect(latest.after).not.toBeNull();
+    expect((latest.after as { name: string }).name).toBe('TOR-audited.pdf');
+  });
+});
+
 describe('persistMockUpload rejection paths (PR-06)', () => {
   // The route doesn't accept raw multipart today (file metadata is sent
   // as JSON; the actual upload helper is called elsewhere). We exercise

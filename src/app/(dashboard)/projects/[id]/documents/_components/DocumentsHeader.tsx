@@ -3,6 +3,7 @@
 import { Button, Input, Popconfirm, Typography } from 'antd';
 import {
   DeleteOutlined,
+  EditOutlined,
   PlusOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
@@ -17,12 +18,14 @@ export function DocumentsHeader({
   selectedFolder,
   onOpenUpload,
   onOpenCreateFolder,
+  onRenameFolder,
   onDeleteFolder,
   onSearchChange,
 }: {
   selectedFolder: Folder | null;
   onOpenUpload: () => void;
   onOpenCreateFolder: () => void;
+  onRenameFolder: () => void;
   onDeleteFolder: () => Promise<void>;
   onSearchChange: (value: string) => void;
 }) {
@@ -54,6 +57,15 @@ export function DocumentsHeader({
         >
           สร้างโฟลเดอร์
         </Button>
+        {selectedFolder && selectedFolder.parentId !== null && (
+          <Button
+            icon={<EditOutlined />}
+            onClick={onRenameFolder}
+            aria-label="เปลี่ยนชื่อโฟลเดอร์ (Rename folder)"
+          >
+            เปลี่ยนชื่อโฟลเดอร์ (Rename)
+          </Button>
+        )}
         {selectedFolder && selectedFolder.parentId !== null && (
           <Popconfirm
             title="ลบโฟลเดอร์นี้?"

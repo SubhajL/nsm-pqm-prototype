@@ -13,6 +13,7 @@ import { parseRequestBody } from '@/lib/validation';
 import type { DocumentFile, Folder, VersionEntry } from '@/types/document';
 import {
   documentDeleteRequestSchema,
+  documentPatchRequestSchema,
   documentWriteRequestSchema,
 } from '@/types/document.schema';
 
@@ -201,6 +202,154 @@ export async function POST(
     : null;
 
   return Response.json({ status: 'success', data: { ...updatedFile, signedUrl } });
+}
+
+/**
+ * PR-Docs1 — PATCH for rename folder, rename file, and move file. All three
+ * sub-actions share `upload_document` as the gating authz action so the
+ * existing matrix entries cover them without an enum extension.
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: { projectId: string } },
+) {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(documentPatchRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+
+  const forbidden = await requireProjectAccess(params.projectId);
+  if (forbidden) return forbidden;
+
+  const currentUser = await getCurrentApiUser();
+
+  if (!(await canPerformProjectAction(currentUser, params.projectId, 'upload_document'))) {
+    return forbiddenResponse('upload_document');
+  }
+
+  const body = parsed.data;
+  const repos = getRepositories();
+
+  if (body.kind === 'rename_folder') {
+    const currentData = await repos.documents.getDataForProject(params.projectId);
+    const existingFolder = currentData.folders.find((entry) => entry.id === body.id);
+
+    if (!existingFolder) {
+      return Response.json(
+        { status: 'error', error: { code: 'NOT_FOUND', message: 'Folder not found' } },
+        { status: 404 },
+      );
+    }
+
+    const beforeFolder = structuredClone(existingFolder);
+    const updated = await repos.documents.renameFolder(params.projectId, body.id, body.name);
+
+    if (!updated) {
+      return Response.json(
+        { status: 'error', error: { code: 'NOT_FOUND', message: 'Folder not found' } },
+        { status: 404 },
+      );
+    }
+
+    await recordAuditEvent(request, {
+      action: 'upload_document',
+      resourceType: 'document_folder',
+      resourceId: updated.id,
+      projectId: params.projectId,
+      before: beforeFolder,
+      after: updated,
+      decisionReason: `rename folder ${beforeFolder.name} → ${updated.name}`,
+      authorityBasis: 'AUTHZ_MATRIX:upload_document',
+      actor: currentUser,
+    });
+    return Response.json({ status: 'success', data: updated });
+  }
+
+  if (body.kind === 'rename_file') {
+    const currentData = await repos.documents.getDataForProject(params.projectId);
+    const existingFile = currentData.files.find((entry) => entry.id === body.id);
+
+    if (!existingFile) {
+      return Response.json(
+        { status: 'error', error: { code: 'NOT_FOUND', message: 'File not found' } },
+        { status: 404 },
+      );
+    }
+
+    const beforeFile = structuredClone(existingFile);
+    const updated = await repos.documents.updateFileMetadata(params.projectId, body.id, {
+      name: body.name,
+    });
+
+    if (!updated) {
+      return Response.json(
+        { status: 'error', error: { code: 'NOT_FOUND', message: 'File not found' } },
+        { status: 404 },
+      );
+    }
+
+    await recordAuditEvent(request, {
+      action: 'upload_document',
+      resourceType: 'document_file',
+      resourceId: updated.id,
+      projectId: params.projectId,
+      before: beforeFile,
+      after: updated,
+      decisionReason: `rename file ${beforeFile.name} → ${updated.name}`,
+      authorityBasis: 'AUTHZ_MATRIX:upload_document',
+      actor: currentUser,
+    });
+    return Response.json({ status: 'success', data: updated });
+  }
+
+  // move_file
+  const currentData = await repos.documents.getDataForProject(params.projectId);
+  const existingFile = currentData.files.find((entry) => entry.id === body.id);
+
+  if (!existingFile) {
+    return Response.json(
+      { status: 'error', error: { code: 'NOT_FOUND', message: 'File not found' } },
+      { status: 404 },
+    );
+  }
+
+  // Validate the target folder exists in this project — refuse to create
+  // dangling `folder_id` references.
+  const targetFolderExists = currentData.folders.some((entry) => entry.id === body.toFolderId);
+  if (!targetFolderExists) {
+    return Response.json(
+      {
+        status: 'error',
+        error: { code: 'NOT_FOUND', message: 'Target folder not found' },
+      },
+      { status: 404 },
+    );
+  }
+
+  const beforeFile = structuredClone(existingFile);
+  const updated = await repos.documents.updateFileMetadata(params.projectId, body.id, {
+    folderId: body.toFolderId,
+  });
+
+  if (!updated) {
+    return Response.json(
+      { status: 'error', error: { code: 'NOT_FOUND', message: 'File not found' } },
+      { status: 404 },
+    );
+  }
+
+  await recordAuditEvent(request, {
+    action: 'upload_document',
+    resourceType: 'document_file',
+    resourceId: updated.id,
+    projectId: params.projectId,
+    before: beforeFile,
+    after: updated,
+    decisionReason: `move file ${updated.name} from ${beforeFile.folderId} to ${body.toFolderId}`,
+    authorityBasis: 'AUTHZ_MATRIX:upload_document',
+    actor: currentUser,
+  });
+  return Response.json({ status: 'success', data: updated });
 }
 
 export async function DELETE(

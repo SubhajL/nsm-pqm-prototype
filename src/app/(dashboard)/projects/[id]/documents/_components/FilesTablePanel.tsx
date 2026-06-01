@@ -1,8 +1,14 @@
 'use client';
 
-import { Button, Card, Popconfirm, Table, Tag, message } from 'antd';
+import { Button, Card, Dropdown, Popconfirm, Table, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { DeleteOutlined, FileOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  FileOutlined,
+  MoreOutlined,
+  SwapOutlined,
+} from '@ant-design/icons';
 
 import { formatThaiDate } from '@/lib/date-utils';
 import { COLORS } from '@/theme/antd-theme';
@@ -19,6 +25,8 @@ export function FilesTablePanel({
   filteredFiles,
   onSelectFile,
   onOpenVersionModal,
+  onOpenRenameFile,
+  onOpenMoveFile,
   onDeleteFile,
 }: {
   selectedFolder: Folder | null;
@@ -26,6 +34,8 @@ export function FilesTablePanel({
   filteredFiles: DocumentFile[];
   onSelectFile: (id: string) => void;
   onOpenVersionModal: (file: DocumentFile) => void;
+  onOpenRenameFile: (file: DocumentFile) => void;
+  onOpenMoveFile: (file: DocumentFile) => void;
   onDeleteFile: (file: DocumentFile) => Promise<void>;
 }) {
   const fileColumns: ColumnsType<DocumentFile> = [
@@ -97,15 +107,44 @@ export function FilesTablePanel({
     {
       title: 'จัดการ',
       key: 'actions',
-      width: 160,
+      width: 200,
       render: (_: unknown, file: DocumentFile) => (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div
+          style={{ display: 'flex', gap: 8 }}
+          // Stop row-click from firing when an action button is clicked.
+          onClick={(event) => event.stopPropagation()}
+        >
           <Button
             size="small"
             onClick={() => onOpenVersionModal(file)}
           >
             เวอร์ชันใหม่
           </Button>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'rename',
+                  icon: <EditOutlined />,
+                  label: 'เปลี่ยนชื่อ (Rename)',
+                  onClick: () => onOpenRenameFile(file),
+                },
+                {
+                  key: 'move',
+                  icon: <SwapOutlined />,
+                  label: 'ย้ายโฟลเดอร์ (Move)',
+                  onClick: () => onOpenMoveFile(file),
+                },
+              ],
+            }}
+            trigger={['click']}
+          >
+            <Button
+              size="small"
+              icon={<MoreOutlined />}
+              aria-label="เมนูการดำเนินการเพิ่มเติม (More actions)"
+            />
+          </Dropdown>
           <Popconfirm
             title="ลบเอกสารนี้?"
             okText="ลบ"
