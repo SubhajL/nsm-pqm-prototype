@@ -121,7 +121,11 @@ export default function QualityManagementPage() {
           boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
         }}
       >
-        <QualityGatePipeline gates={gates ?? []} />
+        <QualityGatePipeline
+          gates={gates ?? []}
+          projectId={projectId}
+          canManage={canManageQuality}
+        />
       </Card>
 
       {/* Quick Tip */}
