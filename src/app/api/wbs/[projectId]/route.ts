@@ -11,7 +11,11 @@ import { getActiveUser } from '@/lib/project-access';
 import { cookies } from 'next/headers';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
-import { createWbsNodeRequestSchema } from '@/types/wbs.schema';
+import {
+  createWbsNodeRequestSchema,
+  deleteWbsNodeRequestSchema,
+  updateWbsNodeRequestSchema,
+} from '@/types/wbs.schema';
 
 interface WBSNode {
   id: string;
@@ -128,4 +132,135 @@ export async function POST(
   });
 
   return Response.json({ status: 'success', data: newNode }, { status: 201 });
+}
+
+/**
+ * PR-C2 — PATCH a WBS node's editable fields (name/weight/progress).
+ * The handler refuses cross-project edits.
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: { projectId: string } },
+) {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const repos = getRepositories();
+
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(updateWbsNodeRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const body = parsed.data;
+
+  const forbidden = await requireProjectAccess(params.projectId);
+  if (forbidden) return forbidden;
+
+  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  if (!(await canPerformProjectAction(currentUser, params.projectId, 'edit_wbs'))) {
+    return forbiddenResponse('edit_wbs');
+  }
+
+  const existing = await repos.wbs.findById(body.id);
+  if (!existing || existing.projectId !== params.projectId) {
+    return Response.json(
+      { status: 'error', error: { code: 'NOT_FOUND', message: 'WBS node not found' } },
+      { status: 404 },
+    );
+  }
+
+  const before = { ...existing };
+  const patch: Partial<WBSNode> = {};
+  if (body.name !== undefined) patch.name = body.name.trim();
+  if (body.weight !== undefined) patch.weight = body.weight;
+  if (body.progress !== undefined) patch.progress = body.progress;
+
+  const updated = await repos.wbs.update(body.id, patch);
+  if (!updated) {
+    return Response.json(
+      { status: 'error', error: { code: 'NOT_FOUND', message: 'WBS node not found' } },
+      { status: 404 },
+    );
+  }
+
+  await recordAuditEvent(request, {
+    action: 'edit_wbs',
+    resourceType: 'wbs',
+    resourceId: updated.id,
+    projectId: params.projectId,
+    before,
+    after: updated,
+    decisionReason: 'update',
+    authorityBasis: 'AUTHZ_MATRIX:edit_wbs',
+  });
+
+  return Response.json({ status: 'success', data: updated });
+}
+
+/**
+ * PR-C2 — DELETE a WBS node and cascade to descendants + their BOQ items.
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: { projectId: string } },
+) {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const repos = getRepositories();
+
+  const rawBody: unknown = await request.json().catch(() => null);
+  const parsed = parseRequestBody(deleteWbsNodeRequestSchema, rawBody);
+  if (!parsed.success) return parsed.response;
+  const { id } = parsed.data;
+
+  const forbidden = await requireProjectAccess(params.projectId);
+  if (forbidden) return forbidden;
+
+  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  if (!(await canPerformProjectAction(currentUser, params.projectId, 'edit_wbs'))) {
+    return forbiddenResponse('edit_wbs');
+  }
+
+  const allNodes = await repos.wbs.list();
+  const target = allNodes.find((node) => node.id === id);
+  if (!target || target.projectId !== params.projectId) {
+    return Response.json(
+      { status: 'error', error: { code: 'NOT_FOUND', message: 'WBS node not found' } },
+      { status: 404 },
+    );
+  }
+
+  // Walk descendants breadth-first.
+  const toDelete = new Set<string>([target.id]);
+  let frontier: string[] = [target.id];
+  while (frontier.length > 0) {
+    const nextFrontier: string[] = [];
+    for (const node of allNodes) {
+      if (node.parentId !== null && frontier.includes(node.parentId)) {
+        toDelete.add(node.id);
+        nextFrontier.push(node.id);
+      }
+    }
+    frontier = nextFrontier;
+  }
+
+  const deletionList = Array.from(toDelete);
+  for (const nodeId of deletionList) {
+    const boqRows = await repos.boq.listByWbs(nodeId);
+    for (const item of boqRows) {
+      await repos.boq.delete(item.id);
+    }
+  }
+  for (const nodeId of deletionList) {
+    await repos.wbs.delete(nodeId);
+  }
+
+  await recordAuditEvent(request, {
+    action: 'edit_wbs',
+    resourceType: 'wbs',
+    resourceId: target.id,
+    projectId: params.projectId,
+    before: target,
+    after: null,
+    decisionReason: `delete (cascade ${toDelete.size} node${toDelete.size === 1 ? '' : 's'})`,
+    authorityBasis: 'AUTHZ_MATRIX:edit_wbs',
+  });
+
+  return Response.json({ status: 'success', data: target });
 }

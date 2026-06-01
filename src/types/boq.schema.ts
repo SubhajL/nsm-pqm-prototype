@@ -18,3 +18,23 @@ export const createBoqItemRequestSchema = z
   .strict();
 
 export type CreateBoqItemRequest = z.infer<typeof createBoqItemRequestSchema>;
+
+/** PR-C2 — PATCH body. Server recomputes `total` from quantity × unitPrice. */
+export const updateBoqItemRequestSchema = z
+  .object({
+    id: z.string().min(1, 'id is required'),
+    description: z.string().min(1, 'description cannot be empty').optional(),
+    quantity: z.number().nonnegative().optional(),
+    unit: z.string().min(1, 'unit cannot be empty').optional(),
+    unitPrice: z.number().nonnegative().optional(),
+  })
+  .strict();
+
+export type UpdateBoqItemRequest = z.infer<typeof updateBoqItemRequestSchema>;
+
+/** PR-C2 — DELETE body. */
+export const deleteBoqItemRequestSchema = z
+  .object({ id: z.string().min(1, 'id is required') })
+  .strict();
+
+export type DeleteBoqItemRequest = z.infer<typeof deleteBoqItemRequestSchema>;

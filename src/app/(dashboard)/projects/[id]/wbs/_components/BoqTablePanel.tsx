@@ -1,10 +1,10 @@
 'use client';
 
-import { Alert, Button, Card, Table, Typography } from 'antd';
+import { Alert, Button, Card, Popconfirm, Space, Table, Typography } from 'antd';
 
 import { EmptyState, LoadingSkeleton } from '@/components/common';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 
 import type { BOQItem } from '@/hooks/useBOQ';
 import { formatBaht, formatBahtCurrency } from '@/lib/date-utils';
@@ -21,6 +21,9 @@ export function BoqTablePanel({
   boqTotalSum,
   canCreateBoq,
   onOpenCreateBoq,
+  onEditBoq,
+  onDeleteBoq,
+  deletePending,
 }: {
   selectedWbsId: string | undefined;
   selectedNodeName: string;
@@ -30,7 +33,12 @@ export function BoqTablePanel({
   boqTotalSum: number;
   canCreateBoq: boolean;
   onOpenCreateBoq: () => void;
+  /** PR-C2 — per-row Edit/Delete actions appear when these are set. */
+  onEditBoq?: (item: BOQItem) => void;
+  onDeleteBoq?: (item: BOQItem) => void | Promise<void>;
+  deletePending?: boolean;
 }) {
+  const showActions = Boolean(onEditBoq || onDeleteBoq);
   // BOQ table columns
   const boqColumns: ColumnsType<BOQItem> = [
     {
@@ -78,6 +86,43 @@ export function BoqTablePanel({
         <span style={{ fontWeight: 600 }}>{formatBaht(total)}</span>
       ),
     },
+    ...(showActions
+      ? ([
+          {
+            title: 'จัดการ (Actions)',
+            key: 'actions',
+            width: 160,
+            render: (_: unknown, item: BOQItem) => (
+              <Space size={4}>
+                {onEditBoq ? (
+                  <Button
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={() => onEditBoq(item)}
+                    aria-label={`แก้ไข ${item.description} (Edit)`}
+                  />
+                ) : null}
+                {onDeleteBoq ? (
+                  <Popconfirm
+                    title="ลบรายการ BOQ นี้?"
+                    okText="ลบ"
+                    cancelText="ยกเลิก"
+                    okButtonProps={{ danger: true, loading: deletePending }}
+                    onConfirm={() => void onDeleteBoq(item)}
+                  >
+                    <Button
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      aria-label={`ลบ ${item.description} (Delete)`}
+                    />
+                  </Popconfirm>
+                ) : null}
+              </Space>
+            ),
+          },
+        ] as ColumnsType<BOQItem>)
+      : []),
   ];
 
   return (
