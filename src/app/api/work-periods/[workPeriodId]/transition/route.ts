@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   featureDisabledResponse,
   isFeatureEnabled,
@@ -163,21 +163,25 @@ export async function POST(
   }
 
   const before = { state: workPeriod.state, updatedAt: workPeriod.updatedAt };
-  const updated = await repos.workPeriods.update(workPeriod.id, {
-    state: parsed.data.targetState,
-    updatedAt: new Date().toISOString(),
-  });
 
-  await recordAuditEvent(request, {
-    action: 'transition_work_period',
-    resourceType: 'work_period',
-    resourceId: workPeriod.id,
-    projectId: workPeriod.projectId,
-    before,
-    after: { state: updated?.state, updatedAt: updated?.updatedAt },
-    decisionReason: `งวดที่ ${workPeriod.number}: ${workPeriod.state} → ${parsed.data.targetState} (${deliveryMethod})`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  // Phase 2-A — atomic state-machine advance + audit.
+  const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.workPeriods.update(workPeriod.id, {
+      state: parsed.data.targetState,
+      updatedAt: new Date().toISOString(),
+    });
+    await appendAudit({
+      action: 'transition_work_period',
+      resourceType: 'work_period',
+      resourceId: workPeriod.id,
+      projectId: workPeriod.projectId,
+      before,
+      after: { state: result?.state, updatedAt: result?.updatedAt },
+      decisionReason: `งวดที่ ${workPeriod.number}: ${workPeriod.state} → ${parsed.data.targetState} (${deliveryMethod})`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: updated ?? workPeriod });

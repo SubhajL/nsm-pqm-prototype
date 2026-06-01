@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   featureDisabledResponse,
   isFeatureEnabled,
@@ -89,7 +89,6 @@ export async function POST(
     return forbiddenResponse('edit_basic');
   }
 
-  const repos = getRepositories();
   const body = parsed.data;
   const voucher: PaymentVoucher = {
     id: `pv-${crypto.randomUUID()}`,
@@ -102,17 +101,22 @@ export async function POST(
     notes: body.notes?.trim() ?? '',
   };
 
-  const created = await repos.paymentVouchers.create(voucher);
-  await recordAuditEvent(request, {
-    action: 'create_payment_voucher',
-    resourceType: 'payment_voucher',
-    resourceId: created.id,
-    projectId: wp.projectId,
-    before: null,
-    after: created,
-    decisionReason: `draft payment voucher for งวดที่ ${wp.number}`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  // Phase 2-A — atomic create + audit. Money-flow records are the
+  // highest-value gov't audit surface; never lose an audit on crash.
+  const created = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.paymentVouchers.create(voucher);
+    await appendAudit({
+      action: 'create_payment_voucher',
+      resourceType: 'payment_voucher',
+      resourceId: result.id,
+      projectId: wp.projectId,
+      before: null,
+      after: result,
+      decisionReason: `draft payment voucher for งวดที่ ${wp.number}`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: created }, { status: 201 });
@@ -202,18 +206,21 @@ export async function PATCH(
   }
   if (body.notes !== undefined) patch.notes = body.notes.trim();
 
-  const updated = await repos.paymentVouchers.update(existing.id, patch);
-
-  await recordAuditEvent(request, {
-    action: 'update_payment_voucher',
-    resourceType: 'payment_voucher',
-    resourceId: existing.id,
-    projectId: wp.projectId,
-    before: existing,
-    after: updated,
-    decisionReason: `payment voucher งวดที่ ${wp.number}: ${existing.state} → ${body.state}`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  // Phase 2-A — atomic state-transition + audit.
+  const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.paymentVouchers.update(existing.id, patch);
+    await appendAudit({
+      action: 'update_payment_voucher',
+      resourceType: 'payment_voucher',
+      resourceId: existing.id,
+      projectId: wp.projectId,
+      before: existing,
+      after: result,
+      decisionReason: `payment voucher งวดที่ ${wp.number}: ${existing.state} → ${body.state}`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: updated ?? existing });

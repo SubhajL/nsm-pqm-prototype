@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -109,18 +109,23 @@ export async function POST(
   }
 
   const before = structuredClone(cr);
-  const updated = await repos.changeRequests.update(cr.id, patch);
 
-  await recordAuditEvent(request, {
-    action: 'transition_change_request',
-    resourceType: 'change_request',
-    resourceId: cr.id,
-    projectId: cr.projectId,
-    before,
-    after: updated,
-    decisionReason: `${cr.status} → ${body.toStatus}${body.reason ? ` (${body.reason})` : ''}`,
-    authorityBasis: 'AUTHZ_MATRIX:approve_change_request + change-request-routing',
-    actor,
+  // Phase 2-A — wrap the update + audit append in a single transaction.
+  // A crash between the two would otherwise lose the gov't-audit entry.
+  const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.changeRequests.update(cr.id, patch);
+    await appendAudit({
+      action: 'transition_change_request',
+      resourceType: 'change_request',
+      resourceId: cr.id,
+      projectId: cr.projectId,
+      before,
+      after: result,
+      decisionReason: `${cr.status} → ${body.toStatus}${body.reason ? ` (${body.reason})` : ''}`,
+      authorityBasis: 'AUTHZ_MATRIX:approve_change_request + change-request-routing',
+      actor,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: updated, terminal: isTerminal });

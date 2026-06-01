@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -169,71 +169,77 @@ export async function PATCH(
     },
   ];
 
-  const updated = (await repos.dailyReports.update(report.id, patch)) ?? {
-    ...report,
-    ...patch,
-  };
-
-  // --- Auto-generate notification ---
-  const reporterName = updated.signatures?.reporter?.name ?? 'วิศวกร';
-  const reportLabel = `รายงานประจำวัน #${updated.reportNumber}`;
-  const actionUrl = `/projects/${updated.projectId}/daily-report`;
-
-  let notification: Notification | null = null;
-
-  if (nextStatus === 'submitted') {
-    notification = {
-      id: `notif-dr-${Date.now()}`,
-      type: 'approval',
-      title: `${reportLabel} ส่งมาเพื่อขออนุมัติ`,
-      message: `${reporterName} ส่ง${reportLabel} (${updated.date}) เพื่อขออนุมัติ`,
-      projectId: updated.projectId,
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      actionUrl,
-      severity: 'info',
+  // Phase 2-A — wrap the status transition, the notification push, and
+  // the audit append in a single transaction so a crash mid-flow cannot
+  // leave a half-applied daily-report status change in the gov't record.
+  const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = (await txRepos.dailyReports.update(report.id, patch)) ?? {
+      ...report,
+      ...patch,
     };
-  } else if (nextStatus === 'approved') {
-    notification = {
-      id: `notif-dr-${Date.now()}`,
-      type: 'approval',
-      title: `${reportLabel} ได้รับการอนุมัติ`,
-      message: `${currentUser.name} อนุมัติ${reportLabel} (${updated.date}) เรียบร้อยแล้ว`,
-      projectId: updated.projectId,
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      actionUrl,
-      severity: 'success',
-    };
-  } else if (nextStatus === 'rejected') {
-    notification = {
-      id: `notif-dr-${Date.now()}`,
-      type: 'approval',
-      title: `${reportLabel} ถูกตีกลับ`,
-      message: `${currentUser.name} ตีกลับ${reportLabel} (${updated.date}) — กรุณาแก้ไขและส่งใหม่`,
-      projectId: updated.projectId,
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      actionUrl,
-      severity: 'warning',
-    };
-  }
 
-  if (notification) {
-    await repos.notifications.push(notification);
-  }
-  await recordAuditEvent(request, {
-    action: requiredAction,
-    resourceType: 'daily_report',
-    resourceId: updated.id,
-    projectId: updated.projectId,
-    before: beforeReport,
-    after: updated,
-    decisionReason: `${beforeReport.status} → ${nextStatus}${
-      body.note?.trim() ? `: ${body.note.trim()}` : ''
-    }`,
-    authorityBasis: `AUTHZ_MATRIX:${requiredAction}`,
-    actor: currentUser,
+    // --- Auto-generate notification ---
+    const reporterName = result.signatures?.reporter?.name ?? 'วิศวกร';
+    const reportLabel = `รายงานประจำวัน #${result.reportNumber}`;
+    const actionUrl = `/projects/${result.projectId}/daily-report`;
+
+    let notification: Notification | null = null;
+
+    if (nextStatus === 'submitted') {
+      notification = {
+        id: `notif-dr-${Date.now()}`,
+        type: 'approval',
+        title: `${reportLabel} ส่งมาเพื่อขออนุมัติ`,
+        message: `${reporterName} ส่ง${reportLabel} (${result.date}) เพื่อขออนุมัติ`,
+        projectId: result.projectId,
+        isRead: false,
+        timestamp: new Date().toISOString(),
+        actionUrl,
+        severity: 'info',
+      };
+    } else if (nextStatus === 'approved') {
+      notification = {
+        id: `notif-dr-${Date.now()}`,
+        type: 'approval',
+        title: `${reportLabel} ได้รับการอนุมัติ`,
+        message: `${currentUser.name} อนุมัติ${reportLabel} (${result.date}) เรียบร้อยแล้ว`,
+        projectId: result.projectId,
+        isRead: false,
+        timestamp: new Date().toISOString(),
+        actionUrl,
+        severity: 'success',
+      };
+    } else if (nextStatus === 'rejected') {
+      notification = {
+        id: `notif-dr-${Date.now()}`,
+        type: 'approval',
+        title: `${reportLabel} ถูกตีกลับ`,
+        message: `${currentUser.name} ตีกลับ${reportLabel} (${result.date}) — กรุณาแก้ไขและส่งใหม่`,
+        projectId: result.projectId,
+        isRead: false,
+        timestamp: new Date().toISOString(),
+        actionUrl,
+        severity: 'warning',
+      };
+    }
+
+    if (notification) {
+      await txRepos.notifications.push(notification);
+    }
+    await appendAudit({
+      action: requiredAction,
+      resourceType: 'daily_report',
+      resourceId: result.id,
+      projectId: result.projectId,
+      before: beforeReport,
+      after: result,
+      decisionReason: `${beforeReport.status} → ${nextStatus}${
+        body.note?.trim() ? `: ${body.note.trim()}` : ''
+      }`,
+      authorityBasis: `AUTHZ_MATRIX:${requiredAction}`,
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: updated });
