@@ -8,6 +8,7 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { applyItpStatusSync } from '@/lib/quality-consistency';
+import { transitionInspection } from '@/lib/quality/inspection-workflow';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { patchInspectionRequestSchema } from '@/types/quality.schema';
@@ -30,12 +31,6 @@ import type { InspectionRecord, WorkflowStatus } from '@/types/quality';
  *
  * Auth: project visibility on the inspection's project + `edit_quality_inspection`.
  */
-
-const VALID_WORKFLOW_TRANSITIONS: Record<WorkflowStatus, readonly WorkflowStatus[]> = {
-  draft: ['confirmed'],
-  confirmed: ['signed'],
-  signed: [],
-};
 
 export async function PATCH(
   request: Request,
@@ -78,39 +73,25 @@ export async function PATCH(
   const before = structuredClone(record);
   const body = parsed.data;
 
-  // Workflow-status transition guard. Pure subset of the collection-route
-  // logic — restated here so [id] PATCH stays self-contained.
+  // Workflow-status transition guard via shared pure helper. Only runs when
+  // the caller is actually changing the status; same-status PATCH is a no-op
+  // pass-through for the other metadata fields.
   if (body.workflowStatus && body.workflowStatus !== (record.workflowStatus ?? 'draft')) {
     const currentStatus: WorkflowStatus = record.workflowStatus ?? 'draft';
-    const allowed = VALID_WORKFLOW_TRANSITIONS[currentStatus];
-    if (!allowed.includes(body.workflowStatus)) {
+    const transition = transitionInspection({
+      from: currentStatus,
+      to: body.workflowStatus,
+      checklist: body.checklist ?? record.checklist,
+    });
+    if (!transition.ok) {
+      const httpStatus = transition.code === 'INVALID_TRANSITION' ? 409 : 400;
+      const errorCode = transition.code === 'INVALID_TRANSITION' ? 'INVALID_TRANSITION' : 'BAD_REQUEST';
       return Response.json(
         {
           status: 'error',
-          error: {
-            code: 'INVALID_TRANSITION',
-            message: `ไม่สามารถเปลี่ยนสถานะจาก "${currentStatus}" เป็น "${body.workflowStatus}" ได้`,
-          },
+          error: { code: errorCode, message: transition.message },
         },
-        { status: 409 },
-      );
-    }
-
-    // Block forward transitions if any checklist item is fail (mirrors the
-    // collection-route guard). Use the incoming checklist if provided,
-    // otherwise the stored one.
-    const effectiveChecklist = body.checklist ?? record.checklist;
-    const hasFails = effectiveChecklist.some((c) => c.result === 'fail');
-    if (hasFails && (body.workflowStatus === 'confirmed' || body.workflowStatus === 'signed')) {
-      return Response.json(
-        {
-          status: 'error',
-          error: {
-            code: 'BAD_REQUEST',
-            message: 'ไม่สามารถยืนยันหรือลงนามได้ — ยังมีรายการที่ไม่ผ่าน ต้องแก้ไขก่อน',
-          },
-        },
-        { status: 400 },
+        { status: httpStatus },
       );
     }
   }
