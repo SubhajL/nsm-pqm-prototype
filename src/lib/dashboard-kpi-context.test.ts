@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPortfolioFreshness,
   computeKpiDelta,
+  computeRatioKpiDelta,
   formatFreshnessLabel,
   getMostRecentProjectUpdatedAt,
 } from './dashboard-kpi-context';
@@ -59,6 +60,57 @@ describe('computeKpiDelta', () => {
   it('honours custom bilingual comparison label', () => {
     const result = computeKpiDelta(12, 10, { comparisonLabel: '(vs last month)' });
     expect(result.label).toMatch(/\(vs last month\)$/);
+  });
+});
+
+describe('computeRatioKpiDelta', () => {
+  it('formats a positive delta with 2-decimal precision + positive tone', () => {
+    const result = computeRatioKpiDelta(1.08, 1.0);
+    expect(result.label.startsWith('+0.08')).toBe(true);
+    expect(result.tone).toBe('positive');
+    expect(result.rawDelta).toBeCloseTo(0.08, 2);
+  });
+
+  it('formats a negative delta with proper minus sign + negative tone', () => {
+    const result = computeRatioKpiDelta(0.92, 1.0);
+    expect(result.label.startsWith('−0.08')).toBe(true);
+    expect(result.tone).toBe('negative');
+    expect(result.rawDelta).toBeCloseTo(-0.08, 2);
+  });
+
+  it('returns neutral tone when current equals baseline', () => {
+    const result = computeRatioKpiDelta(1.0, 1.0);
+    expect(result.tone).toBe('neutral');
+    expect(result.rawDelta).toBe(0);
+    expect(result.label).toMatch(/0\.00/);
+  });
+
+  it('does not leak floating-point noise into the label (uses fixed-2)', () => {
+    // 0.1 + 0.2 - 0.3 ≈ 5.55e-17 — the helper must clamp this away.
+    const result = computeRatioKpiDelta(0.3, 0.1 + 0.2);
+    expect(result.tone).toBe('neutral');
+    expect(result.label).not.toMatch(/e-/);
+  });
+
+  it('honours custom bilingual comparison label', () => {
+    const result = computeRatioKpiDelta(1.05, 1.0, {
+      comparisonLabel: '(vs baseline 1.00)',
+    });
+    expect(result.label).toMatch(/\(vs baseline 1\.00\)$/);
+  });
+
+  it('guards against NaN current (bad upstream EVM data) → neutral tone, no "−NaN" in label', () => {
+    const result = computeRatioKpiDelta(NaN, 1.0);
+    expect(result.tone).toBe('neutral');
+    expect(result.rawDelta).toBe(0);
+    expect(result.label).not.toMatch(/NaN/);
+    expect(result.label).toMatch(/—/);
+  });
+
+  it('guards against Infinity (eg pv=0 division) → neutral tone, no "−Infinity"', () => {
+    const result = computeRatioKpiDelta(Infinity, 1.0);
+    expect(result.tone).toBe('neutral');
+    expect(result.label).not.toMatch(/Infinity/);
   });
 });
 

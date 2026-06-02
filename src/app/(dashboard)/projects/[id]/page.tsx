@@ -26,6 +26,7 @@ import { RidLifecycleGates } from '@/components/rid/RidLifecycleGates';
 import { QualityGatePipeline } from '@/components/quality/QualityGatePipeline';
 import { useQualityGates } from '@/hooks/useQuality';
 import { formatThaiDateShort } from '@/lib/date-utils';
+import { buildPortfolioFreshness } from '@/lib/dashboard-kpi-context';
 import {
   deriveCurrentMilestoneNumber,
 } from '@/lib/project-milestone-derivations-pure';
@@ -249,6 +250,9 @@ export default function ProjectOverviewPage() {
     deliveryMethod === 'outsourced'
       ? 'จ่ายแล้วสะสม (Paid to Date)'
       : 'ใช้ไปแล้ว (Actual Cost)';
+  const projectFreshness = project
+    ? buildPortfolioFreshness([project], new Date()).label
+    : undefined;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -279,6 +283,7 @@ export default function ProjectOverviewPage() {
         totalMilestones={totalMilestones}
         openIssues={openIssues}
         highRisks={highRisks}
+        freshness={projectFreshness}
       />
 
       {/* ====== 3. Two Columns: Activity & Milestones ====== */}

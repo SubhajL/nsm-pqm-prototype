@@ -71,6 +71,45 @@ export function computeKpiDelta(
 }
 
 /**
+ * Compute a signed delta for ratio metrics (SPI / CPI / etc.) against a
+ * fixed baseline (typically 1.00). Returns a label rounded to 2 decimals
+ * so floating-point arithmetic (eg `0.92 - 1.0`) doesn't leak digits
+ * into the rendered UI. Higher is always treated as better — matches the
+ * EVM convention where SPI/CPI ≥ 1 is on/under target.
+ */
+export function computeRatioKpiDelta(
+  current: number,
+  baseline: number,
+  options: { comparisonLabel?: string } = {},
+): KpiDelta {
+  const { comparisonLabel = '(vs baseline)' } = options;
+
+  // Guard against NaN / Infinity — `??` doesn't coalesce NaN, so a
+  // bad upstream value (eg `spi = 0 / 0` from missing EVM data) would
+  // otherwise leak "−NaN" into the rendered KPI label.
+  if (!Number.isFinite(current) || !Number.isFinite(baseline)) {
+    return {
+      label: `— ${comparisonLabel}`,
+      tone: 'neutral',
+      rawDelta: 0,
+    };
+  }
+
+  const rawDelta = Number((current - baseline).toFixed(2));
+
+  if (rawDelta === 0) {
+    return { label: `0.00 ${comparisonLabel}`, tone: 'neutral', rawDelta: 0 };
+  }
+
+  const sign = rawDelta > 0 ? '+' : '−';
+  const magnitude = Math.abs(rawDelta).toFixed(2);
+  const label = `${sign}${magnitude} ${comparisonLabel}`;
+  const tone: KpiTone = rawDelta > 0 ? 'positive' : 'negative';
+
+  return { label, tone, rawDelta };
+}
+
+/**
  * Returns the most recent ISO timestamp across all projects, falling back
  * to `lifecycleStageHistory[*].enteredAt` because the current `Project`
  * type does not persist a top-level `updatedAt`. Returns `null` when
