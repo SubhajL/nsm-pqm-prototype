@@ -23,6 +23,14 @@ interface CPISPITrendChartProps {
   valueFormatter?: (value: number) => string;
   primaryLabelPosition?: 'top' | 'bottom';
   secondaryLabelPosition?: 'top' | 'bottom';
+  /**
+   * PR-C3 follow-up — audit C3 asked for a labeled "today/latest"
+   * marker on EVM trend charts (the S-curve already got one in PR #43).
+   * When true, renders a vertical dashed guide at the most recent
+   * data point with the bilingual label "ข้อมูลงวดล่าสุด (Latest)".
+   * Defaults to false to keep existing callers backward-compatible.
+   */
+  markLatestPoint?: boolean;
 }
 
 export function CPISPITrendChart({
@@ -38,6 +46,7 @@ export function CPISPITrendChart({
   valueFormatter = (value) => value.toFixed(2),
   primaryLabelPosition = 'top',
   secondaryLabelPosition = 'bottom',
+  markLatestPoint = false,
 }: CPISPITrendChartProps) {
   const months = data.map((d) => d.monthThai);
   const primaryData = data.map((d) => d.primary);
@@ -143,6 +152,32 @@ export function CPISPITrendChart({
           fontSize: 11,
           color: secondaryColor,
         },
+        // PR-C3 follow-up: when `markLatestPoint` is true, attach a
+        // vertical "Latest" guide to the secondary series so it
+        // doesn't collide with the primary series' yAxis reference
+        // line at value 1.0. Styling matches the existing reference
+        // markLine on series[0] (muted gray, dashed, width 1) so the
+        // two markLines read as a coherent set rather than two
+        // unrelated overlays.
+        markLine:
+          markLatestPoint && data.length > 0
+            ? {
+                silent: true,
+                symbol: 'none',
+                label: {
+                  formatter: 'ข้อมูลงวดล่าสุด (Latest)',
+                  position: 'insideEndTop',
+                  color: COLORS.textMuted,
+                  fontSize: 11,
+                },
+                lineStyle: {
+                  type: 'dashed',
+                  color: COLORS.textDisabled,
+                  width: 1,
+                },
+                data: [{ xAxis: data.length - 1 }],
+              }
+            : undefined,
       },
     ],
   };

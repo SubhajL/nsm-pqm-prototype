@@ -75,6 +75,7 @@ export function SCurveCharts({
               valueFormatter={isOutsourced ? ((value) => `${(value * 100).toFixed(0)}%`) : ((value) => value.toFixed(2))}
               primaryLabelPosition="top"
               secondaryLabelPosition="bottom"
+              markLatestPoint
             />
           ) : (
             <Empty

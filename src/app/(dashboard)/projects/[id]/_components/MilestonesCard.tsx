@@ -4,7 +4,8 @@ import { Card, Progress, Space, Steps, Tag, Typography } from 'antd';
 
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { formatBahtCurrency, formatThaiDateShort } from '@/lib/date-utils';
-import { COLORS } from '@/theme/antd-theme';
+
+import { resolveMilestoneProgressStrokeColor } from './milestone-progress-color';
 
 const { Text } = Typography;
 
@@ -68,7 +69,7 @@ export function MilestonesCard({
                     <Progress
                       percent={ms.progressPercent}
                       size="small"
-                      strokeColor={COLORS.info}
+                      strokeColor={resolveMilestoneProgressStrokeColor(ms.displayStatus)}
                     />
                   </div>
                 )}
