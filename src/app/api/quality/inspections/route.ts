@@ -13,6 +13,7 @@ import {
   applyItpStatusSync,
   applyRemoveAutoNcrIssuesForInspection,
 } from '@/lib/quality-consistency';
+import { transitionInspection } from '@/lib/quality/inspection-workflow';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import {
@@ -151,11 +152,6 @@ export async function POST(request: Request) {
   return Response.json({ status: 'success', data: newRecord }, { status: 201 });
 }
 
-const VALID_TRANSITIONS: Record<string, string> = {
-  'draft→confirmed': 'confirmed',
-  'confirmed→signed': 'signed',
-};
-
 export async function PATCH(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const repos = getRepositories();
@@ -257,34 +253,18 @@ export async function PATCH(request: Request) {
     );
   }
 
-  // Block workflow transitions if there are still failed items
-  if (body.workflowStatus === 'confirmed' || body.workflowStatus === 'signed') {
-    const hasFails = record.checklist.some((c) => c.result === 'fail');
-    if (hasFails) {
-      return Response.json(
-        {
-          status: 'error',
-          error: {
-            code: 'BAD_REQUEST',
-            message: 'ไม่สามารถยืนยันหรือลงนามได้ — ยังมีรายการที่ไม่ผ่าน ต้องแก้ไขก่อน',
-          },
-        },
-        { status: 400 },
-      );
-    }
-  }
-
   const currentStatus = record.workflowStatus ?? 'draft';
-  const transitionKey = `${currentStatus}→${body.workflowStatus}`;
+  const transition = transitionInspection({
+    from: currentStatus,
+    to: body.workflowStatus,
+    checklist: record.checklist,
+  });
 
-  if (!VALID_TRANSITIONS[transitionKey]) {
+  if (!transition.ok) {
     return Response.json(
       {
         status: 'error',
-        error: {
-          code: 'BAD_REQUEST',
-          message: `ไม่สามารถเปลี่ยนสถานะจาก "${currentStatus}" เป็น "${body.workflowStatus}" ได้`,
-        },
+        error: { code: 'BAD_REQUEST', message: transition.message },
       },
       { status: 400 },
     );
