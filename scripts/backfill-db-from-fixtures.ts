@@ -3,18 +3,22 @@
  *
  * Run with:  `npm run db:seed`
  *
- * PR-21b: this script delegates to `ensureDatabaseSeeded()` which performs
- * idempotent migrations + per-domain seeding. Re-running is safe — every
- * insert is guarded by an existence check.
+ * Phase 2-C: this script calls `runMigrationsAndSeedFromFixtures()` —
+ * the unconditional entry point that bypasses the runtime
+ * `DB_MIGRATIONS_APPLIED` opt-out. The runtime's lazy seed
+ * (`ensureDatabaseSeeded` via `getRepositories()`) short-circuits
+ * when the operator sets that env var, so the seed script MUST go
+ * through the unconditional helper or it would silently no-op.
  *
- * The same helper is invoked automatically by `getRepositories()` on first
- * call against the active Db, so this script is primarily useful as a
- * deployment hook that pre-warms a real Postgres before any HTTP traffic
- * hits the app.
+ * Idempotent: every insert is guarded by an existence check, so
+ * re-running is safe.
+ *
+ * Use as a deployment hook to pre-warm a real Postgres before any
+ * HTTP traffic hits the app.
  */
 
 import { getDb } from '@/lib/db/client';
-import { ensureDatabaseSeeded } from '@/lib/db/bootstrap';
+import { runMigrationsAndSeedFromFixtures } from '@/lib/db/bootstrap';
 
 async function main() {
   const db = getDb();
@@ -23,7 +27,11 @@ async function main() {
       ? '[backfill] target: $DATABASE_URL'
       : '[backfill] target: ephemeral pglite (DATABASE_URL unset)',
   );
-  await ensureDatabaseSeeded(db);
+  // Phase 2-C — use the unconditional entry point so the script
+  // continues to work after the operator sets `DB_MIGRATIONS_APPLIED`
+  // (which makes the lazy runtime path no-op). The seed step itself
+  // must NEVER no-op when invoked directly.
+  await runMigrationsAndSeedFromFixtures(db);
   console.log('[backfill] done.');
 }
 

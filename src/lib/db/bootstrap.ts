@@ -102,6 +102,21 @@ export function ensureDatabaseSeeded(db: Db): Promise<void> {
   const existing = readyByDb.get(db);
   if (existing) return existing;
 
+  // Phase 2-C — deploy-step opt-out. When the operator has run
+  // `npm run db:migrate` (and optionally `npm run db:seed`) as part of
+  // deploy, the runtime should NOT also race against the same
+  // operation on its first request. The opt-out requires BOTH
+  // `DATABASE_URL` (we're on real Postgres) and
+  // `DB_MIGRATIONS_APPLIED=1` (operator promised) — either alone is
+  // treated as dev / preview and the lazy path still runs.
+  const optInValue = (process.env.DB_MIGRATIONS_APPLIED ?? '').toLowerCase();
+  const optedIn = optInValue === '1' || optInValue === 'true';
+  if (optedIn && process.env.DATABASE_URL) {
+    const resolved = Promise.resolve();
+    readyByDb.set(db, resolved);
+    return resolved;
+  }
+
   const promise = (async () => {
     await runMigrations(db);
     await seedFromFixtures(db);
@@ -123,6 +138,22 @@ export function ensureDatabaseSeeded(db: Db): Promise<void> {
  */
 export function __resetDatabaseSeededForTesting(db?: Db): void {
   if (db) readyByDb.delete(db);
+}
+
+/**
+ * Phase 2-C — Unconditional migrate + seed entry point for the
+ * deploy-step `npm run db:seed` script (and any other operator-driven
+ * tool that needs to force a refresh). Bypasses the
+ * `DB_MIGRATIONS_APPLIED` opt-out — otherwise the very script that's
+ * supposed to seed the DB would no-op when the operator has already
+ * set the opt-out env var.
+ *
+ * Idempotent: every insert in `seedFromFixtures` is guarded by an
+ * existence check, so re-running is safe.
+ */
+export async function runMigrationsAndSeedFromFixtures(db: Db): Promise<void> {
+  await runMigrations(db);
+  await seedFromFixtures(db);
 }
 
 // --- legacy audit-log conversion -------------------------------------------

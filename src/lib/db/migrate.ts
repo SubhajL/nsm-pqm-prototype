@@ -25,6 +25,73 @@ interface PgliteExecutor {
 
 const MIGRATIONS_TABLE = '__drizzle_migrations';
 
+/**
+ * Phase 2-C — Deterministic 32-bit advisory-lock key for the migration
+ * runner. Two concurrent deploy-time migrators will serialise behind
+ * `pg_advisory_lock(<key>)`; whoever loses the race waits at the
+ * second `SELECT`.
+ *
+ * The value is the sum of UTF-8 codepoints of `nsm-pqm-migrations`
+ * folded into the 32-bit signed range. Stable across processes / hosts
+ * because the input is a literal string, not a random seed.
+ */
+const MIGRATION_ADVISORY_LOCK_KEY = (() => {
+  const tag = 'nsm-pqm-migrations';
+  let hash = 0;
+  for (const ch of tag) {
+    hash = (hash * 31 + ch.charCodeAt(0)) | 0; // keep within int32
+  }
+  return hash;
+})();
+
+/**
+ * Phase 2-C — true on pglite (which exposes `db.$client.exec(...)`),
+ * false on the postgres-js path. Pglite is single-process so advisory
+ * locks are meaningless there; calling `pg_advisory_lock` against
+ * pglite either returns silently or errors depending on emulation
+ * level. We skip it entirely.
+ */
+function isPglite(db: Db): boolean {
+  const exec = (db as unknown as PgliteExecutor).$client;
+  return Boolean(exec && typeof exec.exec === 'function');
+}
+
+/**
+ * Phase 2-C — Acquire the migration advisory lock on `db`. Exposed for
+ * the standalone deploy-step entry point and for the contract test;
+ * the production `runMigrations` path uses the transaction-scoped
+ * `pg_advisory_xact_lock` variant below which auto-releases on commit
+ * and so does not need an explicit unlock.
+ *
+ * Blocks until available; no timeout. Use ONLY around the migration
+ * runner; never wrap normal request work in this.
+ *
+ * IMPORTANT: postgres-js opens a connection pool. `pg_advisory_lock`
+ * is SESSION-scoped, so any release MUST run on the same backend
+ * connection. The safer pattern is `pg_advisory_xact_lock` inside a
+ * single transaction (used by `runMigrations`), where the lock
+ * auto-releases on commit.
+ */
+export async function acquireMigrationAdvisoryLock(db: Db): Promise<void> {
+  if (isPglite(db)) return;
+  await db.execute(
+    sql.raw(`SELECT pg_advisory_lock(${MIGRATION_ADVISORY_LOCK_KEY})`),
+  );
+}
+
+/**
+ * Phase 2-C — Release the migration advisory lock. MUST be paired with
+ * a preceding `acquireMigrationAdvisoryLock` on the SAME connection.
+ * Prefer the `pg_advisory_xact_lock` variant inside a transaction —
+ * `runMigrations` does this for you.
+ */
+export async function releaseMigrationAdvisoryLock(db: Db): Promise<void> {
+  if (isPglite(db)) return;
+  await db.execute(
+    sql.raw(`SELECT pg_advisory_unlock(${MIGRATION_ADVISORY_LOCK_KEY})`),
+  );
+}
+
 function defaultMigrationsDir(): string {
   // Resolve relative to this file. In dev/test (TS source), this lives in
   // src/lib/db. The compiled JS lives in .next/... but we only call this
@@ -37,6 +104,31 @@ function defaultMigrationsDir(): string {
 }
 
 export async function runMigrations(db: Db, migrationsDir = defaultMigrationsDir()): Promise<void> {
+  // Phase 2-C — serialise concurrent migrate-step invocations.
+  //
+  // On pglite (single-process dev) advisory locks are meaningless, so
+  // we go straight to the migration runner.
+  //
+  // On postgres-js (Drizzle on a pooled client) `pg_advisory_lock` is
+  // SESSION-scoped — the matching unlock has to run on the same
+  // backend connection. Drizzle's `db.transaction(...)` binds a single
+  // postgres-js reserved connection for the duration of the callback,
+  // so we use `pg_advisory_xact_lock` instead: the lock is held for
+  // the lifetime of the transaction and auto-released on commit or
+  // rollback. No risk of a leaked lock on a separate connection.
+  if (isPglite(db)) {
+    await runMigrationsLocked(db, migrationsDir);
+    return;
+  }
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql.raw(`SELECT pg_advisory_xact_lock(${MIGRATION_ADVISORY_LOCK_KEY})`),
+    );
+    await runMigrationsLocked(tx as unknown as Db, migrationsDir);
+  });
+}
+
+async function runMigrationsLocked(db: Db, migrationsDir: string): Promise<void> {
   await db.execute(
     sql.raw(`CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (
       id text PRIMARY KEY,
