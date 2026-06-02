@@ -4,6 +4,7 @@ import { Card, Statistic } from 'antd';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { COLORS } from '@/theme/antd-theme';
 import type { KpiTone } from '@/lib/dashboard-kpi-context';
+import { resolveStatisticValueColor } from './kpi-card-color';
 
 interface KPICardProps {
   title: string;
@@ -90,7 +91,11 @@ export function KPICard({
             value={value}
             prefix={prefix}
             suffix={suffix}
-            valueStyle={{ fontSize: 28, fontWeight: 600, color }}
+            valueStyle={{
+              fontSize: 28,
+              fontWeight: 600,
+              color: resolveStatisticValueColor(color),
+            }}
           />
           {subtitle && (
             <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4 }}>

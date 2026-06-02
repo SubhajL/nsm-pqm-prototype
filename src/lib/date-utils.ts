@@ -52,11 +52,24 @@ export function formatBahtCurrency(amount: number): string {
   }).format(amount);
 }
 
-/** Format number as abbreviated Thai Baht: 12,500,000 → "12.5M฿" */
+/**
+ * Format a monetary amount as compact Thai Baht (e.g. "฿12.5M").
+ *
+ * Uses `Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB',
+ * notation: 'compact' })` so the ฿ symbol position is locale-aware and
+ * never hand-rolled. Replaces the legacy hand-rolled "12.5M฿" suffix
+ * form that violated the CLAUDE.md rule:
+ *   "never hardcode ฿ symbol placement; use Intl.NumberFormat('th-TH')".
+ */
+const compactBahtFormatter = new Intl.NumberFormat('th-TH', {
+  style: 'currency',
+  currency: 'THB',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
 export function formatBahtShort(amount: number): string {
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M฿`;
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)}K฿`;
-  return `${amount}฿`;
+  return compactBahtFormatter.format(amount);
 }
 
 /** Format percentage: 0.65 → "65%" */

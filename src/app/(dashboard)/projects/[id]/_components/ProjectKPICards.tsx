@@ -11,10 +11,13 @@ import {
 } from '@ant-design/icons';
 
 import { KPICard } from '@/components/common/KPICard';
-import { formatBahtCurrency, formatBahtShort } from '@/lib/date-utils';
+import { formatBahtShort } from '@/lib/date-utils';
+import { computeRatioKpiDelta } from '@/lib/dashboard-kpi-context';
 import { COLORS } from '@/theme/antd-theme';
 import type { DeliveryMethod } from '@/types/rid/vocabulary';
 import type { deriveEvmMetrics } from '@/lib/evm-metrics';
+
+const RATIO_BASELINE_LABEL = '(vs baseline 1.00)';
 
 export function ProjectKPICards({
   projectId,
@@ -28,6 +31,7 @@ export function ProjectKPICards({
   totalMilestones,
   openIssues,
   highRisks,
+  freshness,
 }: {
   projectId: string;
   budget: number;
@@ -40,7 +44,24 @@ export function ProjectKPICards({
   totalMilestones: number;
   openIssues: number;
   highRisks: number;
+  /**
+   * Audit G19 — bilingual "Updated X ago" label rendered on the budget
+   * card. Caller computes via `formatFreshnessLabel` so the timestamp
+   * source stays SSR-safe (parent owns `new Date()`).
+   */
+  freshness?: string;
 }) {
+  const spiDelta = computeRatioKpiDelta(spi, 1.0, {
+    comparisonLabel: RATIO_BASELINE_LABEL,
+  });
+  const cpiValue =
+    evmMetrics?.mode === 'in_house' ? evmMetrics.cpi : null;
+  const cpiDelta =
+    cpiValue !== null
+      ? computeRatioKpiDelta(cpiValue, 1.0, {
+          comparisonLabel: RATIO_BASELINE_LABEL,
+        })
+      : undefined;
   const router = useRouter();
 
   return (
@@ -52,6 +73,7 @@ export function ProjectKPICards({
           icon={<DollarOutlined />}
           color={COLORS.info}
           onClick={() => router.push(`/projects/${projectId}/s-curve`)}
+          freshness={freshness}
           extraContent={
             <>
               <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 6 }}>
@@ -61,7 +83,7 @@ export function ProjectKPICards({
                 percent={budget > 0 ? Number(((budgetSpent / budget) * 100).toFixed(1)) : 0}
                 size="small"
                 strokeColor={COLORS.info}
-                format={() => formatBahtCurrency(budgetSpent)}
+                format={() => formatBahtShort(budgetSpent)}
               />
             </>
           }
@@ -75,6 +97,7 @@ export function ProjectKPICards({
           color={COLORS.warning}
           subtitle="Schedule Performance Index"
           onClick={() => router.push(`/projects/${projectId}/s-curve`)}
+          delta={spiDelta}
         />
       </Col>
       <Col xs={12} md={8} xl={4}>
@@ -83,8 +106,8 @@ export function ProjectKPICards({
           value={
             deliveryMethod === 'outsourced'
               ? formatBahtShort(budgetSpent)
-              : evmMetrics?.mode === 'in_house'
-                ? evmMetrics.cpi.toFixed(2)
+              : cpiValue !== null
+                ? cpiValue.toFixed(2)
                 : '0.00'
           }
           icon={<CheckCircleOutlined />}
@@ -95,6 +118,7 @@ export function ProjectKPICards({
               : 'Cost Performance Index'
           }
           onClick={() => router.push(`/projects/${projectId}/s-curve`)}
+          delta={deliveryMethod === 'outsourced' ? undefined : cpiDelta}
         />
       </Col>
       <Col xs={12} md={8} xl={4}>
