@@ -109,7 +109,7 @@ export async function POST(
 
     // For files persisted to Vercel Blob with `access:'private'`, the
     // raw URL would be inaccessible. The server-issued `signedUrl`
-    // grants the client a 5-min window through `/api/documents/_blob/signed`.
+    // grants the client a 5-min window through `/api/documents/blob/signed`.
     const signedUrl = body.sha256
       ? getSignedDocumentUrl(`documents/${params.projectId}/${file.id}`)
       : null;

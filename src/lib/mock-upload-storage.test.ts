@@ -35,10 +35,10 @@ describe('refreshSignedUrl', () => {
     const originalExpires = Math.floor(Date.now() / 1000) - 1; // already-expired
     const originalSig = signSignedUrlPayload('documents/proj-001/file-1', originalExpires);
     const stale =
-      `/api/documents/_blob/signed?key=documents%2Fproj-001%2Ffile-1&expires=${originalExpires}&sig=${originalSig}`;
+      `/api/documents/blob/signed?key=documents%2Fproj-001%2Ffile-1&expires=${originalExpires}&sig=${originalSig}`;
 
     const refreshed = refreshSignedUrl(stale);
-    expect(refreshed).toMatch(/^\/api\/documents\/_blob\/signed\?/);
+    expect(refreshed).toMatch(/^\/api\/documents\/blob\/signed\?/);
 
     const params = new URL(refreshed, 'http://localhost').searchParams;
     const newExpires = Number(params.get('expires'));
@@ -70,7 +70,7 @@ describe('refreshSignedUrl', () => {
   });
 
   it('passes through a signed-shaped URL that is missing the key param', () => {
-    const malformed = '/api/documents/_blob/signed?expires=123&sig=abc';
+    const malformed = '/api/documents/blob/signed?expires=123&sig=abc';
     expect(refreshSignedUrl(malformed)).toBe(malformed);
   });
 });

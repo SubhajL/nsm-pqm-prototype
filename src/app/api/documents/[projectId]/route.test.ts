@@ -67,7 +67,7 @@ describe('POST /api/documents/[projectId] (PR-06)', () => {
     };
     expect(body.status).toBe('success');
     expect(body.data.sha256).toBe('a'.repeat(64));
-    expect(body.data.signedUrl).toMatch(/\/api\/documents\/_blob\/signed\?/);
+    expect(body.data.signedUrl).toMatch(/\/api\/documents\/blob\/signed\?/);
     expect(body.data.virusScanStatus).toBe('clean');
   });
 
@@ -102,7 +102,7 @@ describe('POST /api/documents/[projectId] (PR-06)', () => {
       data: { sha256?: string; signedUrl?: string | null };
     };
     expect(body.status).toBe('success');
-    expect(body.data.signedUrl).toMatch(/\/api\/documents\/_blob\/signed\?/);
+    expect(body.data.signedUrl).toMatch(/\/api\/documents\/blob\/signed\?/);
     expect(body.data.sha256).toBe('c'.repeat(64));
   });
 });

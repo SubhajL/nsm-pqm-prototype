@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { signSignedUrlPayload } from '@/lib/mock-upload-storage';
 
 // ---------------------------------------------------------------------------
-// Phase 0 — Demo-blocker: the `/_blob/signed` route resolves an HMAC-signed
+// Phase 0 — Demo-blocker: the `/blob/signed` route resolves an HMAC-signed
 // query into a 302 redirect to the underlying Vercel Blob URL, after verifying
 // the caller's session has access to the owning project. Without this route,
 // any private-blob download in the prototype 404s after the existing
@@ -66,7 +66,7 @@ function buildSignedUrl(key: string, expiresInSeconds = 300): string {
   const expires = Math.floor(Date.now() / 1000) + expiresInSeconds;
   const sig = signSignedUrlPayload(key, expires);
   const params = new URLSearchParams({ key, expires: String(expires), sig });
-  return `http://localhost/api/documents/_blob/signed?${params.toString()}`;
+  return `http://localhost/api/documents/blob/signed?${params.toString()}`;
 }
 
 async function callRoute(url: string): Promise<Response> {
@@ -74,10 +74,10 @@ async function callRoute(url: string): Promise<Response> {
   return GET(new Request(url));
 }
 
-describe('GET /api/documents/_blob/signed (Phase 0)', () => {
+describe('GET /api/documents/blob/signed (Phase 0)', () => {
   it('returns 400 when required query params are missing', async () => {
     const response = await callRoute(
-      'http://localhost/api/documents/_blob/signed?key=documents/proj-001/file-1',
+      'http://localhost/api/documents/blob/signed?key=documents/proj-001/file-1',
     );
     expect(response.status).toBe(400);
     const body = (await response.json()) as { error?: { code?: string } };
@@ -99,7 +99,7 @@ describe('GET /api/documents/_blob/signed (Phase 0)', () => {
     const key = 'documents/proj-001/file-1';
     const expires = Math.floor(Date.now() / 1000) - 60; // 1 min in the past
     const sig = signSignedUrlPayload(key, expires);
-    const url = `http://localhost/api/documents/_blob/signed?key=${key}&expires=${expires}&sig=${sig}`;
+    const url = `http://localhost/api/documents/blob/signed?key=${key}&expires=${expires}&sig=${sig}`;
     const response = await callRoute(url);
     expect(response.status).toBe(401);
     const body = (await response.json()) as { error?: { code?: string } };
