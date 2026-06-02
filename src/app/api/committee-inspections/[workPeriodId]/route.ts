@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   featureDisabledResponse,
   isFeatureEnabled,
@@ -88,7 +88,6 @@ export async function POST(
     return forbiddenResponse('edit_basic');
   }
 
-  const repos = getRepositories();
   const body = parsed.data;
   const insp: CommitteeInspection = {
     id: `ci-${crypto.randomUUID()}`,
@@ -100,17 +99,20 @@ export async function POST(
     documentIds: body.documentIds,
   };
 
-  const created = await repos.committeeInspections.create(insp);
-  await recordAuditEvent(request, {
-    action: 'record_committee_inspection',
-    resourceType: 'committee_inspection',
-    resourceId: created.id,
-    projectId: wp.projectId,
-    before: null,
-    after: created,
-    decisionReason: `committee inspection for งวดที่ ${wp.number}: ${created.result}`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  const created = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.committeeInspections.create(insp);
+    await appendAudit({
+      action: 'record_committee_inspection',
+      resourceType: 'committee_inspection',
+      resourceId: result.id,
+      projectId: wp.projectId,
+      before: null,
+      after: result,
+      decisionReason: `committee inspection for งวดที่ ${wp.number}: ${result.result}`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: created }, { status: 201 });

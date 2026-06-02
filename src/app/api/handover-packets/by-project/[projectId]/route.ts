@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -60,7 +60,6 @@ export async function POST(
     return forbiddenResponse('edit_basic');
   }
 
-  const repos = getRepositories();
   const body = parsed.data;
   const newPacket: HandoverPacket = {
     id: `ho-${crypto.randomUUID()}`,
@@ -75,17 +74,20 @@ export async function POST(
     notes: body.notes?.trim() ?? '',
   };
 
-  const created = await repos.handoverPackets.create(newPacket);
-  await recordAuditEvent(request, {
-    action: 'create_handover_packet',
-    resourceType: 'handover_packet',
-    resourceId: created.id,
-    projectId: params.projectId,
-    before: null,
-    after: created,
-    decisionReason: `create handover packet (contractId=${created.contractId ?? 'none'})`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  const created = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.handoverPackets.create(newPacket);
+    await appendAudit({
+      action: 'create_handover_packet',
+      resourceType: 'handover_packet',
+      resourceId: result.id,
+      projectId: params.projectId,
+      before: null,
+      after: result,
+      decisionReason: `create handover packet (contractId=${result.contractId ?? 'none'})`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: created }, { status: 201 });

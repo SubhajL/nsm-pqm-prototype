@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -90,18 +90,20 @@ export async function POST(
     notes: body.notes?.trim() ?? '',
   };
 
-  const created =
-    await getRepositories().engineeringEstimates.create(newEstimate);
-  await recordAuditEvent(request, {
-    action: 'edit_engineering_estimate',
-    resourceType: 'engineering_estimate',
-    resourceId: created.id,
-    projectId,
-    before: null,
-    after: created,
-    decisionReason: `record estimate (${created.basis}, ${created.estimatedTotal} THB)`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  const created = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.engineeringEstimates.create(newEstimate);
+    await appendAudit({
+      action: 'edit_engineering_estimate',
+      resourceType: 'engineering_estimate',
+      resourceId: result.id,
+      projectId,
+      before: null,
+      after: result,
+      decisionReason: `record estimate (${result.basis}, ${result.estimatedTotal} THB)`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: created }, { status: 201 });
