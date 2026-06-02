@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -183,24 +183,30 @@ export async function POST(
     submittedAt: packet.submittedAt,
     acceptedAt: packet.acceptedAt,
   };
-  const updated = await repos.handoverPackets.update(packet.id, patch);
 
-  await recordAuditEvent(request, {
-    action: 'transition_handover_packet',
-    resourceType: 'handover_packet',
-    resourceId: packet.id,
-    projectId: packet.projectId,
-    before,
-    after: {
-      state: updated?.state,
-      submittedAt: updated?.submittedAt,
-      acceptedAt: updated?.acceptedAt,
-      warrantyStartDate: updated?.warrantyStartDate,
-      warrantyEndDate: updated?.warrantyEndDate,
-    },
-    decisionReason: `${packet.state} → ${targetState}`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  // Wrap the update + audit append in a single transaction so a crash
+  // between the two can't leave the gov't audit trail out of sync
+  // with the persisted state.
+  const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.handoverPackets.update(packet.id, patch);
+    await appendAudit({
+      action: 'transition_handover_packet',
+      resourceType: 'handover_packet',
+      resourceId: packet.id,
+      projectId: packet.projectId,
+      before,
+      after: {
+        state: result?.state,
+        submittedAt: result?.submittedAt,
+        acceptedAt: result?.acceptedAt,
+        warrantyStartDate: result?.warrantyStartDate,
+        warrantyEndDate: result?.warrantyEndDate,
+      },
+      decisionReason: `${packet.state} → ${targetState}`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: updated ?? packet });

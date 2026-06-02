@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -283,16 +283,18 @@ export async function POST(request: Request) {
     ],
   };
 
-  await getRepositories().dailyReports.create(newReport);
-  await recordAuditEvent(request, {
-    action: 'submit_daily_report',
-    resourceType: 'daily_report',
-    resourceId: newReport.id,
-    projectId: newReport.projectId,
-    before: null,
-    after: newReport,
-    decisionReason: `create (status=${newReport.status})`,
-    authorityBasis: 'AUTHZ_MATRIX:submit_daily_report',
+  await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    await txRepos.dailyReports.create(newReport);
+    await appendAudit({
+      action: 'submit_daily_report',
+      resourceType: 'daily_report',
+      resourceId: newReport.id,
+      projectId: newReport.projectId,
+      before: null,
+      after: newReport,
+      decisionReason: `create (status=${newReport.status})`,
+      authorityBasis: 'AUTHZ_MATRIX:submit_daily_report',
+    });
   });
 
   return Response.json({ status: 'success', data: newReport }, { status: 201 });

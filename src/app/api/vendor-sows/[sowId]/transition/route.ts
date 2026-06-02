@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -95,22 +95,24 @@ export async function POST(
     patch.acceptedAt = now;
   }
 
-  const updated = await repos.vendorSows.update(sow.id, patch);
-
-  await recordAuditEvent(request, {
-    action: 'transition_vendor_sow',
-    resourceType: 'vendor_sow',
-    resourceId: sow.id,
-    projectId: sow.projectId,
-    before,
-    after: {
-      state: updated?.state,
-      signedAt: updated?.signedAt,
-      acceptedAt: updated?.acceptedAt,
-    },
-    decisionReason: `SOW "${sow.phase}": ${sow.state} → ${parsed.data.targetState}`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.vendorSows.update(sow.id, patch);
+    await appendAudit({
+      action: 'transition_vendor_sow',
+      resourceType: 'vendor_sow',
+      resourceId: sow.id,
+      projectId: sow.projectId,
+      before,
+      after: {
+        state: result?.state,
+        signedAt: result?.signedAt,
+        acceptedAt: result?.acceptedAt,
+      },
+      decisionReason: `SOW "${sow.phase}": ${sow.state} → ${parsed.data.targetState}`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: updated ?? sow });

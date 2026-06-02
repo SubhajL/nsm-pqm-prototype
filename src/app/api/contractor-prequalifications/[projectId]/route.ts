@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -68,18 +68,20 @@ export async function POST(
     notes: body.notes?.trim() ?? '',
   };
 
-  const created =
-    await getRepositories().contractorPrequalifications.create(newRecord);
-  await recordAuditEvent(request, {
-    action: 'edit_contractor_prequalification',
-    resourceType: 'contractor_prequalification',
-    resourceId: created.id,
-    projectId: params.projectId,
-    before: null,
-    after: created,
-    decisionReason: `record PQ for ${created.contractorName}`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  const created = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.contractorPrequalifications.create(newRecord);
+    await appendAudit({
+      action: 'edit_contractor_prequalification',
+      resourceType: 'contractor_prequalification',
+      resourceId: result.id,
+      projectId: params.projectId,
+      before: null,
+      after: result,
+      decisionReason: `record PQ for ${result.contractorName}`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: created }, { status: 201 });

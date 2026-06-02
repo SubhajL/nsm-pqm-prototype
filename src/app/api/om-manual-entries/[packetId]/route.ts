@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -74,7 +74,6 @@ export async function POST(
     return forbiddenResponse('edit_basic');
   }
 
-  const repos = getRepositories();
   const body = parsed.data;
   const entry: OmManualEntry = {
     id: `om-${crypto.randomUUID()}`,
@@ -85,17 +84,20 @@ export async function POST(
     notes: body.notes?.trim() ?? '',
   };
 
-  const created = await repos.omManualEntries.create(entry);
-  await recordAuditEvent(request, {
-    action: 'create_om_manual_entry',
-    resourceType: 'om_manual_entry',
-    resourceId: created.id,
-    projectId: packet.projectId,
-    before: null,
-    after: created,
-    decisionReason: `attach O&M manual entry (${created.category}) "${created.title}"`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  const created = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.omManualEntries.create(entry);
+    await appendAudit({
+      action: 'create_om_manual_entry',
+      resourceType: 'om_manual_entry',
+      resourceId: result.id,
+      projectId: packet.projectId,
+      before: null,
+      after: result,
+      decisionReason: `attach O&M manual entry (${result.category}) "${result.title}"`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: created }, { status: 201 });

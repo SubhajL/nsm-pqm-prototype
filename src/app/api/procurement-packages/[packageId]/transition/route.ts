@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -65,9 +65,36 @@ export async function POST(
   }
 
   const before = pkg;
-  const updated = await repos.procurementPackages.update(pkg.id, {
-    state: parsed.data.to,
+
+  // Update + audit inside one transaction. If the update returns null
+  // (row vanished between findById and update — should not happen in
+  // practice, defensive only) we throw to roll back the would-be
+  // audit append; the catch maps it to 500.
+  const UPDATE_NULL = Symbol('PROC_PKG_UPDATE_RETURNED_NULL');
+  const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.procurementPackages.update(pkg.id, {
+      state: parsed.data.to,
+    });
+    if (!result) {
+      throw UPDATE_NULL;
+    }
+    await appendAudit({
+      action: 'transition_procurement_package',
+      resourceType: 'procurement_package',
+      resourceId: pkg.id,
+      projectId: pkg.projectId,
+      before,
+      after: result,
+      decisionReason: `transition ${before.state} -> ${result.state}`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
+  }).catch((err: unknown) => {
+    if (err === UPDATE_NULL) return null;
+    throw err;
   });
+
   if (!updated) {
     return Response.json(
       {
@@ -77,18 +104,6 @@ export async function POST(
       { status: 500 },
     );
   }
-
-  await recordAuditEvent(request, {
-    action: 'transition_procurement_package',
-    resourceType: 'procurement_package',
-    resourceId: pkg.id,
-    projectId: pkg.projectId,
-    before,
-    after: updated,
-    decisionReason: `transition ${before.state} -> ${updated.state}`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
-  });
 
   return Response.json({ status: 'success', data: updated });
 }

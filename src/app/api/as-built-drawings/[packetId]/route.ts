@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { recordAuditEvent } from '@/lib/audit-helpers';
+import { withTransactionalAudit } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
@@ -78,7 +78,6 @@ export async function POST(
     return forbiddenResponse('edit_basic');
   }
 
-  const repos = getRepositories();
   const body = parsed.data;
   const drawing: AsBuiltDrawing = {
     id: `ab-${crypto.randomUUID()}`,
@@ -91,17 +90,20 @@ export async function POST(
     notes: body.notes?.trim() ?? '',
   };
 
-  const created = await repos.asBuiltDrawings.create(drawing);
-  await recordAuditEvent(request, {
-    action: 'create_as_built_drawing',
-    resourceType: 'as_built_drawing',
-    resourceId: created.id,
-    projectId: packet.projectId,
-    before: null,
-    after: created,
-    decisionReason: `register drawing ${created.drawingNumber} (${created.revision})`,
-    authorityBasis: 'AUTHZ_MATRIX:edit_basic',
-    actor: currentUser,
+  const created = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
+    const result = await txRepos.asBuiltDrawings.create(drawing);
+    await appendAudit({
+      action: 'create_as_built_drawing',
+      resourceType: 'as_built_drawing',
+      resourceId: result.id,
+      projectId: packet.projectId,
+      before: null,
+      after: result,
+      decisionReason: `register drawing ${result.drawingNumber} (${result.revision})`,
+      authorityBasis: 'AUTHZ_MATRIX:edit_basic',
+      actor: currentUser,
+    });
+    return result;
   });
 
   return Response.json({ status: 'success', data: created }, { status: 201 });
