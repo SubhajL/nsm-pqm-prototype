@@ -97,7 +97,7 @@ export function getSignedDocumentUrl(
     expires: String(expiresAt),
     sig: signature,
   });
-  return `/api/documents/_blob/signed?${params.toString()}`;
+  return `/api/documents/blob/signed?${params.toString()}`;
 }
 
 /**
@@ -112,7 +112,7 @@ export function getSignedDocumentUrl(
  * match the proxied shape.
  */
 export function refreshSignedUrl(maybePersistedUrl: string): string {
-  if (!maybePersistedUrl || !maybePersistedUrl.includes('/api/documents/_blob/signed')) {
+  if (!maybePersistedUrl || !maybePersistedUrl.includes('/api/documents/blob/signed')) {
     return maybePersistedUrl;
   }
   try {
