@@ -3,6 +3,7 @@
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { COLORS } from '@/theme/antd-theme';
+import { todayMarkLine } from './chart-helpers';
 
 export interface TrendSeriesPoint {
   monthThai: string;
@@ -117,6 +118,13 @@ export function CPISPITrendChart({
           fontSize: 11,
           color: primaryColor,
         },
+        // G22 follow-up: keep this horizontal reference markLine on the
+        // same muted-gray palette as the series[1] vertical "Latest"
+        // markLine below so the two read as a coherent set, not two
+        // unrelated overlays. `todayMarkLine` is xAxis-oriented and
+        // doesn't fit a yAxis reference; until a sibling
+        // `referenceMarkLine` helper exists, we hand-roll using the
+        // same tokens (textMuted for line + label, dashed, width 1).
         markLine: referenceLine === null
           ? undefined
           : {
@@ -125,12 +133,12 @@ export function CPISPITrendChart({
               label: {
                 formatter: valueFormatter(referenceLine),
                 position: 'insideEndTop',
-                color: '#999',
+                color: COLORS.textMuted,
                 fontSize: 11,
               },
               lineStyle: {
                 type: 'dashed',
-                color: COLORS.textDisabled,
+                color: COLORS.textMuted,
                 width: 1,
               },
               data: [{ yAxis: referenceLine }],
@@ -152,29 +160,23 @@ export function CPISPITrendChart({
           fontSize: 11,
           color: secondaryColor,
         },
-        // PR-C3 follow-up: when `markLatestPoint` is true, attach a
-        // vertical "Latest" guide to the secondary series so it
-        // doesn't collide with the primary series' yAxis reference
-        // line at value 1.0. Styling matches the existing reference
-        // markLine on series[0] (muted gray, dashed, width 1) so the
-        // two markLines read as a coherent set rather than two
-        // unrelated overlays.
+        // PR-C3 follow-up + G22: adopt `todayMarkLine` so the bilingual
+        // marker label, dashed stroke, and `lineWidth: 1` (subtler than
+        // the S-curve marker's default 2) flow from one source. Both
+        // line and label now share `COLORS.textMuted` — slightly
+        // darker than the previous `textDisabled` line, matching the
+        // SCurveChart pattern where the "Latest" marker uses one
+        // colour uniformly. Override only `silent` (no tooltip) and
+        // `data` (anchor to the last point).
         markLine:
           markLatestPoint && data.length > 0
             ? {
-                silent: true,
-                symbol: 'none',
-                label: {
-                  formatter: 'ข้อมูลงวดล่าสุด (Latest)',
-                  position: 'insideEndTop',
+                ...todayMarkLine({
+                  label: 'ข้อมูลงวดล่าสุด (Latest)',
                   color: COLORS.textMuted,
-                  fontSize: 11,
-                },
-                lineStyle: {
-                  type: 'dashed',
-                  color: COLORS.textDisabled,
-                  width: 1,
-                },
+                  lineWidth: 1,
+                }),
+                silent: true,
                 data: [{ xAxis: data.length - 1 }],
               }
             : undefined,
