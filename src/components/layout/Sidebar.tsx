@@ -11,6 +11,7 @@ import {
   ScheduleOutlined,
   FileTextOutlined,
   DollarOutlined,
+  FileDoneOutlined,
   SafetyCertificateOutlined,
   WarningOutlined,
   BugOutlined,
@@ -27,6 +28,7 @@ import { apiPost } from '@/lib/api-client';
 import { getAgencyBrand } from '@/lib/branding';
 import { useProjects } from '@/hooks/useProjects';
 import { useThemePreference } from '@/hooks/useThemePreference';
+import { isRidPaymentFlowClientEnabled } from '@/lib/feature-flags-client';
 import { canAccessMenuItem, isProjectScopedMenuItem, type AppMenuKey } from '@/lib/project-access-pure';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -55,6 +57,7 @@ function buildMenuItems(role: UserRole | null, projectId: string | null): MenuIt
     { menuKey: 'gantt', key: projectId ? `/projects/${projectId}/gantt` : '/projects/gantt', icon: <ScheduleOutlined />, href: projectId ? `/projects/${projectId}/gantt` : '/dashboard', label: 'แผนงาน (Gantt)' },
     { menuKey: 'daily-report', key: projectId ? `/projects/${projectId}/daily-report` : '/projects/daily-report', icon: <FileTextOutlined />, href: projectId ? `/projects/${projectId}/daily-report` : '/dashboard', label: 'รายงานประจำวัน' },
     { menuKey: 's-curve', key: projectId ? `/projects/${projectId}/s-curve` : '/projects/s-curve', icon: <DollarOutlined />, href: projectId ? `/projects/${projectId}/s-curve` : '/dashboard', label: 'งบประมาณ (EVM)' },
+    { menuKey: 'work-periods', key: projectId ? `/projects/${projectId}/work-periods` : '/projects/work-periods', icon: <FileDoneOutlined />, href: projectId ? `/projects/${projectId}/work-periods` : '/dashboard', label: 'งวดงาน (Work Periods)' },
     { menuKey: 'quality', key: projectId ? `/projects/${projectId}/quality` : '/projects/quality', icon: <SafetyCertificateOutlined />, href: projectId ? `/projects/${projectId}/quality` : '/dashboard', label: 'คุณภาพ (Quality)' },
     { menuKey: 'risk', key: projectId ? `/projects/${projectId}/risk` : '/projects/risk', icon: <WarningOutlined />, href: projectId ? `/projects/${projectId}/risk` : '/dashboard', label: 'ความเสี่ยง (Risk)' },
     { menuKey: 'issues', key: projectId ? `/projects/${projectId}/issues` : '/projects/issues', icon: <BugOutlined />, href: projectId ? `/projects/${projectId}/issues` : '/dashboard', label: 'ปัญหา (Issues)' },
@@ -79,6 +82,9 @@ function buildMenuItems(role: UserRole | null, projectId: string | null): MenuIt
     ...items
       .filter((item) => canAccessMenuItem(role, item.menuKey))
       .filter((item) => !isProjectScopedMenuItem(item.menuKey) || Boolean(projectId))
+      // งวดงาน is gated by the client mirror of FEATURE_RID_PAYMENT_FLOW so
+      // prod (flag-off) sees no nav change until the env var is set.
+      .filter((item) => item.menuKey !== 'work-periods' || isRidPaymentFlowClientEnabled())
       .map((item) => ({
         key: item.key,
         icon: item.icon,

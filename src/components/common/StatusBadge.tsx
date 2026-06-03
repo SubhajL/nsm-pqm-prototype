@@ -1,8 +1,26 @@
 import { Tag } from 'antd';
 import { PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 import { resolveHealthVisual } from '@/theme/health-visual';
+import { PAYMENT_VOUCHER_STATE_LABELS } from '@/types/payment-voucher';
+import { WORK_PERIOD_STATE_LABELS } from '@/types/work-period';
 
 type StatusEntry = { label: string; color: string };
+
+/**
+ * Derive a `{ label, color }` map from a domain `*_STATE_LABELS` SSOT
+ * (each entry is `{ th, en, color }`) so the bilingual copy + tag colour
+ * stay owned by the type module, not duplicated here.
+ */
+function fromStateLabels(
+  labels: Record<string, { th: string; en: string; color: string }>,
+): Record<string, StatusEntry> {
+  return Object.fromEntries(
+    Object.entries(labels).map(([key, { th, en, color }]) => [
+      key,
+      { label: `${th} (${en})`, color },
+    ]),
+  );
+}
 
 const PROJECT_STATUS: Record<string, StatusEntry> = {
   draft: { label: 'ร่าง (Draft)', color: 'default' },
@@ -59,17 +77,31 @@ const ISSUE_STATUS: Record<string, StatusEntry> = {
   closed: { label: 'ปิด (Closed)', color: 'default' },
 };
 
+// งวดงาน (work-period) + ฎีกาเบิกจ่าย (payment-voucher) domain statuses.
+// Sourced from the `*_STATE_LABELS` SSOT in the type modules.
+const WORK_PERIOD_STATUS = fromStateLabels(WORK_PERIOD_STATE_LABELS);
+const PAYMENT_VOUCHER_STATUS = fromStateLabels(PAYMENT_VOUCHER_STATE_LABELS);
+
 const STATUS_MAPS: Record<string, Record<string, StatusEntry>> = {
   project: PROJECT_STATUS,
   milestone: MILESTONE_STATUS,
   health: HEALTH_STATUS,
   risk: RISK_STATUS,
   issue: ISSUE_STATUS,
+  workPeriod: WORK_PERIOD_STATUS,
+  paymentVoucher: PAYMENT_VOUCHER_STATUS,
 };
 
 interface StatusBadgeProps {
   status: string;
-  type?: 'project' | 'milestone' | 'health' | 'risk' | 'issue';
+  type?:
+    | 'project'
+    | 'milestone'
+    | 'health'
+    | 'risk'
+    | 'issue'
+    | 'workPeriod'
+    | 'paymentVoucher';
 }
 
 export function StatusBadge({ status, type = 'project' }: StatusBadgeProps) {
