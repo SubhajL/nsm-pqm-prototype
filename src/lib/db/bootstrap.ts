@@ -19,6 +19,7 @@ import seedBoq from '@/data/boq.json';
 import seedChangeRequests from '@/data/change-requests.json';
 import seedDailyReports from '@/data/daily-reports.json';
 import seedDocuments from '@/data/documents.json';
+import seedEvaluations from '@/data/evaluations.json';
 import seedEvm from '@/data/evm-data.json';
 import seedGanttData from '@/data/gantt-tasks.json';
 import seedInspections from '@/data/inspections.json';
@@ -65,6 +66,7 @@ import {
   DatabaseMilestoneRepository,
   DatabaseNotificationRepository,
   DatabaseOrgStructureRepository,
+  DatabaseProjectEvaluationRepository,
   DatabaseProjectRepository,
   DatabaseQualityGateRepository,
   DatabaseQualityInspectionRepository,
@@ -80,6 +82,7 @@ import type { DailyReport } from '@/types/daily-report';
 import type { EVMDataPoint } from '@/types/evm';
 import type { GanttData, GanttLink, GanttTask } from '@/types/gantt';
 import type { Milestone, Project } from '@/types/project';
+import type { ProjectEvaluation } from '@/types/evaluation';
 import type { Notification } from '@/types/notification';
 import type { OrgUnit, User } from '@/types/admin';
 import type { InspectionRecord, InspectionsData, ITPItem, QualityGate } from '@/types/quality';
@@ -265,6 +268,15 @@ async function seedFromFixtures(db: Db): Promise<void> {
   for (const project of seedProjects as Project[]) {
     if (!(await projectRepo.findById(project.id))) {
       await projectRepo.create(project);
+    }
+  }
+
+  // Project evaluations — seed the demo scorecard only if absent (never
+  // clobber a user-authored evaluation on re-seed).
+  const evaluationRepo = new DatabaseProjectEvaluationRepository(db);
+  for (const evaluation of seedEvaluations as ProjectEvaluation[]) {
+    if (!(await evaluationRepo.findByProject(evaluation.projectId))) {
+      await evaluationRepo.upsert(evaluation);
     }
   }
 
