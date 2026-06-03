@@ -54,6 +54,27 @@ of demo-readability complaints in the morning audit (E2 gap).
 - `danger ghost` for the lighter-emphasis "send back for revision"
   variant when paired with a non-destructive primary.
 
+### Branded secondary (escape hatch)
+
+A `<Button>` with `style={{ borderColor: COLORS.accentTeal, color:
+COLORS.accentTeal }}` — outlined teal. Use SPARINGLY when:
+
+- A page-level CTA must demote (per "never two primaries") but
+  needs to remain DISCOVERABLE in a brand-heavy header where a
+  plain neutral button would visually disappear.
+- The action is non-destructive (creation, navigation, opening a
+  modal) and lower-priority than the page's true primary.
+
+Example: `/projects/[id]/change-request` header CTA `สร้าง Change
+Request` switches to the branded secondary form when a CR is selected
+(the bottom-row `อนุมัติ` becomes primary). The header CTA stays
+visible — outlined teal preserves the brand anchor — while ceding
+the page primary slot.
+
+DO NOT use the branded secondary for:
+- Routine form actions inside cards (use plain `default`).
+- Toolbar utility actions (Export, Print) — those are plain `default`.
+
 ---
 
 ## Authoring rules
@@ -93,28 +114,37 @@ of demo-readability complaints in the morning audit (E2 gap).
 - Status visual SSOT: `@/theme/health-visual` (PR T2-1)
 - Filter primitives: `FilterBar.tsx` + `filter-utils.ts`
 - Form section: `FormSection.tsx`
-- Relative-time formatters: two helpers exist —
-  `@/lib/dashboard-kpi-context` → `formatFreshnessLabel(updatedAt, now)`
-  for KPI "updated X ago" prefixes, and
+- Relative-time formatters: the bucket math lives in
+  `@/lib/relative-time` → `getRelativeTimeBucket(isoDate, now,
+  { granularity? })` returning a discriminated union
+  (`just_now | minutes | hours | yesterday | days | weeks`). Two
+  consumers map the bucket to their own bilingual copy:
+  `@/lib/dashboard-kpi-context` → `formatFreshnessLabel(updatedAt,
+  now)` (KPI "Updated X ago" prefix, uses `granularity: 'days_max'`
+  to keep exact day precision), and
   `notifications/_components/format-relative-time.ts` →
-  `formatRelativeTime(isoDate)` for the notification panel's bilingual
-  "X ago" labels. Unifying them into one `src/lib/relative-time.ts` is
-  a documented follow-up; both buckets-of-time vocabularies should
-  match exactly to avoid drift.
+  `formatRelativeTime(isoDate)` (notification panel labels with the
+  weeks bucket enabled). A third "X ago" surface should adopt
+  `getRelativeTimeBucket` and define its own switch.
+- Bilingual label helper: `@/lib/format/bilingual` →
+  `bilingual(thai, english, suffix?)`. Use for tag labels, Segmented
+  options, table column titles, and any other `Thai (English)`
+  shell copy.
 
 ---
 
-## Known follow-up: remaining `two-primaries` violations
+## Two-primaries sweep — complete
 
-The `/approval` page demotion shipped with this guide is the canonical
-example. The following pages still ship two visible `type="primary"`
-buttons simultaneously and are tracked for a follow-up sweep PR:
+Pages migrated so far (the canonical examples for the rule):
 
+- `/projects/[id]/approval` — `ส่งความคิดเห็น` demoted; only
+  `อนุมัติแผนงาน` remains primary.
 - `/projects/[id]/change-request` — `สร้าง Change Request` (header)
-  + `อนุมัติ (Approve)` (bottom action row, success-tinted) when a CR
-  is selected
-- `/projects/[id]/gantt` toolbar — `เพิ่มงาน` + `ขออนุมัติแผนงาน`
-  when `canEditGantt` is true
+  demoted; `อนุมัติ (Approve)` in the bottom action row stays primary
+  when a CR is selected.
+- `/projects/[id]/gantt` toolbar — `เพิ่มงาน` demoted;
+  `ขออนุมัติแผนงาน` stays primary.
 
-A `rg 'type="primary"' src/app/\(dashboard\)/` sweep is the natural
-discovery query for the follow-up.
+Run `rg 'type="primary"' src/app/\(dashboard\)/` periodically to catch
+new violators; any page with 2+ unique primary buttons that can be
+visible simultaneously must demote one.

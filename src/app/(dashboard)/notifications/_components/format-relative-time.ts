@@ -1,3 +1,5 @@
+import { getRelativeTimeBucket } from '@/lib/relative-time';
+
 /**
  * Tier 2 PR 2 — bilingual relative-time formatter for the
  * notifications list. Extracted from `helpers.tsx` so the pure
@@ -7,25 +9,37 @@
  * The clock is fixed to the demo "now" (`2026-07-15T18:00:00`) — the
  * prototype's seed data uses absolute ISO timestamps so all
  * displayed labels stay deterministic across reloads.
+ *
+ * The bucket math lives in `@/lib/relative-time`. This module owns
+ * only the notifications-flavoured copy ("เมื่อวาน (yesterday)",
+ * "X นาทีก่อน (X min ago)") and the demo-clock pin.
  */
 const DEMO_NOW = new Date('2026-07-15T18:00:00');
 
 export function formatRelativeTime(isoDate: string): string {
-  const then = new Date(isoDate);
-  const diffMs = DEMO_NOW.getTime() - then.getTime();
-  // Future-dated timestamps (seed-data typo, clock skew on a real-data
-  // soft-launch) collapse to "just now" rather than silently flowing
-  // through `diffMin < 1` and producing a nonsensical negative bucket.
-  if (diffMs < 0) return 'เมื่อสักครู่ (just now)';
-  const diffMin = Math.floor(diffMs / 60_000);
-  const diffHr = Math.floor(diffMs / 3_600_000);
-  const diffDay = Math.floor(diffMs / 86_400_000);
+  const bucket = getRelativeTimeBucket(isoDate, DEMO_NOW);
+  switch (bucket.kind) {
+    case 'just_now':
+      return 'เมื่อสักครู่ (just now)';
+    case 'minutes':
+      return `${bucket.count} นาทีก่อน (${bucket.count} min ago)`;
+    case 'hours':
+      return `${bucket.count} ชม.ก่อน (${bucket.count} hr ago)`;
+    case 'yesterday':
+      return 'เมื่อวาน (yesterday)';
+    case 'days':
+      return `${bucket.count} วันก่อน (${bucket.count} days ago)`;
+    case 'weeks':
+      return `${bucket.count} สัปดาห์ก่อน (${bucket.count} week${bucket.count === 1 ? '' : 's'} ago)`;
+    default:
+      // Exhaustiveness lock — adding a new RelativeTimeBucket variant
+      // without updating this switch becomes a compile error here.
+      return assertNeverBucket(bucket);
+  }
+}
 
-  if (diffMin < 1) return 'เมื่อสักครู่ (just now)';
-  if (diffMin < 60) return `${diffMin} นาทีก่อน (${diffMin} min ago)`;
-  if (diffHr < 24) return `${diffHr} ชม.ก่อน (${diffHr} hr ago)`;
-  if (diffDay === 1) return 'เมื่อวาน (yesterday)';
-  if (diffDay < 7) return `${diffDay} วันก่อน (${diffDay} days ago)`;
-  const weeks = Math.floor(diffDay / 7);
-  return `${weeks} สัปดาห์ก่อน (${weeks} week${weeks === 1 ? '' : 's'} ago)`;
+function assertNeverBucket(bucket: never): never {
+  throw new Error(
+    `Unhandled relative-time bucket: ${JSON.stringify(bucket)}`,
+  );
 }

@@ -1,3 +1,4 @@
+import { bilingual } from '@/lib/format/bilingual';
 import { PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 import type { Project } from '@/types/project';
 
@@ -14,7 +15,7 @@ import { PROJECT_CLASS_LABELS } from '@/types/project';
 export const TYPE_LABEL_MAP: Record<string, string> = Object.fromEntries(
   Object.entries(PROJECT_CLASS_LABELS).map(([key, label]) => [
     key,
-    `${label.th} (${label.en})`,
+    bilingual(label.th, label.en),
   ]),
 );
 
@@ -22,11 +23,11 @@ export const STATUS_FILTER_OPTIONS: Array<{
   value: ProjectDisplayStatus;
   label: string;
 }> = [
-  { value: 'on_schedule', label: 'ตามแผน (On Schedule)' },
-  { value: 'watch', label: 'เฝ้าระวัง (Watch)' },
-  { value: 'delayed', label: 'ล่าช้า (Delayed)' },
-  { value: 'planning', label: 'วางแผน (Planning)' },
-  { value: 'completed', label: 'เสร็จสิ้น (Completed)' },
+  { value: 'on_schedule', label: bilingual('ตามแผน', 'On Schedule') },
+  { value: 'watch', label: bilingual('เฝ้าระวัง', 'Watch') },
+  { value: 'delayed', label: bilingual('ล่าช้า', 'Delayed') },
+  { value: 'planning', label: bilingual('วางแผน', 'Planning') },
+  { value: 'completed', label: bilingual('เสร็จสิ้น', 'Completed') },
 ];
 
 export const DASHBOARD_STATUS_LABELS: Record<

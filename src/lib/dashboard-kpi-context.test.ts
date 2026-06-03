@@ -138,6 +138,16 @@ describe('formatFreshnessLabel', () => {
     expect(label).toMatch(/3 days ago/);
   });
 
+  it('keeps EXACT day precision past a week (no weeks-bucket rounding)', () => {
+    // QCHECK regression guard: `bucket.count * 7` would have rounded
+    // 13 days down to 7 ("7 days ago"). With `granularity: 'days_max'`
+    // the days bucket holds the exact diffDay count.
+    const thirteenDays = formatFreshnessLabel('2026-05-19T12:00:00Z', now);
+    expect(thirteenDays).toMatch(/13 days ago/);
+    const thirtyDays = formatFreshnessLabel('2026-05-02T12:00:00Z', now);
+    expect(thirtyDays).toMatch(/30 days ago/);
+  });
+
   it('returns fallback when timestamp is null or malformed', () => {
     expect(formatFreshnessLabel(null, now)).toMatch(/No update info/);
     expect(formatFreshnessLabel('not-a-date', now)).toMatch(/No update info/);

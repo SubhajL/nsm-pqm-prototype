@@ -109,11 +109,31 @@ export default function ChangeRequestPage() {
         <Title level={3} style={{ margin: 0 }}>
           คำขอเปลี่ยนแปลง (Change Requests)
         </Title>
+        {/* T2 follow-up: page-level primary toggles with selection
+            state so the "never two primaries on the same page" rule
+            (common/CLAUDE.md) holds without leaving the page without
+            a primary CTA. When no CR is selected, the only sensible
+            action is `สร้าง Change Request` → primary. When a CR is
+            selected, the bottom-row `อนุมัติ (Approve)` (L153) becomes
+            primary and the header demotes to a teal-outlined
+            secondary so the two CTAs don't compete. */}
         <Button
-          type="primary"
+          {...(selectedChangeRequest
+            ? {
+                style: {
+                  borderColor: COLORS.accentTeal,
+                  color: COLORS.accentTeal,
+                },
+              }
+            : {
+                type: 'primary' as const,
+                style: {
+                  backgroundColor: COLORS.accentTeal,
+                  borderColor: COLORS.accentTeal,
+                },
+              })}
           icon={<PlusOutlined />}
           onClick={() => setCreateOpen(true)}
-          style={{ backgroundColor: COLORS.accentTeal, borderColor: COLORS.accentTeal }}
         >
           สร้าง Change Request
         </Button>
