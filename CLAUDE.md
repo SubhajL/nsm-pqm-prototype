@@ -377,9 +377,15 @@ helpers (menu access, role mapping) live in
 so client components don't pull the Postgres client into the browser
 bundle.
 
-`middleware.ts` is the only consumer left of a sync read source
-(`src/lib/user-store.ts` — an Edge-safe seed-from-JSON helper). All
-writes still go through the Database repository.
+`middleware.ts` no longer reads any user store (the Edge-safe
+`src/lib/user-store.ts` seed helper was removed in Phase 1). It now does
+cookie-presence + route gating only, deriving admin access from the role
+cookie via the pure `canAccessAdmin` helper. DB-backed identity and
+active-status enforcement moved to the route handlers — admin/executive
+routes call `requireAdminUser()` / `requireExecutiveUser()` in
+`src/lib/project-api-access.ts`, which load the caller from the
+repository and reject inactive accounts. All writes still go through the
+Database repository.
 
 See `src/lib/db/README.md` for the schema layout and
 `src/lib/repositories/DUAL_WRITE.md` for the historical migration log.
