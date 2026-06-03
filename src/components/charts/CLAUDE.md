@@ -21,6 +21,7 @@
 | `ProjectDonutChart.tsx` | Donut/Pie | 1.1, 6.1 | Project type breakdown, legend |
 | `SCurveChart.tsx` | Multi-line | 2.4 | PV/EV/AC curves, today marker, area fill |
 | `CPISPITrendChart.tsx` | Dual-line | 2.4 | Reference line at 1.0, monthly x-axis |
+| `ProgressComparisonChart.tsx` | Multi-line + band | Progress | PV/BAC vs EV/BAC %, variance band tinted by last-tick direction, Latest marker via `todayMarkLine` |
 | `RiskHeatMap.tsx` | Custom Heatmap | 4.1 | 5x5 grid, color cells, risk count labels |
 | `RiskTrendChart.tsx` | Line | 4.1 | Open vs Closed over time |
 | `RadarChart.tsx` | Radar/Spider | 6.2 | 5-axis evaluation, filled area |
