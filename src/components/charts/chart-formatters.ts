@@ -36,6 +36,13 @@ const percentDecimalFormatter = new Intl.NumberFormat('th-TH', {
   maximumFractionDigits: 1,
 });
 
+const bahtFullFormatter = new Intl.NumberFormat('th-TH', {
+  style: 'currency',
+  currency: 'THB',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
 /**
  * Compact th-TH suffix for a non-negative finite number.
  * Negative sign + bare value is the caller's responsibility so the ฿
@@ -78,6 +85,16 @@ export function formatPercent(value: number): string {
 }
 
 /**
+ * Format a Baht value at full precision: "฿12,500,000".
+ * Pair with `formatBaht` (compact axis labels) — use this in tooltips
+ * where the reader needs the exact number, not the suffixed form.
+ */
+export function formatBahtFull(value: number): string {
+  if (!Number.isFinite(value)) return '-';
+  return bahtFullFormatter.format(value);
+}
+
+/**
  * Compact Thai-locale number — same suffixing as formatBaht but with
  * no currency prefix. Use for counts, headcount, kg, etc.
  */
@@ -85,6 +102,56 @@ export function formatThaiCompact(value: number): string {
   if (!Number.isFinite(value)) return '-';
   const sign = value < 0 ? '-' : '';
   return `${sign}${compactAbs(value)}`;
+}
+
+/**
+ * Cross-chart cleanup sweep — shared tooltip formatter factory.
+ *
+ * Every `trigger: 'axis'` line chart in `src/components/charts/`
+ * hand-rolled the same three-step closure: pull `axisValueLabel`
+ * off the first item, render a `<strong>header</strong>`, then map
+ * each item to `${marker} ${seriesName}: ${formatted-value}` and
+ * join with `<br/>`. This factory encodes that pattern once.
+ *
+ * Pass `filter` to drop hidden helper series (e.g. invisible
+ * stack-band series whose names should never appear to the user).
+ * When the (filtered) row set is empty, the formatter returns the
+ * empty string — ECharts then shows no tooltip box at all, instead
+ * of an empty whitespace popup.
+ */
+export interface AxisTooltipRow {
+  seriesName: string;
+  value: number;
+  marker: string;
+  axisValueLabel?: string;
+}
+
+export interface AxisTooltipOptions {
+  /** Per-item value renderer (e.g. `formatBaht`, `formatPercent`). */
+  valueFormat: (value: number) => string;
+  /**
+   * Optional predicate to drop hidden helper rows before formatting.
+   * Returning `false` suppresses the row.
+   */
+  filter?: (row: AxisTooltipRow) => boolean;
+}
+
+export function axisTooltipFormatter(
+  opts: AxisTooltipOptions,
+): (params: unknown) => string {
+  return (params: unknown) => {
+    if (!Array.isArray(params)) return '';
+    const rows = params as AxisTooltipRow[];
+    const visible = opts.filter ? rows.filter(opts.filter) : rows;
+    if (visible.length === 0) return '';
+    const header = visible[0]?.axisValueLabel
+      ? `<strong>${visible[0].axisValueLabel}</strong><br/>`
+      : '';
+    const lines = visible
+      .map((row) => `${row.marker} ${row.seriesName}: ${opts.valueFormat(row.value)}`)
+      .join('<br/>');
+    return header + lines;
+  };
 }
 
 /**

@@ -14,6 +14,8 @@
  * and the ECharts type checker resolves the rest.
  */
 
+import { COLORS } from '@/theme/antd-theme';
+
 export interface TodayMarkLineOptions {
   /**
    * Bilingual label rendered at the top of the vertical guide. Defaults
@@ -71,6 +73,38 @@ export function todayMarkLine(opts: TodayMarkLineOptions = {}): object {
       ...(opts.color !== undefined ? { color: opts.color } : {}),
     },
     data: [{ xAxis: 'today' }],
+  };
+}
+
+/**
+ * Canonical bilingual label for the "data through latest snapshot"
+ * vertical guide used on the EVM trend (CPI/SPI) and the financial
+ * progress comparison charts. Pinned here so a copy tweak is a
+ * one-file edit per the helper module's docstring intent.
+ */
+export const LATEST_MARKER_LABEL = 'ข้อมูลงวดล่าสุด (Latest)';
+
+/**
+ * Pre-baked `markLine` fragment for the "Latest" vertical guide used
+ * by both the CPI/SPI trend and the planned-vs-actual comparison
+ * chart. The two consumers were duplicating
+ *   `{ ...todayMarkLine({ label: LATEST_MARKER_LABEL, color: textMuted, lineWidth: 1 }), silent: true, data: [{ xAxis: lastIndex }] }`
+ * verbatim; this sugar encodes that shape once.
+ *
+ * Returns `undefined` when `lastIndex < 0` so consumers can write
+ *   `markLine: latestMarkLine(lastIndex)`
+ * without an outer ternary.
+ */
+export function latestMarkLine(lastIndex: number): object | undefined {
+  if (lastIndex < 0) return undefined;
+  return {
+    ...todayMarkLine({
+      label: LATEST_MARKER_LABEL,
+      color: COLORS.textMuted,
+      lineWidth: 1,
+    }),
+    silent: true,
+    data: [{ xAxis: lastIndex }],
   };
 }
 
