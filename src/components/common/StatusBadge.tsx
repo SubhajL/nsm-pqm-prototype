@@ -1,5 +1,6 @@
 import { Tag } from 'antd';
 import { PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
+import { resolveHealthVisual } from '@/theme/health-visual';
 
 type StatusEntry = { label: string; color: string };
 
@@ -23,10 +24,25 @@ const MILESTONE_STATUS: Record<string, StatusEntry> = {
   completed: { label: 'เสร็จสิ้น (Completed)', color: 'success' },
 };
 
+// Tier 2 PR 1 — health-tagColor sourced from the canonical resolver in
+// `@/theme/health-visual`. Labels stay verbatim (this map owns the
+// bilingual copy for the `type="health"` vocabulary; the resolver owns
+// the visual identity). The keyword mapping `normal → on_schedule`,
+// `warning → watch`, `delayed → delayed` reflects this map's legacy
+// public vocabulary; downstream callers still pass `normal/warning/delayed`.
 const HEALTH_STATUS: Record<string, StatusEntry> = {
-  normal: { label: 'ปกติ (On Track)', color: 'green' },
-  warning: { label: 'เฝ้าระวัง (At Risk)', color: 'gold' },
-  delayed: { label: 'ล่าช้า (Delayed)', color: 'red' },
+  normal: {
+    label: 'ปกติ (On Track)',
+    color: resolveHealthVisual('on_schedule').tagColor,
+  },
+  warning: {
+    label: 'เฝ้าระวัง (At Risk)',
+    color: resolveHealthVisual('watch').tagColor,
+  },
+  delayed: {
+    label: 'ล่าช้า (Delayed)',
+    color: resolveHealthVisual('delayed').tagColor,
+  },
 };
 
 const RISK_STATUS: Record<string, StatusEntry> = {
