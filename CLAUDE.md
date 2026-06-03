@@ -547,9 +547,15 @@ API surface (under the flag):
   stages (e.g. `draft → paid`) or reverse terminal states; honours
   `voucherNumber` only at the `approved` transition, `paidAt` at `paid`.
 
-Feature flag helper: `src/lib/feature-flags.ts` — `isFeatureEnabled(name)`
-returns `true` only for `'true' | '1' | 'on'` (case-insensitive). Default
-OFF.
+Feature flags: `src/lib/feature-flags.ts` — `isFeatureEnabled(name)` returns
+`true` only for `'true' | '1' | 'on'` (case-insensitive). Two flags gate this
+flow end-to-end: `FEATURE_RID_PAYMENT_FLOW` (server — ungates the API routes)
+and its client mirror `NEXT_PUBLIC_FEATURE_RID_PAYMENT_FLOW`
+(`feature-flags-client.ts` — shows the งวดงาน nav item); **both** are required.
+The helper defaults OFF when a flag is unset, but the committed `.env` sets
+both to `true`, so the flow is **ON by default in every environment**. Override
+per-env via `.env.local` or Vercel dashboard vars (which win over `.env`) — e.g.
+to force it OFF in a specific preview.
 
 ### IT projectClass extensions (PR-30a)
 
