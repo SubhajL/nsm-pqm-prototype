@@ -12,10 +12,17 @@ import { KPICard } from '@/components/common/KPICard';
 import { computeKpiDelta } from '@/lib/dashboard-kpi-context';
 import { COLORS, PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 
-import type { DashboardStatusFilter } from './helpers';
-
 const COMPARISON_LABEL = '(vs baseline)';
 
+/**
+ * Tier 2 PR 2 — KPI cards are read-only.
+ *
+ * The previous "KPI = also a filter chip" behaviour was retired in
+ * favour of a dedicated `<DashboardFilterSegmented>` selector above
+ * the row (see `src/components/common/CLAUDE.md` → Button hierarchy
+ * / KPI rules). The cards now exclusively display counts + deltas +
+ * freshness; the filter contract is owned by the Segmented above.
+ */
 export function DashboardKPIRow({
   totalProjects,
   inProgressCount,
@@ -24,8 +31,6 @@ export function DashboardKPIRow({
   inProgressPct,
   planningPct,
   completedPct,
-  statusFilter,
-  onStatusFilterChange,
   freshness,
   baseline,
 }: {
@@ -36,8 +41,6 @@ export function DashboardKPIRow({
   inProgressPct: string;
   planningPct: string;
   completedPct: string;
-  statusFilter: DashboardStatusFilter;
-  onStatusFilterChange: (next: DashboardStatusFilter) => void;
   /** P-C1 — bilingual "Updated X ago" label rendered on the first KPI card. */
   freshness?: string;
   /**
@@ -60,8 +63,6 @@ export function DashboardKPIRow({
           icon={<FolderOutlined />}
           color={COLORS.info}
           subtitle="งบประมาณปี 2569"
-          active={statusFilter === 'all'}
-          onClick={() => onStatusFilterChange('all')}
           delta={
             baseline?.totalProjects !== undefined
               ? computeKpiDelta(totalProjects, baseline.totalProjects, {
@@ -79,8 +80,6 @@ export function DashboardKPIRow({
           icon={<ClockCircleOutlined />}
           color={COLORS.accentTeal}
           subtitle={`${inProgressPct}% ของทั้งหมด`}
-          active={statusFilter === 'in_progress'}
-          onClick={() => onStatusFilterChange('in_progress')}
           delta={
             baseline?.inProgressCount !== undefined
               ? computeKpiDelta(inProgressCount, baseline.inProgressCount, {
@@ -97,8 +96,6 @@ export function DashboardKPIRow({
           icon={<ScheduleOutlined />}
           color={PROJECT_STATUS_COLORS.planning}
           subtitle={`${planningPct}% ของทั้งหมด`}
-          active={statusFilter === 'planning'}
-          onClick={() => onStatusFilterChange('planning')}
           delta={
             baseline?.planningCount !== undefined
               ? computeKpiDelta(planningCount, baseline.planningCount, {
@@ -115,8 +112,6 @@ export function DashboardKPIRow({
           icon={<CheckCircleOutlined />}
           color={COLORS.success}
           subtitle={`${completedPct}% ของทั้งหมด`}
-          active={statusFilter === 'completed'}
-          onClick={() => onStatusFilterChange('completed')}
           delta={
             baseline?.completedCount !== undefined
               ? computeKpiDelta(completedCount, baseline.completedCount, {
