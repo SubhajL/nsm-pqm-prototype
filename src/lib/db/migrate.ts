@@ -11,7 +11,7 @@
  * dedicated `__drizzle_migrations` table so re-running is idempotent.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -93,14 +93,22 @@ export async function releaseMigrationAdvisoryLock(db: Db): Promise<void> {
 }
 
 function defaultMigrationsDir(): string {
-  // Resolve relative to this file. In dev/test (TS source), this lives in
-  // src/lib/db. The compiled JS lives in .next/... but we only call this
-  // from scripts/tests, not from runtime API routes.
+  // Primary: resolve relative to this module. Correct for the `db:migrate`
+  // script and vitest (TS source under src/lib/db).
   const here =
     typeof __dirname === 'string'
       ? __dirname
       : dirname(fileURLToPath(import.meta.url));
-  return resolve(here, '../../../drizzle/migrations');
+  const fromModule = resolve(here, '../../../drizzle/migrations');
+  if (existsSync(fromModule)) return fromModule;
+
+  // Fallback: under `next dev` / `next start` this module is bundled, so
+  // `__dirname` points inside `.next/` and the relative jump misses the
+  // repo-root migrations folder — which broke the lazy
+  // `ensureDatabaseSeeded()` path on a fresh (no DATABASE_URL) pglite.
+  // `process.cwd()` is the app root in every runtime and
+  // `drizzle/migrations` is committed there, so this resolves correctly.
+  return resolve(process.cwd(), 'drizzle/migrations');
 }
 
 export async function runMigrations(db: Db, migrationsDir = defaultMigrationsDir()): Promise<void> {
