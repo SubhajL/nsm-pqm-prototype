@@ -38,6 +38,56 @@ describe('todayMarkLine', () => {
     expect(Array.isArray(fragment.data)).toBe(true);
     expect(fragment.data?.[0]?.xAxis).toBe('today');
   });
+
+  it('omits explicit color when not provided so the chart inherits the series color', () => {
+    const fragment = todayMarkLine() as {
+      label?: { color?: string };
+      lineStyle?: { color?: string };
+    };
+    expect(fragment.label?.color).toBeUndefined();
+    expect(fragment.lineStyle?.color).toBeUndefined();
+  });
+
+  it('applies the `color` option uniformly to both the line and the label', () => {
+    const fragment = todayMarkLine({ color: '#E74C3C' }) as {
+      label?: { color?: string };
+      lineStyle?: { color?: string };
+    };
+    expect(fragment.label?.color).toBe('#E74C3C');
+    expect(fragment.lineStyle?.color).toBe('#E74C3C');
+  });
+
+  it('omits fontWeight when not provided (ECharts default = normal)', () => {
+    const fragment = todayMarkLine() as {
+      label?: { fontWeight?: string | number };
+    };
+    expect(fragment.label?.fontWeight).toBeUndefined();
+  });
+
+  it('applies the `labelFontWeight` option to the label only', () => {
+    const fragment = todayMarkLine({ labelFontWeight: 'bold' }) as {
+      label?: { fontWeight?: string | number };
+      lineStyle?: { fontWeight?: string | number };
+    };
+    expect(fragment.label?.fontWeight).toBe('bold');
+    // Sanity: fontWeight is a label-only concern; the lineStyle should not pick it up.
+    expect(fragment.lineStyle?.fontWeight).toBeUndefined();
+  });
+
+  it('honours all three options together (label + color + labelFontWeight)', () => {
+    const fragment = todayMarkLine({
+      label: 'ข้อมูลงวดล่าสุด (Latest)',
+      color: '#E74C3C',
+      labelFontWeight: 'bold',
+    }) as {
+      label?: { formatter?: string; color?: string; fontWeight?: string | number };
+      lineStyle?: { color?: string };
+    };
+    expect(fragment.label?.formatter).toBe('ข้อมูลงวดล่าสุด (Latest)');
+    expect(fragment.label?.color).toBe('#E74C3C');
+    expect(fragment.label?.fontWeight).toBe('bold');
+    expect(fragment.lineStyle?.color).toBe('#E74C3C');
+  });
 });
 
 describe('baselineLegend', () => {

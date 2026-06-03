@@ -57,23 +57,26 @@ export function ProjectHeaderCard({
           <Title level={3} style={{ marginBottom: 4 }}>
             {projectName}
           </Title>
+          {/* G18: status badges lead the chip row so the actual urgency
+              signal (delayed / on-track / planning) wins the eye over
+              descriptive metadata. The three metadata chips below drop
+              their colored fills and render as neutral outlined Tags so
+              they read as quiet context rather than competing alerts. */}
           <Space size="middle" wrap>
             <Text type="secondary" style={{ fontSize: 14 }}>
               {projectCode}
             </Text>
-            <Tag color="blue">{PROJECT_CLASS_LABELS[projectClass].th}</Tag>
-            <Tag color={deliveryMethod === 'outsourced' ? 'gold' : 'cyan'}>
-              {DELIVERY_METHOD_LABELS[deliveryMethod].th}
-            </Tag>
-            {contractingModel ? (
-              <Tag color="geekblue">
-                {CONTRACTING_MODEL_LABELS[contractingModel].th} (
-                {CONTRACTING_MODEL_LABELS[contractingModel].en})
-              </Tag>
-            ) : null}
             <StatusBadge status={projectStatus} type="project" />
             {projectStatus === 'in_progress' ? (
               <StatusBadge status={projectScheduleHealth} type="project" />
+            ) : null}
+            <Tag>{PROJECT_CLASS_LABELS[projectClass].th}</Tag>
+            <Tag>{DELIVERY_METHOD_LABELS[deliveryMethod].th}</Tag>
+            {contractingModel ? (
+              <Tag>
+                {CONTRACTING_MODEL_LABELS[contractingModel].th} (
+                {CONTRACTING_MODEL_LABELS[contractingModel].en})
+              </Tag>
             ) : null}
           </Space>
           <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
