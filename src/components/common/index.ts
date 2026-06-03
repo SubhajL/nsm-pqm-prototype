@@ -14,6 +14,11 @@ export {
 } from './filter-utils';
 export { FormSection, type FormSectionProps } from './FormSection';
 export { KPICard } from './KPICard';
+export {
+  KpiSegmentedFilter,
+  type KpiSegmentedFilterProps,
+  type KpiSegmentedOption,
+} from './KpiSegmentedFilter';
 export { LoadingSkeleton, type LoadingSkeletonProps } from './LoadingSkeleton';
 export {
   WizardActionFooter,

@@ -12,6 +12,8 @@
 
 import type { Project } from '@/types/project';
 
+import { getRelativeTimeBucket } from './relative-time';
+
 export type KpiTone = 'positive' | 'negative' | 'neutral';
 
 export interface KpiDelta {
@@ -130,31 +132,58 @@ export function getMostRecentProjectUpdatedAt(projects: Project[]): string | nul
 
 /**
  * Render a freshness label like "อัปเดต 5 นาทีที่แล้ว (Updated 5 min ago)".
- * Buckets:
- *  - < 1 min → "เมื่อสักครู่ (Just now)"
- *  - < 60 min → "X นาทีที่แล้ว (X min ago)"
- *  - < 24 hr → "X ชั่วโมงที่แล้ว (X hr ago)"
- *  - otherwise → "X วันที่แล้ว (X days ago)"
+ * Buckets are shared with the notifications panel via
+ * `getRelativeTimeBucket` in `@/lib/relative-time`; this function
+ * owns only the KPI-flavoured copy (`อัปเดต` prefix, English `Just
+ * now`/`min ago` casing).
+ *
+ * `granularity: 'days_max'` opts out of the weeks bucket so the
+ * freshness UI keeps exact day precision — `weeks → count * 7 days`
+ * would round down to multiples of 7 (a 13-day update would render
+ * as "7 days ago" instead of "13"). Notifications keep the weeks
+ * bucket (`X สัปดาห์ก่อน`) because their copy supports it.
  */
 export function formatFreshnessLabel(updatedAt: string | null, now: Date): string {
   if (!updatedAt) {
     return 'ไม่มีข้อมูลอัปเดต (No update info)';
   }
-  const updated = new Date(updatedAt).getTime();
-  if (Number.isNaN(updated)) {
+  const parsed = new Date(updatedAt).getTime();
+  if (Number.isNaN(parsed)) {
     return 'ไม่มีข้อมูลอัปเดต (No update info)';
   }
-  const diffMs = now.getTime() - updated;
-  if (diffMs < 0) {
+  if (parsed > now.getTime()) {
+    // Preserve the explicit future-dated label — the bucket helper
+    // collapses future inputs to `just_now`, but the freshness UI
+    // wants to flag the clock skew explicitly.
     return 'อัปเดตในอนาคต (Updated in future)';
   }
-  const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 1) return 'อัปเดตเมื่อสักครู่ (Just now)';
-  if (minutes < 60) return `อัปเดต ${minutes} นาทีที่แล้ว (${minutes} min ago)`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `อัปเดต ${hours} ชั่วโมงที่แล้ว (${hours} hr ago)`;
-  const days = Math.floor(hours / 24);
-  return `อัปเดต ${days} วันที่แล้ว (${days} days ago)`;
+
+  const bucket = getRelativeTimeBucket(updatedAt, now, {
+    granularity: 'days_max',
+  });
+  switch (bucket.kind) {
+    case 'just_now':
+      return 'อัปเดตเมื่อสักครู่ (Just now)';
+    case 'minutes':
+      return `อัปเดต ${bucket.count} นาทีที่แล้ว (${bucket.count} min ago)`;
+    case 'hours':
+      return `อัปเดต ${bucket.count} ชั่วโมงที่แล้ว (${bucket.count} hr ago)`;
+    case 'yesterday':
+      return `อัปเดต 1 วันที่แล้ว (1 day ago)`;
+    case 'days':
+      return `อัปเดต ${bucket.count} วันที่แล้ว (${bucket.count} days ago)`;
+    default:
+      // Exhaustiveness lock — `granularity: 'days_max'` narrows the
+      // return to exclude `weeks`, so this `never` check fires only
+      // if a future `RelativeTimeBucket` variant is added.
+      return assertNeverBucket(bucket);
+  }
+}
+
+function assertNeverBucket(bucket: never): never {
+  throw new Error(
+    `Unhandled relative-time bucket: ${JSON.stringify(bucket)}`,
+  );
 }
 
 /**

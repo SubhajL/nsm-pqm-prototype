@@ -1,18 +1,16 @@
 'use client';
 
-import { Segmented } from 'antd';
+import { KpiSegmentedFilter } from '@/components/common';
+import { bilingual } from '@/lib/format/bilingual';
 
 import type { DashboardStatusFilter } from './helpers';
 
 /**
- * Tier 2 PR 2 — dedicated filter affordance above the KPI row.
- *
- * Replaces the prior "KPI card doubles as filter chip" pattern flagged
- * by the E2 audit. Per `src/components/common/CLAUDE.md` → Button
- * hierarchy / KPI rules, KPI cards are now purely informational and a
- * `<Segmented>` selector owns the filter contract. Labels carry a
- * live count so the user can read the partition without consulting
- * the KPI cards below.
+ * Tier 2 follow-up — thin domain wrapper around the shared
+ * `KpiSegmentedFilter` primitive. Owns the dashboard-specific
+ * bilingual copy + the `DashboardStatusFilter` parameterisation.
+ * The Segmented machinery, runtime narrow, region landmark, and
+ * count-suffix template all live in `common/KpiSegmentedFilter.tsx`.
  */
 interface DashboardFilterSegmentedProps {
   value: DashboardStatusFilter;
@@ -25,54 +23,34 @@ interface DashboardFilterSegmentedProps {
   };
 }
 
-// Strict typed option shape — Segmented's AntD generic accepts
-// `SegmentedValue = string | number`, so we narrow at the source
-// instead of casting at `onChange`. Drift here is a compile error.
-type FilterOption = { value: DashboardStatusFilter; label: string };
-
-function isDashboardStatusFilter(v: unknown): v is DashboardStatusFilter {
-  return (
-    v === 'all' ||
-    v === 'in_progress' ||
-    v === 'planning' ||
-    v === 'completed'
-  );
-}
-
 export function DashboardFilterSegmented({
   value,
   onChange,
   counts,
 }: DashboardFilterSegmentedProps) {
-  const options: FilterOption[] = [
-    { value: 'all', label: `ทั้งหมด (All) · ${counts.all}` },
-    {
-      value: 'in_progress',
-      label: `กำลังดำเนินการ (In Progress) · ${counts.in_progress}`,
-    },
-    { value: 'planning', label: `วางแผน (Planning) · ${counts.planning}` },
-    { value: 'completed', label: `เสร็จสิ้น (Completed) · ${counts.completed}` },
-  ];
-
   return (
-    <div
-      role="region"
-      aria-label="ตัวกรองสถานะโครงการ (Project status filter)"
-      style={{ marginBottom: 24 }}
-    >
-      <Segmented
-        size="large"
-        value={value}
-        onChange={(next) => {
-          // Runtime narrow — protects against future drift between
-          // `options` and the `DashboardStatusFilter` union (e.g. a
-          // typo or an unintentional `archived` addition).
-          if (isDashboardStatusFilter(next)) {
-            onChange(next);
-          }
-        }}
-        options={options}
-      />
-    </div>
+    <KpiSegmentedFilter<DashboardStatusFilter>
+      value={value}
+      onChange={onChange}
+      ariaLabel={bilingual('ตัวกรองสถานะโครงการ', 'Project status filter')}
+      options={[
+        { value: 'all', label: bilingual('ทั้งหมด', 'All'), count: counts.all },
+        {
+          value: 'in_progress',
+          label: bilingual('กำลังดำเนินการ', 'In Progress'),
+          count: counts.in_progress,
+        },
+        {
+          value: 'planning',
+          label: bilingual('วางแผน', 'Planning'),
+          count: counts.planning,
+        },
+        {
+          value: 'completed',
+          label: bilingual('เสร็จสิ้น', 'Completed'),
+          count: counts.completed,
+        },
+      ]}
+    />
   );
 }

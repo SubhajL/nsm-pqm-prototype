@@ -6,6 +6,7 @@ import { EyeOutlined } from '@ant-design/icons';
 
 import { EmptyState } from '@/components/common';
 import { formatThaiDate } from '@/lib/date-utils';
+import { bilingual } from '@/lib/format/bilingual';
 import { COLORS } from '@/theme/antd-theme';
 import type { DailyReport, DailyReportStatus } from '@/types/daily-report';
 import { DAILY_REPORT_STATUS_LABELS } from '@/types/daily-report';
@@ -61,7 +62,7 @@ export function ReportListCard({
         const label = DAILY_REPORT_STATUS_LABELS[status];
         return (
           <Tag color={STATUS_TAG_COLORS[status]}>
-            {label.th} ({label.en})
+            {bilingual(label.th, label.en)}
           </Tag>
         );
       },

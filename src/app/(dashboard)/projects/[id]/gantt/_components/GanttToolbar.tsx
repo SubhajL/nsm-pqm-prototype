@@ -83,11 +83,11 @@ export function GanttToolbar({
 
         <Space>
           {canEditGantt ? (
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={onOpenCreate}
-            >
+            // T2 follow-up: demoted from `type="primary"` per
+            // common/CLAUDE.md. The page primary is the adjacent
+            // `ขออนุมัติแผนงาน` workflow CTA (submit the plan for
+            // approval); `เพิ่มงาน` is a row-level edit affordance.
+            <Button icon={<PlusOutlined />} onClick={onOpenCreate}>
               เพิ่มงาน
             </Button>
           ) : null}
