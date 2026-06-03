@@ -26,6 +26,7 @@ import { WeightingMethodCard } from './_components/WeightingMethodCard';
 import { PhysicalProgressCard } from './_components/PhysicalProgressCard';
 import { EVMCard, type EVMMetric } from './_components/EVMCard';
 import { SummaryCard } from './_components/SummaryCard';
+import { ProgressComparisonCard } from './_components/ProgressComparisonCard';
 
 const { Title, Text } = Typography;
 
@@ -212,6 +213,15 @@ export default function ProgressUpdatePage() {
           </Col>
         )}
       </Row>
+
+      {/* T2 PR 3: planned-vs-actual financial-progress comparison chart.
+          Strictly financial (PV/BAC vs EV/BAC), so it follows the same
+          tab-gating contract as `EVMCard`: visible on `all` + `evm`,
+          hidden on the method-specific `weighting` / `physical` tabs
+          that the user narrowed to non-financial views. */}
+      {showEVM && (
+        <ProgressComparisonCard evmData={evmData} bac={project?.budget ?? 0} />
+      )}
 
       <SummaryCard
         totalWeighted={totalWeighted}
