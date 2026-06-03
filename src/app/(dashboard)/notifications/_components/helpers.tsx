@@ -43,21 +43,10 @@ export function getTypeIcon(type: NotificationType) {
 }
 
 /* ---------- relative timestamp ---------- */
-export function formatRelativeTime(isoDate: string): string {
-  const now = new Date('2026-07-15T18:00:00'); // demo "now"
-  const then = new Date(isoDate);
-  const diffMs = now.getTime() - then.getTime();
-  const diffMin = Math.floor(diffMs / 60_000);
-  const diffHr = Math.floor(diffMs / 3_600_000);
-  const diffDay = Math.floor(diffMs / 86_400_000);
-
-  if (diffMin < 1) return 'เมื่อสักครู่';
-  if (diffMin < 60) return `${diffMin} นาทีก่อน`;
-  if (diffHr < 24) return `${diffHr} ชม.ก่อน`;
-  if (diffDay === 1) return 'เมื่อวาน';
-  if (diffDay < 7) return `${diffDay} วันก่อน`;
-  return `${Math.floor(diffDay / 7)} สัปดาห์ก่อน`;
-}
+// T2-PR2: bilingual + extracted to a sibling `.ts` module so the pure
+// function is testable under vitest's node env. Re-exported here so
+// existing import paths (`./helpers`) keep working.
+export { formatRelativeTime } from './format-relative-time';
 
 /* ---------- tab definitions ---------- */
 export const TAB_ITEMS: { key: string; label: string; filter?: NotificationType }[] = [

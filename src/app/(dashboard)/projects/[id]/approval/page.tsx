@@ -416,11 +416,12 @@ export default function PlanApprovalPage() {
           onChange={(e) => setCommentText(e.target.value)}
         />
         <div style={{ marginTop: 12, textAlign: 'right' }}>
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={handleSendComment}
-          >
+          {/* T2-PR2: demoted from `type="primary"` — the page's true
+              primary action is `อนุมัติแผนงาน` at the bottom-right;
+              `ส่งความคิดเห็น` is a sub-action within the comments
+              card and stays `default` per common/CLAUDE.md
+              ("never two type=\"primary\" on the same page"). */}
+          <Button icon={<SendOutlined />} onClick={handleSendComment}>
             ส่งความคิดเห็น (Send Comment)
           </Button>
         </div>

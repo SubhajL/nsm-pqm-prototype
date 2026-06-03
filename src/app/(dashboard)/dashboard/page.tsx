@@ -11,6 +11,7 @@ import { buildPortfolioFreshness } from '@/lib/dashboard-kpi-context';
 import { CreateProjectFAB } from './_components/CreateProjectFAB';
 import { DashboardCharts } from './_components/DashboardCharts';
 import { DashboardError } from './_components/DashboardError';
+import { DashboardFilterSegmented } from './_components/DashboardFilterSegmented';
 import { DashboardKPIRow } from './_components/DashboardKPIRow';
 import { DashboardLoading } from './_components/DashboardLoading';
 import { ProjectsTable } from './_components/ProjectsTable';
@@ -174,6 +175,21 @@ export default function PortfolioDashboardPage() {
         แดชบอร์ดภาพรวมโครงการ (Portfolio Dashboard)
       </Title>
 
+      {/* T2-PR2: dedicated Segmented filter above the KPI row. KPI
+          cards are now purely informational; the Segmented owns the
+          status-filter contract (see common/CLAUDE.md → Button
+          hierarchy / KPI rules). */}
+      <DashboardFilterSegmented
+        value={statusFilter}
+        onChange={setStatusFilter}
+        counts={{
+          all: totalProjects,
+          in_progress: inProgressCount,
+          planning: planningCount,
+          completed: completedCount,
+        }}
+      />
+
       <DashboardKPIRow
         totalProjects={totalProjects}
         inProgressCount={inProgressCount}
@@ -182,8 +198,6 @@ export default function PortfolioDashboardPage() {
         inProgressPct={inProgressPct}
         planningPct={planningPct}
         completedPct={completedPct}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
         freshness={buildPortfolioFreshness(projects ?? [], new Date()).label}
       />
 
