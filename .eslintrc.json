@@ -8,6 +8,12 @@
         "selector": "Literal[value=/^#[0-9a-fA-F]{6}$/]",
         "message": "Use COLORS tokens from src/theme/antd-theme.ts instead of hex literals. If a new token is needed, add it to the palette first."
       }
+    ],
+    "react-hooks/exhaustive-deps": [
+      "warn",
+      {
+        "additionalHooks": "(useChartOption)"
+      }
     ]
   },
   "overrides": [

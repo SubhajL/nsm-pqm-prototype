@@ -158,55 +158,81 @@ describe('derivePlannedActualSeries — lastIndex + overallVariance', () => {
   });
 });
 
-describe('derivePlannedActualSeries — per-segment variance arrays', () => {
-  it('produces aligned lowerBound / behindFill / aheadFill arrays', () => {
+describe('derivePlannedActualSeries — varianceSegments (markArea)', () => {
+  it('emits one segment per adjacent tick pair (n snapshots → n-1 segments)', () => {
     const data = [
-      // m1: planned 20, actual 16 → behind (delta 4)
       snapshot('2026-04', 'เม.ย. 69', 2_000_000, 1_600_000),
-      // m2: planned 30, actual 40 → ahead (delta 10)
       snapshot('2026-05', 'พ.ค. 69', 3_000_000, 4_000_000),
-      // m3: planned 50, actual 50 → on track (both zero)
       snapshot('2026-06', 'มิ.ย. 69', 5_000_000, 5_000_000),
     ];
     const result = derivePlannedActualSeries(data, 10_000_000);
-    expect(result.lowerBound).toEqual([16, 30, 50]);
-    expect(result.behindFill).toEqual([4, 0, 0]);
-    expect(result.aheadFill).toEqual([0, 10, 0]);
+    expect(result.varianceSegments.length).toBe(2);
+    expect(result.varianceSegments[0].startIndex).toBe(0);
+    expect(result.varianceSegments[0].endIndex).toBe(1);
+    expect(result.varianceSegments[1].startIndex).toBe(1);
+    expect(result.varianceSegments[1].endIndex).toBe(2);
   });
 
-  it('lowerBound + behindFill + aheadFill == max(planned, actual) at every tick (stack-top invariant)', () => {
+  it('classifies a segment as `behind` when planned > actual at its END tick', () => {
     const data = [
+      snapshot('2026-04', 'เม.ย. 69', 2_000_000, 2_000_000), // m1: equal
+      snapshot('2026-05', 'พ.ค. 69', 4_000_000, 3_000_000), // m2: behind (planned 40, actual 30)
+    ];
+    const r = derivePlannedActualSeries(data, 10_000_000);
+    expect(r.varianceSegments[0].direction).toBe('behind');
+  });
+
+  it('classifies a segment as `ahead` when actual > planned at its END tick', () => {
+    const data = [
+      snapshot('2026-04', 'เม.ย. 69', 2_000_000, 2_000_000),
+      snapshot('2026-05', 'พ.ค. 69', 4_000_000, 5_000_000), // ahead at end
+    ];
+    const r = derivePlannedActualSeries(data, 10_000_000);
+    expect(r.varianceSegments[0].direction).toBe('ahead');
+  });
+
+  it('classifies a segment as `on_track` when planned == actual at its END tick', () => {
+    const data = [
+      snapshot('2026-04', 'เม.ย. 69', 2_000_000, 1_500_000),
+      snapshot('2026-05', 'พ.ค. 69', 4_000_000, 4_000_000),
+    ];
+    const r = derivePlannedActualSeries(data, 10_000_000);
+    expect(r.varianceSegments[0].direction).toBe('on_track');
+  });
+
+  it('sets yLower/yUpper to the convex hull of planned + actual over the segment', () => {
+    const data = [
+      // m1: planned 20, actual 16
       snapshot('2026-04', 'เม.ย. 69', 2_000_000, 1_600_000),
-      snapshot('2026-05', 'พ.ค. 69', 3_000_000, 4_000_000),
-      snapshot('2026-06', 'มิ.ย. 69', 5_000_000, 5_000_000),
+      // m2: planned 40, actual 30 (behind)
+      snapshot('2026-05', 'พ.ค. 69', 4_000_000, 3_000_000),
     ];
     const r = derivePlannedActualSeries(data, 10_000_000);
-    r.lowerBound.forEach((min, i) => {
-      const top = min + r.behindFill[i] + r.aheadFill[i];
-      const expected = Math.max(r.plannedPct[i], r.actualPct[i]);
-      expect(top).toBe(expected);
-    });
+    expect(r.varianceSegments[0].yLower).toBe(16); // min(20,16,40,30)
+    expect(r.varianceSegments[0].yUpper).toBe(40); // max(20,16,40,30)
   });
 
-  it('returns empty band arrays when input is empty', () => {
-    const result = derivePlannedActualSeries([], 10_000_000);
-    expect(result.lowerBound).toEqual([]);
-    expect(result.behindFill).toEqual([]);
-    expect(result.aheadFill).toEqual([]);
+  it('emits zero segments when input has fewer than 2 ticks (single snapshot or empty)', () => {
+    expect(
+      derivePlannedActualSeries([], 10_000_000).varianceSegments,
+    ).toEqual([]);
+    const single = [snapshot('2026-04', 'เม.ย. 69', 2_000_000, 1_600_000)];
+    expect(
+      derivePlannedActualSeries(single, 10_000_000).varianceSegments,
+    ).toEqual([]);
   });
 
-  it('paints a crossover history: m1 behind, m3 ahead — both fills are non-zero across the series', () => {
+  it('paints a crossover history: behind segment then ahead segment in one sweep', () => {
     const data = [
-      // m1: behind
-      snapshot('2026-04', 'เม.ย. 69', 4_000_000, 2_000_000),
-      // m2: still behind, smaller gap
-      snapshot('2026-05', 'พ.ค. 69', 5_000_000, 4_500_000),
-      // m3: ahead
-      snapshot('2026-06', 'มิ.ย. 69', 6_000_000, 7_000_000),
+      snapshot('2026-04', 'เม.ย. 69', 4_000_000, 2_000_000), // m1: behind at end
+      snapshot('2026-05', 'พ.ค. 69', 5_000_000, 4_500_000), // m2: still behind at end
+      snapshot('2026-06', 'มิ.ย. 69', 6_000_000, 7_000_000), // m3: ahead at end
     ];
     const r = derivePlannedActualSeries(data, 10_000_000);
-    expect(r.behindFill.some((v) => v > 0)).toBe(true);
-    expect(r.aheadFill.some((v) => v > 0)).toBe(true);
+    expect(r.varianceSegments.map((s) => s.direction)).toEqual([
+      'behind',
+      'ahead',
+    ]);
   });
 });
 

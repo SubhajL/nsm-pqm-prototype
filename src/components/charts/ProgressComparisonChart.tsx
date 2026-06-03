@@ -1,8 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
-import type { EChartsOption } from 'echarts';
-
 import { CHART_COLORS, COLORS } from '@/theme/antd-theme';
 import type { EVMDataPoint } from '@/types/evm';
 
@@ -13,8 +10,11 @@ import {
 } from './chart-defaults';
 import { axisTooltipFormatter, formatPercent } from './chart-formatters';
 import { latestMarkLine } from './chart-helpers';
-import { EChartsWrapper } from './EChartsWrapper';
-import { derivePlannedActualSeries } from './progress-comparison-helpers';
+import { EChartsWrapper, useChartOption } from './EChartsWrapper';
+import {
+  derivePlannedActualSeries,
+  type VarianceSegmentDirection,
+} from './progress-comparison-helpers';
 
 interface ProgressComparisonChartProps {
   data: readonly EVMDataPoint[];
@@ -31,14 +31,12 @@ interface ProgressComparisonChartProps {
 
 const PLANNED_NAME = 'แผน (Planned)';
 const ACTUAL_NAME = 'จริง (Actual)';
-const VARIANCE_LOWER_NAME = 'variance-lower';
-const VARIANCE_BEHIND_NAME = 'variance-behind';
-const VARIANCE_AHEAD_NAME = 'variance-ahead';
-const HELPER_SERIES_NAMES = new Set<string>([
-  VARIANCE_LOWER_NAME,
-  VARIANCE_BEHIND_NAME,
-  VARIANCE_AHEAD_NAME,
-]);
+
+const SEGMENT_FILL: Record<VarianceSegmentDirection, string | null> = {
+  behind: COLORS.error,
+  ahead: COLORS.success,
+  on_track: null,
+};
 
 export function ProgressComparisonChart({
   data,
@@ -46,9 +44,49 @@ export function ProgressComparisonChart({
   height = 320,
   showVarianceBand = true,
 }: ProgressComparisonChartProps) {
-  const option: EChartsOption = useMemo(() => {
+  const option = useChartOption(() => {
     const series = derivePlannedActualSeries(data, bac);
-    const { months, plannedPct, actualPct, lowerBound, behindFill, aheadFill, lastIndex } = series;
+    const { months, plannedPct, actualPct, varianceSegments, lastIndex } = series;
+
+    // Per-segment markArea data — one rectangle per segment where the
+    // variance direction is non-zero. Each rectangle carries its own
+    // itemStyle.color so the band tint switches at every tick the
+    // direction flips (preserves crossover history). markArea sits on
+    // the Actual series; ECharts paints it under the line strokes and
+    // does not surface helper geometry to tooltip or legend.
+    type MarkAreaPoint = {
+      xAxis: number;
+      yAxis: number;
+      itemStyle?: {
+        color: string;
+        opacity: number;
+        // Opt out of aria.decal (forced ON by EChartsWrapper for WCAG
+        // 1.4.1) — diagonal-stripe decals over a 16%-alpha fill would
+        // muddy the red-vs-green semantic this band exists to encode.
+        // Decals still apply to the visible Planned/Actual line series.
+        decal: { symbol: 'none' };
+      };
+    };
+    const markAreaData: [MarkAreaPoint, MarkAreaPoint][] = showVarianceBand
+      ? varianceSegments.flatMap((seg): [MarkAreaPoint, MarkAreaPoint][] => {
+          const color = SEGMENT_FILL[seg.direction];
+          if (color === null) return [];
+          return [
+            [
+              {
+                xAxis: seg.startIndex,
+                yAxis: seg.yLower,
+                itemStyle: {
+                  color,
+                  opacity: 0.16,
+                  decal: { symbol: 'none' },
+                },
+              },
+              { xAxis: seg.endIndex, yAxis: seg.yUpper },
+            ],
+          ];
+        })
+      : [];
 
     return {
       color: [CHART_COLORS.pv, CHART_COLORS.ev],
@@ -56,7 +94,6 @@ export function ProgressComparisonChart({
         trigger: 'axis',
         formatter: axisTooltipFormatter({
           valueFormat: (v) => formatPercent(v),
-          filter: (row) => !HELPER_SERIES_NAMES.has(row.seriesName),
         }),
       },
       legend: topLegend([PLANNED_NAME, ACTUAL_NAME]),
@@ -72,46 +109,6 @@ export function ProgressComparisonChart({
         },
       },
       series: [
-        // Per-segment variance band — three stacked helper series.
-        // When `showVarianceBand` is false every helper series ships
-        // empty data so ECharts allocates no area geometry.
-        // The three band helper series opt out of `aria.decal`
-        // (forced on by EChartsWrapper for WCAG 1.4.1) — decal
-        // textures over a 16%-alpha behind/ahead fill would muddy
-        // the very red-vs-green signal the band encodes. Decals
-        // still apply to the visible Planned/Actual lines below.
-        {
-          name: VARIANCE_LOWER_NAME,
-          type: 'line',
-          data: showVarianceBand ? lowerBound : [],
-          stack: 'variance',
-          symbol: 'none',
-          lineStyle: { opacity: 0 },
-          itemStyle: { decal: { symbol: 'none' } },
-          z: 0,
-        },
-        {
-          name: VARIANCE_BEHIND_NAME,
-          type: 'line',
-          data: showVarianceBand ? behindFill : [],
-          stack: 'variance',
-          symbol: 'none',
-          lineStyle: { opacity: 0 },
-          areaStyle: { color: COLORS.error, opacity: 0.16 },
-          itemStyle: { decal: { symbol: 'none' } },
-          z: 0,
-        },
-        {
-          name: VARIANCE_AHEAD_NAME,
-          type: 'line',
-          data: showVarianceBand ? aheadFill : [],
-          stack: 'variance',
-          symbol: 'none',
-          lineStyle: { opacity: 0 },
-          areaStyle: { color: COLORS.success, opacity: 0.16 },
-          itemStyle: { decal: { symbol: 'none' } },
-          z: 0,
-        },
         {
           name: PLANNED_NAME,
           type: 'line',
@@ -132,6 +129,10 @@ export function ProgressComparisonChart({
           lineStyle: { width: 2 },
           z: 2,
           markLine: latestMarkLine(lastIndex),
+          markArea:
+            markAreaData.length > 0
+              ? { silent: true, z: 0, data: markAreaData }
+              : undefined,
         },
       ],
     };

@@ -1,8 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
-import type { EChartsOption } from 'echarts';
-
 import { COLORS } from '@/theme/antd-theme';
 
 import {
@@ -11,8 +8,8 @@ import {
   topLegend,
 } from './chart-defaults';
 import { axisTooltipFormatter } from './chart-formatters';
-import { latestMarkLine } from './chart-helpers';
-import { EChartsWrapper } from './EChartsWrapper';
+import { latestMarkLine, referenceMarkLine } from './chart-helpers';
+import { EChartsWrapper, useChartOption } from './EChartsWrapper';
 
 export interface TrendSeriesPoint {
   monthThai: string;
@@ -58,7 +55,7 @@ export function CPISPITrendChart({
   secondaryLabelPosition = 'bottom',
   markLatestPoint = false,
 }: CPISPITrendChartProps) {
-  const option: EChartsOption = useMemo(() => {
+  const option = useChartOption(() => {
     const months = data.map((d) => d.monthThai);
     const primaryData = data.map((d) => d.primary);
     const secondaryData = data.map((d) => d.secondary);
@@ -99,32 +96,18 @@ export function CPISPITrendChart({
             fontSize: 11,
             color: primaryColor,
           },
-          // G22 follow-up: keep this horizontal reference markLine on the
-          // same muted-gray palette as the series[1] vertical "Latest"
-          // markLine below so the two read as a coherent set, not two
-          // unrelated overlays. `todayMarkLine` is xAxis-oriented and
-          // doesn't fit a yAxis reference; until a sibling
-          // `referenceMarkLine` helper exists, we hand-roll using the
-          // same tokens (textMuted for line + label, dashed, width 1).
+          // The horizontal reference (CPI/SPI baseline at yAxis=1.0)
+          // uses the canonical `referenceMarkLine` helper so it stays
+          // visually coherent with the vertical "Latest" marker below
+          // — both share the same muted-gray dashed/width-1 shape.
           markLine:
             referenceLine === null
               ? undefined
-              : {
-                  silent: true,
-                  symbol: 'none',
-                  label: {
-                    formatter: valueFormatter(referenceLine),
-                    position: 'insideEndTop',
-                    color: COLORS.textMuted,
-                    fontSize: 11,
-                  },
-                  lineStyle: {
-                    type: 'dashed',
-                    color: COLORS.textMuted,
-                    width: 1,
-                  },
-                  data: [{ yAxis: referenceLine }],
-                },
+              : referenceMarkLine({
+                  axis: 'yAxis',
+                  value: referenceLine,
+                  label: valueFormatter(referenceLine),
+                }),
         },
         {
           name: secondaryLabel,
