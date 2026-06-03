@@ -56,3 +56,5 @@ export { DatabaseHandoverPacketRepository } from './handover-packet.repository';
 export { DatabaseAsBuiltDrawingRepository } from './as-built-drawing.repository';
 export { DatabaseOmManualEntryRepository } from './om-manual-entry.repository';
 export { DatabaseAssetRegistrationRepository } from './asset-registration.repository';
+// Bucket 2 — project evaluation persistence.
+export { DatabaseProjectEvaluationRepository } from './project-evaluation.repository';

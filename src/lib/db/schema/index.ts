@@ -53,3 +53,5 @@ export * from './handover-packet.schema';
 export * from './as-built-drawing.schema';
 export * from './om-manual-entry.schema';
 export * from './asset-registration.schema';
+// Bucket 2 — project evaluation persistence.
+export * from './project-evaluation.schema';

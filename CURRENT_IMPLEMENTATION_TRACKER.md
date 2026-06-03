@@ -4,6 +4,7 @@
 - This file tracks the current NSM PQM app as implemented today.
 - It is based on the current route map, API handlers, hooks, stores, and E2E coverage.
 - It does not follow the older DOCX screen taxonomy. The source of truth is the app on disk.
+- Re-verified 2026-06-03: Admin (user + org-unit writes, wired end-to-end) and Evaluation (now DB-backed create/update) were stale "Weak/GET-only" entries — corrected to Strong below.
 
 ## Status Legend
 - `Strong`: meaningful read/write behavior exists, backed by API/store logic, and the module is credible in a demo.
@@ -64,8 +65,8 @@
 | Approval | `src/app/(dashboard)/projects/[id]/approval/page.tsx` | Weak | Reads demo approval state | Mostly local/mock actions | Real approval inbox/history | Persisted approve/reject/escalate actions | No dedicated approval API | No dedicated E2E | High |
 | Notifications | `src/app/(dashboard)/notifications/page.tsx` | Moderate | Reads notifications feed and states | Mark-read patch works | Real delivery/provider status | Persisted settings, outbound channel integration | `GET/PATCH /api/notifications` | No dedicated E2E | Medium |
 | Executive Dashboard | `src/app/(dashboard)/executive/page.tsx` | Moderate | Reads portfolio/project summaries | Little direct write behavior by design | Better drill-through reads | Not intended as main write surface | Backed by project/evaluation data reads | Indirect only | Medium |
-| Evaluation | `src/app/(dashboard)/executive/evaluation/page.tsx` | Weak | Reads seeded evaluation content | None | Generic project selection, historical evaluations | Create/update evaluation, approvals, scoring persistence | `GET /api/evaluation/[projectId]` only | No dedicated E2E | High |
-| Admin | `src/app/(dashboard)/admin/page.tsx` | Weak | Reads org structure, users, audit summaries | UI has action buttons only | More operational detail views | Create/edit/suspend/reactivate users, org unit CRUD, import/export persistence | `GET /api/users`, `GET /api/org-structure`, `GET /api/audit-logs` only | No dedicated E2E | High |
+| Evaluation | `src/app/(dashboard)/executive/evaluation/page.tsx` | Strong | Reads DB-backed evaluation; editable scorecard | Create/update evaluation (POST upsert, executive-gated, audited, DB-backed); summary derived server-side | Generic project selection, historical evaluations | Multi-project selector; evaluation history | `GET/POST /api/evaluation/[projectId]` (repository-backed) | `executive-evaluation-persistence.spec.ts` | Low |
+| Admin | `src/app/(dashboard)/admin/page.tsx` | Strong | Reads org structure, users, audit summaries | User create/edit (incl. suspend/reactivate/role via PATCH); org-unit full CRUD — all wired in the admin UI (UserModal/OrgUnitModal) | More operational detail views | Import/export persistence; org-unit delete UI affordance | `GET/POST/PATCH /api/users`, `GET/POST/PATCH/DELETE /api/org-structure`, `GET /api/audit-logs` | No dedicated E2E (capability wired) | Low |
 | Audit Log | `src/app/(dashboard)/admin/audit/page.tsx` | Moderate | Reads audit logs | No writes by design | More filters/export can improve | Not a main write surface | `GET /api/audit-logs` | No dedicated E2E | Low |
 
 ## Cross-Cutting Missing Modules
@@ -99,9 +100,9 @@ These are not current primary routes, but they remain important capability gaps:
 | `src/app/api/issues/[projectId]/route.ts` | `GET`, `POST`, `PATCH` | No `DELETE`, no richer workflow endpoints |
 | `src/app/api/documents/[projectId]/route.ts` | `GET` | Missing all write endpoints |
 | `src/app/api/change-requests/route.ts` | `GET` | Missing all write endpoints |
-| `src/app/api/evaluation/[projectId]/route.ts` | `GET` | Missing create/update workflow |
-| `src/app/api/users/route.ts` | `GET` | Missing all write endpoints |
-| `src/app/api/org-structure/route.ts` | `GET` | Missing all write endpoints |
+| `src/app/api/evaluation/[projectId]/route.ts` | `GET`, `POST` | Repository-backed upsert; server-derived summary. No history endpoint |
+| `src/app/api/users/route.ts` | `GET`, `POST`, `PATCH` | Suspend/reactivate/role via PATCH status; no hard-delete route |
+| `src/app/api/org-structure/route.ts` | `GET`, `POST`, `PATCH`, `DELETE` | Full CRUD |
 | `src/app/api/audit-logs/route.ts` | `GET` | Read-only by design |
 | `src/app/api/notifications/route.ts` | `GET`, `PATCH` | No persisted settings/config |
 

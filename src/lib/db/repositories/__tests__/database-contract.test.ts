@@ -44,6 +44,7 @@ import {
   DatabasePaymentVoucherRepository,
   DatabasePermitRepository,
   DatabaseProcurementPackageRepository,
+  DatabaseProjectEvaluationRepository,
   DatabaseProjectRepository,
   DatabasePublicHearingRepository,
   DatabaseQualityGateRepository,
@@ -98,6 +99,7 @@ import { runTorDocumentRepositoryContract } from '@/lib/repositories/__tests__/c
 // PR-30a — IT class extension contracts.
 import { runItSprintRepositoryContract } from '@/lib/repositories/__tests__/contracts/sprint.contract';
 import { runKnowledgeAreaNoteRepositoryContract } from '@/lib/repositories/__tests__/contracts/knowledge-area-note.contract';
+import { runProjectEvaluationRepositoryContract } from '@/lib/repositories/__tests__/contracts/project-evaluation.contract';
 import { runVendorSowRepositoryContract } from '@/lib/repositories/__tests__/contracts/vendor-sow.contract';
 // PR-26 — Handover workflow contracts.
 import { runAsBuiltDrawingRepositoryContract } from '@/lib/repositories/__tests__/contracts/as-built-drawing.contract';
@@ -295,6 +297,10 @@ describe('Database repository contracts (pglite)', () => {
 
   runKnowledgeAreaNoteRepositoryContract(async () => {
     return new DatabaseKnowledgeAreaNoteRepository(await freshDb());
+  });
+
+  runProjectEvaluationRepositoryContract(async () => {
+    return new DatabaseProjectEvaluationRepository(await freshDb());
   });
 
   // PR-26 — handover workflow.

@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Row, Col, Card, Typography, Table, Rate, Button, Collapse, Spin } from 'antd';
 import { FileOutlined, ShareAltOutlined, SaveOutlined } from '@ant-design/icons';
 import { useEvaluation } from '@/hooks/useEvaluation';
 import type { EvaluationCategory } from '@/hooks/useEvaluation';
+import { EvaluationEditModal } from './_components/EvaluationEditModal';
 import { COLORS } from '@/theme/antd-theme';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -17,6 +19,7 @@ const { Title, Text } = Typography;
 
 export default function ProjectEvaluationPage() {
   const { data: evaluation, isLoading } = useEvaluation('proj-005');
+  const [editOpen, setEditOpen] = useState(false);
 
   if (isLoading || !evaluation) {
     return (
@@ -132,12 +135,13 @@ export default function ProjectEvaluationPage() {
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
+                onClick={() => setEditOpen(true)}
                 style={{
                   backgroundColor: COLORS.accentTeal,
                   borderColor: COLORS.accentTeal,
                 }}
               >
-                บันทึกผลประเมิน
+                แก้ไขผลประเมิน (Edit)
               </Button>
               <Button icon={<ShareAltOutlined />}>
                 แชร์ผลให้ทีม (Share)
@@ -224,6 +228,14 @@ export default function ProjectEvaluationPage() {
 
       {/* Collapsible Evaluation History */}
       <Collapse items={collapseItems} />
+
+      {editOpen && (
+        <EvaluationEditModal
+          projectId="proj-005"
+          initial={evaluation}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
     </div>
   );
 }

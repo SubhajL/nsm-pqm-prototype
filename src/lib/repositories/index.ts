@@ -62,3 +62,5 @@ export type { HandoverPacketRepository } from './handover-packet.repository';
 export type { AsBuiltDrawingRepository } from './as-built-drawing.repository';
 export type { OmManualEntryRepository } from './om-manual-entry.repository';
 export type { AssetRegistrationRepository } from './asset-registration.repository';
+// Bucket 2 — project evaluation persistence.
+export type { ProjectEvaluationRepository } from './project-evaluation.repository';

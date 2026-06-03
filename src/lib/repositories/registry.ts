@@ -59,6 +59,7 @@ import {
   DatabasePermitRepository,
   DatabaseProcurementPackageRepository,
   DatabaseProjectApprovalRequestRepository,
+  DatabaseProjectEvaluationRepository,
   DatabaseProjectRepository,
   DatabasePublicHearingRepository,
   DatabaseQualityGateRepository,
@@ -100,6 +101,7 @@ import type { OmManualEntryRepository } from './om-manual-entry.repository';
 import type { OrgStructureRepository } from './org-structure.repository';
 import type { PaymentVoucherRepository } from './payment-voucher.repository';
 import type { PermitRepository } from './permit.repository';
+import type { ProjectEvaluationRepository } from './project-evaluation.repository';
 import type { ProcurementPackageRepository } from './procurement-package.repository';
 import type { ProjectApprovalRequestRepository } from './project-approval-request.repository';
 import type { ProjectRepository } from './project.repository';
@@ -145,6 +147,7 @@ export interface RepositoryRegistry {
   permits: PermitRepository;
   procurementPackages: ProcurementPackageRepository;
   projectApprovalRequests: ProjectApprovalRequestRepository;
+  projectEvaluations: ProjectEvaluationRepository;
   projects: ProjectRepository;
   publicHearings: PublicHearingRepository;
   qualityGates: QualityGateRepository;
@@ -251,6 +254,7 @@ function assembleRegistry(
     permits: wrap(new DatabasePermitRepository(db)),
     procurementPackages: wrap(new DatabaseProcurementPackageRepository(db)),
     projectApprovalRequests: wrap(new DatabaseProjectApprovalRequestRepository(db)),
+    projectEvaluations: wrap(new DatabaseProjectEvaluationRepository(db)),
     projects: wrap(new DatabaseProjectRepository(db)),
     publicHearings: wrap(new DatabasePublicHearingRepository(db)),
     qualityGates: wrap(new DatabaseQualityGateRepository(db)),
