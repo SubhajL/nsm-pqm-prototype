@@ -3,6 +3,7 @@
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { CHART_COLORS } from '@/theme/antd-theme';
+import { todayMarkLine } from './chart-helpers';
 
 interface SCurveDataPoint {
   monthThai: string;
@@ -140,22 +141,16 @@ export function SCurveChart({
         },
         symbol: 'circle',
         symbolSize: 6,
+        // PR-C3 + G22: adopt the chart-helpers `todayMarkLine` helper so
+        // the bilingual marker label, dashed style, and color/fontWeight
+        // emphasis flow from one source. Override only `data` to swap
+        // the helper's `'today'` xAxis placeholder for our `lastIndex`.
         markLine: {
-          symbol: 'none',
-          // PR-C3: bilingual marker label — UX gap C3 flagged the
-          // marker as "unlabeled"; the prior copy was Thai-only.
-          label: {
-            formatter: 'ข้อมูลงวดล่าสุด (Latest)',
-            position: 'insideEndTop',
+          ...todayMarkLine({
+            label: 'ข้อมูลงวดล่าสุด (Latest)',
             color: CHART_COLORS.error,
-            fontSize: 11,
-            fontWeight: 'bold',
-          },
-          lineStyle: {
-            type: 'dashed',
-            color: CHART_COLORS.error,
-            width: 2,
-          },
+            labelFontWeight: 'bold',
+          }),
           data: [{ xAxis: lastIndex }],
         },
       },

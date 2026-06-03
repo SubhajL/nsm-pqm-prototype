@@ -21,6 +21,18 @@ export interface TodayMarkLineOptions {
    * the rest of the shell.
    */
   label?: string;
+  /**
+   * Applied uniformly to both the line stroke and the label text. When
+   * omitted, the line + label inherit the chart's defaults (series
+   * color for the line, theme text color for the label).
+   */
+  color?: string;
+  /**
+   * Label fontWeight. Defaults to normal (ECharts default). Set to
+   * `'bold'` for a primary marker that needs to stand out against
+   * decorative reference lines on the same chart.
+   */
+  labelFontWeight?: 'normal' | 'bold' | number;
 }
 
 /**
@@ -41,10 +53,15 @@ export function todayMarkLine(opts: TodayMarkLineOptions = {}): object {
       formatter: label,
       position: 'insideEndTop',
       fontSize: 11,
+      ...(opts.color !== undefined ? { color: opts.color } : {}),
+      ...(opts.labelFontWeight !== undefined
+        ? { fontWeight: opts.labelFontWeight }
+        : {}),
     },
     lineStyle: {
       type: 'dashed',
       width: 2,
+      ...(opts.color !== undefined ? { color: opts.color } : {}),
     },
     data: [{ xAxis: 'today' }],
   };
