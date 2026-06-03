@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useMemo } from 'react';
 import { Card, Col, Empty, Row } from 'antd';
 
 import { COLORS } from '@/theme/antd-theme';
@@ -19,6 +20,36 @@ export function SCurveCharts({
   isOutsourced: boolean;
   bac: number;
 }) {
+  // Memoise the derived chart inputs so the children's chart-side
+  // `useChartOption` actually skips rebuilds when the parent re-renders
+  // for unrelated reasons (theme tick, ConfigProvider nudge, etc.).
+  const sCurveData = useMemo(
+    () =>
+      (evmData ?? []).map((point) => ({
+        monthThai: point.monthThai,
+        pv: point.pv,
+        ev: point.ev,
+        actual: isOutsourced ? getPaidToDate(point) : point.ac,
+      })),
+    [evmData, isOutsourced],
+  );
+
+  const trendData = useMemo(
+    () =>
+      (evmData ?? []).map((point) => ({
+        monthThai: point.monthThai,
+        primary: isOutsourced ? getPaidToDate(point) / Math.max(bac, 1) : point.cpi,
+        secondary: isOutsourced ? point.ev / Math.max(bac, 1) : point.spi,
+      })),
+    [evmData, isOutsourced, bac],
+  );
+
+  const trendValueFormatter = useCallback(
+    (value: number) =>
+      isOutsourced ? `${(value * 100).toFixed(0)}%` : value.toFixed(2),
+    [isOutsourced],
+  );
+
   return (
     // PR-C3: stack the chart pair on viewports below xl (≥1200px). The
     // 14/10 split read as cramped on iPad-landscape; full-width stack
@@ -31,12 +62,7 @@ export function SCurveCharts({
         >
           {hasSnapshots ? (
             <SCurveChart
-              data={(evmData ?? []).map((point) => ({
-                monthThai: point.monthThai,
-                pv: point.pv,
-                ev: point.ev,
-                actual: isOutsourced ? getPaidToDate(point) : point.ac,
-              }))}
+              data={sCurveData}
               height={350}
               actualSeriesLabel={isOutsourced ? 'Paid to Date — จ่ายแล้วสะสม' : 'AC — ค่าใช้จ่ายจริง (Actual)'}
             />
@@ -59,11 +85,7 @@ export function SCurveCharts({
         >
           {hasSnapshots ? (
             <CPISPITrendChart
-              data={(evmData ?? []).map((point) => ({
-                monthThai: point.monthThai,
-                primary: isOutsourced ? getPaidToDate(point) / Math.max(bac, 1) : point.cpi,
-                secondary: isOutsourced ? point.ev / Math.max(bac, 1) : point.spi,
-              }))}
+              data={trendData}
               height={350}
               primaryLabel={isOutsourced ? 'Paid/BAC' : 'CPI'}
               secondaryLabel={isOutsourced ? 'EV/BAC' : 'SPI'}
@@ -72,7 +94,7 @@ export function SCurveCharts({
               referenceLine={isOutsourced ? null : 1}
               yMin={0}
               yMax={isOutsourced ? 1.1 : 1.2}
-              valueFormatter={isOutsourced ? ((value) => `${(value * 100).toFixed(0)}%`) : ((value) => value.toFixed(2))}
+              valueFormatter={trendValueFormatter}
               primaryLabelPosition="top"
               secondaryLabelPosition="bottom"
               markLatestPoint

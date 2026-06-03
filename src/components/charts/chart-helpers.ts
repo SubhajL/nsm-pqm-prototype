@@ -84,27 +84,91 @@ export function todayMarkLine(opts: TodayMarkLineOptions = {}): object {
  */
 export const LATEST_MARKER_LABEL = 'ข้อมูลงวดล่าสุด (Latest)';
 
+export interface LatestMarkLineOptions {
+  /** Override uniform line + label color. Defaults to `COLORS.textMuted`. */
+  color?: string;
+  /** Label fontWeight. Defaults to ECharts normal. */
+  labelFontWeight?: 'normal' | 'bold' | number;
+  /** Line stroke width. Defaults to `1` (CPISPI/Progress subtler emphasis). */
+  lineWidth?: number;
+  /**
+   * Whether the marker disables tooltip interaction. Defaults to `true`
+   * for CPISPI/Progress where the chart already has axis-trigger
+   * tooltips. SCurveChart passes `false` so the marker label is
+   * hoverable for emphasis.
+   */
+  silent?: boolean;
+}
+
 /**
  * Pre-baked `markLine` fragment for the "Latest" vertical guide used
- * by both the CPI/SPI trend and the planned-vs-actual comparison
- * chart. The two consumers were duplicating
- *   `{ ...todayMarkLine({ label: LATEST_MARKER_LABEL, color: textMuted, lineWidth: 1 }), silent: true, data: [{ xAxis: lastIndex }] }`
- * verbatim; this sugar encodes that shape once.
+ * by the CPI/SPI trend, the planned-vs-actual comparison, and the
+ * S-curve. All three consumers share the canonical
+ * `LATEST_MARKER_LABEL` text (an SSOT invariant) and the `xAxis:
+ * lastIndex` anchor; `opts` covers the per-chart emphasis variants
+ * (red-bold + tooltip-active on the S-curve vs textMuted + silent on
+ * the trend / progress charts).
  *
  * Returns `undefined` when `lastIndex < 0` so consumers can write
  *   `markLine: latestMarkLine(lastIndex)`
  * without an outer ternary.
  */
-export function latestMarkLine(lastIndex: number): object | undefined {
+export function latestMarkLine(
+  lastIndex: number,
+  opts: LatestMarkLineOptions = {},
+): object | undefined {
   if (lastIndex < 0) return undefined;
   return {
     ...todayMarkLine({
       label: LATEST_MARKER_LABEL,
-      color: COLORS.textMuted,
-      lineWidth: 1,
+      color: opts.color ?? COLORS.textMuted,
+      lineWidth: opts.lineWidth ?? 1,
+      ...(opts.labelFontWeight !== undefined
+        ? { labelFontWeight: opts.labelFontWeight }
+        : {}),
     }),
-    silent: true,
+    silent: opts.silent ?? true,
     data: [{ xAxis: lastIndex }],
+  };
+}
+
+export interface ReferenceMarkLineOptions {
+  /** Which axis the reference line is anchored to. */
+  axis: 'xAxis' | 'yAxis';
+  /** The numeric coordinate to anchor the reference at. */
+  value: number;
+  /** Pre-formatted bilingual label rendered at the line end. */
+  label: string;
+  /** Override uniform line + label color. Defaults to `COLORS.textMuted`. */
+  color?: string;
+  /** Line stroke width. Defaults to `1` (subtle reference). */
+  lineWidth?: number;
+}
+
+/**
+ * `markLine` fragment for a passive reference line (e.g. CPI/SPI's
+ * baseline at `yAxis: 1.0`, or a future `xAxis` milestone marker).
+ * Sibling helper to `todayMarkLine` / `latestMarkLine` so the muted
+ * gray palette stays in one place — when PR-A1-style accessibility
+ * tweaks raise `COLORS.textMuted`, every consumer inherits the change.
+ */
+export function referenceMarkLine(opts: ReferenceMarkLineOptions): object {
+  const color = opts.color ?? COLORS.textMuted;
+  return {
+    silent: true,
+    symbol: 'none',
+    label: {
+      formatter: opts.label,
+      position: 'insideEndTop',
+      fontSize: 11,
+      color,
+    },
+    lineStyle: {
+      type: 'dashed',
+      color,
+      width: opts.lineWidth ?? 1,
+    },
+    data: [{ [opts.axis]: opts.value }],
   };
 }
 

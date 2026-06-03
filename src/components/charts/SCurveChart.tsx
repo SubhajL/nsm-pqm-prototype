@@ -1,8 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
-import type { EChartsOption } from 'echarts';
-
 import { CHART_COLORS, COLORS } from '@/theme/antd-theme';
 
 import {
@@ -10,13 +7,13 @@ import {
   monthlyCategoryAxis,
   topLegend,
 } from './chart-defaults';
-import { LATEST_MARKER_LABEL, todayMarkLine } from './chart-helpers';
+import { latestMarkLine } from './chart-helpers';
 import {
   axisTooltipFormatter,
   formatBaht,
   formatBahtFull,
 } from './chart-formatters';
-import { EChartsWrapper } from './EChartsWrapper';
+import { EChartsWrapper, useChartOption } from './EChartsWrapper';
 
 interface SCurveDataPoint {
   monthThai: string;
@@ -36,7 +33,7 @@ export function SCurveChart({
   height = 350,
   actualSeriesLabel = 'AC — ค่าใช้จ่ายจริง (Actual)',
 }: SCurveChartProps) {
-  const option: EChartsOption = useMemo(() => {
+  const option = useChartOption(() => {
     const months = data.map((d) => d.monthThai);
     const pvData = data.map((d) => d.pv);
     const evData = data.map((d) => d.ev);
@@ -100,20 +97,17 @@ export function SCurveChart({
           lineStyle: { width: 2 },
           symbol: 'circle',
           symbolSize: 6,
-          // PR-C3 + G22: bilingual marker label, dashed style, and
-          // colour/fontWeight emphasis flow from the shared helper.
-          // Override only `data` to swap the helper's `'today'` xAxis
-          // placeholder for our `lastIndex` (the marker is on the
-          // ACTUAL line, not a "Latest" guide, so it does not share
-          // the `latestMarkLine` sugar).
-          markLine: {
-            ...todayMarkLine({
-              label: LATEST_MARKER_LABEL,
-              color: CHART_COLORS.error,
-              labelFontWeight: 'bold',
-            }),
-            data: [{ xAxis: lastIndex }],
-          },
+          // The "Latest" marker uses the canonical `latestMarkLine`
+          // sugar; the SCurve emphasis variant (red + bold + tooltip-
+          // active) is encoded in the opts bag. Default `lineWidth: 1`
+          // is overridden to `2` so the marker stays heavier than the
+          // CPI/SPI / Progress equivalents.
+          markLine: latestMarkLine(lastIndex, {
+            color: CHART_COLORS.error,
+            labelFontWeight: 'bold',
+            lineWidth: 2,
+            silent: false,
+          }),
         },
       ],
     };

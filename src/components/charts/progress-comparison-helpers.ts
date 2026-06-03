@@ -18,16 +18,55 @@ import type { EVMDataPoint } from '@/types/evm';
  * current weighted % over each task's Gantt window would render a
  * synthetic curve, but it would lie about non-linear ramps.
  *
- * **Variance band.** The `overallVariance` direction is computed from
- * the LATEST snapshot's raw PV vs EV (not the post-clamp %), so a
- * project where both metrics saturate above 100% still reports the
- * correct direction. The current chart paints the band one solid
- * tint reflecting that direction across the full history — a future
- * enhancement could split into per-segment red/green pieces so
- * crossovers (behind → ahead) are visually preserved.
+ * **Variance band.** Emitted as one `VarianceSegment` per adjacent
+ * tick pair so the chart paints with `series.markArea` (one rectangle
+ * per segment).
+ *
+ * Two intentional approximations vs the previous stacked-area
+ * approach, both acceptable at 4–12-point monthly resolution:
+ *   - **Direction at END tick only.** Each segment is classified as
+ *     `behind | ahead | on_track` from `planned vs actual` at the
+ *     RIGHT edge. A crossover WITHIN a single tick pair (e.g. start
+ *     ahead, end behind) paints the entire segment with the END
+ *     direction; the first half of the crossover is lost. Crossovers
+ *     ACROSS tick boundaries (segment N behind, segment N+1 ahead)
+ *     still render correctly with two adjacent rectangles.
+ *   - **Convex-hull rectangle.** `yLower` / `yUpper` take the min /
+ *     max of all four corner values (planned + actual at both ticks)
+ *     so the rectangle ENCLOSES the band rather than precisely
+ *     tracking the area between the two curves. When planned + actual
+ *     have similar slopes but different y-offsets the rectangle
+ *     overshoots the actual band area on both top and bottom edges.
+ *
+ * These trade-offs eliminate the helper-series + tooltip-filter +
+ * decal opt-out machinery the previous stacked-area approach
+ * required. If higher precision becomes necessary, the `plannedPct`
+ * and `actualPct` arrays remain available for a future
+ * stacked-area-style rendering.
  */
 
 export type OverallVariance = 'behind' | 'ahead' | 'on_track';
+
+/**
+ * Per-segment variance direction. Structurally identical to
+ * `OverallVariance`; aliased here to document the distinct semantic
+ * (segment-pointwise vs whole-history aggregate) while keeping a
+ * single source of truth for the literal union.
+ */
+export type VarianceSegmentDirection = OverallVariance;
+
+export interface VarianceSegment {
+  /** Start tick index (inclusive). Paints from `xAxis: startIndex`. */
+  startIndex: number;
+  /** End tick index (exclusive of segment, the right edge of the rectangle). */
+  endIndex: number;
+  /** Direction inferred from `planned vs actual` at the END tick. */
+  direction: VarianceSegmentDirection;
+  /** Lower y bound of the segment rectangle (min of planned + actual over both ticks). */
+  yLower: number;
+  /** Upper y bound of the segment rectangle (max of planned + actual over both ticks). */
+  yUpper: number;
+}
 
 export interface ProgressComparisonSeries {
   /** Bilingual month labels, one per snapshot (sorted chronologically). */
@@ -37,24 +76,12 @@ export interface ProgressComparisonSeries {
   /** Actual cumulative progress %, clamped to [0, 100]. EV / BAC × 100. */
   actualPct: number[];
   /**
-   * Per-tick lower bound of the variance band — `min(planned, actual)`.
-   * Used by the chart as the invisible stack anchor under
-   * `behindFill` + `aheadFill`.
+   * One entry per adjacent tick pair. `n` snapshots → `n - 1`
+   * segments. Empty for `n < 2`. The chart feeds these into
+   * `series.markArea.data` as `[{xAxis:start, yAxis:yLower}, {xAxis:end, yAxis:yUpper}]`
+   * pairs, tinted by `direction`.
    */
-  lowerBound: number[];
-  /**
-   * Per-tick behind-plan fill height — `max(0, planned - actual)`.
-   * Stacked on `lowerBound`; tinted red. Zero where the project is
-   * ahead-or-on-plan at that tick, so the red fill appears only on
-   * segments where actual under-runs planned.
-   */
-  behindFill: number[];
-  /**
-   * Per-tick ahead-of-plan fill height — `max(0, actual - planned)`.
-   * Stacked on `lowerBound + behindFill`; tinted green. Zero where
-   * the project is behind-or-on-plan.
-   */
-  aheadFill: number[];
+  varianceSegments: VarianceSegment[];
   /** Index of the latest snapshot (for the Latest marker). `-1` when empty. */
   lastIndex: number;
   /** Variance direction at the LATEST snapshot — informational only. */
@@ -70,9 +97,7 @@ export function derivePlannedActualSeries(
       months: [],
       plannedPct: [],
       actualPct: [],
-      lowerBound: [],
-      behindFill: [],
-      aheadFill: [],
+      varianceSegments: [],
       lastIndex: -1,
       overallVariance: 'on_track',
     };
@@ -84,20 +109,22 @@ export function derivePlannedActualSeries(
   const plannedPct = sorted.map((s) => clampPercent((s.pv / bac) * 100));
   const actualPct = sorted.map((s) => clampPercent((s.ev / bac) * 100));
 
-  // Per-segment band: at every tick the stack is
-  //   min(planned, actual)   — invisible anchor
-  // + max(0, planned-actual) — RED (behind segment)
-  // + max(0, actual-planned) — GREEN (ahead segment)
-  // Exactly one of behindFill/aheadFill is non-zero per tick. The
-  // resulting stack-top equals max(planned, actual), so the visible
-  // Planned and Actual lines remain on the tinted boundaries.
-  //
-  // The defensive `?? 0` keeps a future length-parity bug from
-  // poisoning the stack with `NaN` (silent visual corruption);
-  // today the parity is guaranteed by the two `.map(sorted, …)` calls.
-  const lowerBound = plannedPct.map((p, i) => Math.min(p, actualPct[i] ?? 0));
-  const behindFill = plannedPct.map((p, i) => Math.max(0, p - (actualPct[i] ?? 0)));
-  const aheadFill = plannedPct.map((p, i) => Math.max(0, (actualPct[i] ?? 0) - p));
+  const varianceSegments: VarianceSegment[] = [];
+  for (let i = 0; i < sorted.length - 1; i += 1) {
+    const p0 = plannedPct[i];
+    const a0 = actualPct[i];
+    const p1 = plannedPct[i + 1];
+    const a1 = actualPct[i + 1];
+    const direction: VarianceSegmentDirection =
+      p1 > a1 ? 'behind' : a1 > p1 ? 'ahead' : 'on_track';
+    varianceSegments.push({
+      startIndex: i,
+      endIndex: i + 1,
+      direction,
+      yLower: Math.min(p0, a0, p1, a1),
+      yUpper: Math.max(p0, a0, p1, a1),
+    });
+  }
 
   // Compute variance direction from PRE-clamp raw PV/EV so that projects
   // where both metrics saturate above 100% still report the correct
@@ -116,9 +143,7 @@ export function derivePlannedActualSeries(
     months,
     plannedPct,
     actualPct,
-    lowerBound,
-    behindFill,
-    aheadFill,
+    varianceSegments,
     lastIndex,
     overallVariance,
   };

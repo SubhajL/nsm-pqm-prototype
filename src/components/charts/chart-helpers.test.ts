@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import { COLORS } from '@/theme/antd-theme';
+
 import {
   LATEST_MARKER_LABEL,
   baselineLegend,
   latestMarkLine,
+  referenceMarkLine,
   todayMarkLine,
 } from './chart-helpers';
 
@@ -153,6 +156,100 @@ describe('latestMarkLine', () => {
 
   it('returns `undefined` when `lastIndex` is negative (empty series, no anchor)', () => {
     expect(latestMarkLine(-1)).toBeUndefined();
+  });
+
+  it('accepts an opts bag overriding color, labelFontWeight, lineWidth, and silent', () => {
+    const fragment = latestMarkLine(2, {
+      color: '#E74C3C',
+      labelFontWeight: 'bold',
+      lineWidth: 2,
+      silent: false,
+    }) as {
+      silent?: boolean;
+      label?: { formatter?: string; color?: string; fontWeight?: string | number };
+      lineStyle?: { color?: string; width?: number };
+    };
+    expect(fragment.silent).toBe(false);
+    expect(fragment.label?.color).toBe('#E74C3C');
+    expect(fragment.label?.fontWeight).toBe('bold');
+    expect(fragment.lineStyle?.color).toBe('#E74C3C');
+    expect(fragment.lineStyle?.width).toBe(2);
+    // Label always sources from LATEST_MARKER_LABEL — opts cannot override it.
+    expect(fragment.label?.formatter).toBe(LATEST_MARKER_LABEL);
+  });
+
+  it('preserves the textMuted/lineWidth:1/silent:true defaults when opts is omitted', () => {
+    const fragment = latestMarkLine(0) as {
+      silent?: boolean;
+      label?: { color?: string };
+      lineStyle?: { color?: string; width?: number };
+    };
+    expect(fragment.silent).toBe(true);
+    expect(fragment.label?.color).toBe(COLORS.textMuted);
+    expect(fragment.lineStyle?.color).toBe(COLORS.textMuted);
+    expect(fragment.lineStyle?.width).toBe(1);
+  });
+});
+
+describe('referenceMarkLine', () => {
+  it('paints a horizontal reference line at the given yAxis value', () => {
+    const fragment = referenceMarkLine({
+      axis: 'yAxis',
+      value: 1,
+      label: '1.00',
+    }) as {
+      silent?: boolean;
+      symbol?: string;
+      label?: { formatter?: string; color?: string; fontSize?: number };
+      lineStyle?: { type?: string; color?: string; width?: number };
+      data?: Array<Record<string, number>>;
+    };
+    expect(fragment.silent).toBe(true);
+    expect(fragment.symbol).toBe('none');
+    expect(fragment.label?.formatter).toBe('1.00');
+    expect(fragment.label?.color).toBe(COLORS.textMuted);
+    expect(fragment.label?.fontSize).toBe(11);
+    expect(fragment.lineStyle?.type).toBe('dashed');
+    expect(fragment.lineStyle?.color).toBe(COLORS.textMuted);
+    expect(fragment.lineStyle?.width).toBe(1);
+    expect(fragment.data?.[0]).toEqual({ yAxis: 1 });
+  });
+
+  it('paints a vertical reference line at the given xAxis index', () => {
+    const fragment = referenceMarkLine({
+      axis: 'xAxis',
+      value: 3,
+      label: 'milestone',
+    }) as {
+      data?: Array<Record<string, number>>;
+    };
+    expect(fragment.data?.[0]).toEqual({ xAxis: 3 });
+  });
+
+  it('respects a custom color applied uniformly to line + label', () => {
+    const fragment = referenceMarkLine({
+      axis: 'yAxis',
+      value: 0.95,
+      label: '0.95',
+      color: '#B7341C',
+    }) as {
+      label?: { color?: string };
+      lineStyle?: { color?: string };
+    };
+    expect(fragment.label?.color).toBe('#B7341C');
+    expect(fragment.lineStyle?.color).toBe('#B7341C');
+  });
+
+  it('respects a custom lineWidth', () => {
+    const fragment = referenceMarkLine({
+      axis: 'yAxis',
+      value: 1,
+      label: '1.00',
+      lineWidth: 2,
+    }) as {
+      lineStyle?: { width?: number };
+    };
+    expect(fragment.lineStyle?.width).toBe(2);
   });
 });
 
