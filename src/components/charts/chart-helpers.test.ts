@@ -88,6 +88,39 @@ describe('todayMarkLine', () => {
     expect(fragment.label?.fontWeight).toBe('bold');
     expect(fragment.lineStyle?.color).toBe('#E74C3C');
   });
+
+  it('defaults the line width to 2 (used by the S-curve "Latest" marker)', () => {
+    const fragment = todayMarkLine() as {
+      lineStyle?: { width?: number };
+    };
+    expect(fragment.lineStyle?.width).toBe(2);
+  });
+
+  it('applies a custom `lineWidth` to the lineStyle', () => {
+    const fragment = todayMarkLine({ lineWidth: 1 }) as {
+      lineStyle?: { width?: number };
+    };
+    expect(fragment.lineStyle?.width).toBe(1);
+  });
+
+  it('preserves dashed line type when `lineWidth` is overridden', () => {
+    const fragment = todayMarkLine({ lineWidth: 1 }) as {
+      lineStyle?: { type?: string; width?: number };
+    };
+    expect(fragment.lineStyle?.type).toBe('dashed');
+    expect(fragment.lineStyle?.width).toBe(1);
+  });
+
+  it('composes `lineWidth` with `color` so the consumer inherits dash + color and only overrides width', () => {
+    const fragment = todayMarkLine({ color: '#595959', lineWidth: 1 }) as {
+      lineStyle?: { type?: string; color?: string; width?: number };
+      label?: { color?: string };
+    };
+    expect(fragment.lineStyle?.type).toBe('dashed');
+    expect(fragment.lineStyle?.color).toBe('#595959');
+    expect(fragment.lineStyle?.width).toBe(1);
+    expect(fragment.label?.color).toBe('#595959');
+  });
 });
 
 describe('baselineLegend', () => {

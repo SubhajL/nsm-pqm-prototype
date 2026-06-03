@@ -33,6 +33,13 @@ export interface TodayMarkLineOptions {
    * decorative reference lines on the same chart.
    */
   labelFontWeight?: 'normal' | 'bold' | number;
+  /**
+   * Line stroke width. Defaults to `2` to match the S-curve "Latest"
+   * marker. Set to `1` for a subtler line (e.g. the EVM CPI/SPI
+   * trend's "Latest" marker, where the line should not compete with
+   * a sibling reference line at the same emphasis).
+   */
+  lineWidth?: number;
 }
 
 /**
@@ -60,7 +67,7 @@ export function todayMarkLine(opts: TodayMarkLineOptions = {}): object {
     },
     lineStyle: {
       type: 'dashed',
-      width: 2,
+      width: opts.lineWidth ?? 2,
       ...(opts.color !== undefined ? { color: opts.color } : {}),
     },
     data: [{ xAxis: 'today' }],
