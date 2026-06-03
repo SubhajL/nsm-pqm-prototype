@@ -1,4 +1,5 @@
 import { COLORS } from '@/theme/antd-theme';
+import { resolveHealthVisual, type HealthState } from '@/theme/health-visual';
 
 /**
  * Map a milestone view's `displayStatus` to the stroke color of its
@@ -11,19 +12,25 @@ import { COLORS } from '@/theme/antd-theme';
  *   `on_schedule | watch | delayed | not_started`, plus `completed`
  * when the underlying milestone is signed off. The Progress bar is
  * normally hidden when `isCompleted` so `completed` only matters as a
- * defensive fallback.
+ * defensive fallback — keep it on `info` (brand blue) so the colour
+ * cannot accidentally imply a final outcome on a transient bar.
  *
- * Uses the PR-A1 AA-safe `*Text` variants so the colored fill keeps
- * AA contrast against the chip text rendered above it.
+ * Tier 2 PR 1 — colours sourced from the canonical `resolveHealthVisual`.
+ * Only the three banded health states get colourised; every other input
+ * (including `not_started`, `completed`, and unknown future statuses)
+ * falls back to brand `info`.
  */
-const STATUS_TO_STROKE: Record<string, string> = {
-  delayed: COLORS.errorText,
-  watch: COLORS.warningText,
-  on_schedule: COLORS.successText,
-};
+const COLORISED_STATES = ['delayed', 'watch', 'on_schedule'] as const satisfies readonly HealthState[];
+
+type ColorisedState = (typeof COLORISED_STATES)[number];
+
+function isColorised(status: string): status is ColorisedState {
+  return (COLORISED_STATES as readonly string[]).includes(status);
+}
 
 export function resolveMilestoneProgressStrokeColor(
   displayStatus: string,
 ): string {
-  return STATUS_TO_STROKE[displayStatus] ?? COLORS.info;
+  if (!isColorised(displayStatus)) return COLORS.info;
+  return resolveHealthVisual(displayStatus).text;
 }

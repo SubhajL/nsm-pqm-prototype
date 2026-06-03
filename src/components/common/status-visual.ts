@@ -1,10 +1,15 @@
-import { COLORS } from '@/theme/antd-theme';
+import { resolveHealthVisual } from '@/theme/health-visual';
 
 /**
  * PR-A3 — pure status → visual resolver. Pulled out of `StatusIndicator.tsx`
  * so the AA-color invariant can be unit-tested in vitest's node env
  * (which can't parse JSX). The React component imports this module and
  * pipes the output into icons + spans.
+ *
+ * Tier 2 PR 1 — this module is now a thin adapter over the canonical
+ * `resolveHealthVisual` in `@/theme/health-visual`. The public API
+ * (the `Status` union, `STATUS_VALUES`, and the `StatusIndicatorVisual`
+ * shape) is unchanged so existing call sites keep compiling.
  */
 
 export const STATUS_VALUES = [
@@ -27,16 +32,10 @@ export interface StatusIndicatorVisual {
 }
 
 export function resolveStatusVisual(status: Status): StatusIndicatorVisual {
-  switch (status) {
-    case 'success':
-      return { color: COLORS.success, icon: 'check', textColor: COLORS.successText };
-    case 'warning':
-      return { color: COLORS.warning, icon: 'warn', textColor: COLORS.warningText };
-    case 'error':
-      return { color: COLORS.error, icon: 'error', textColor: COLORS.errorText };
-    case 'info':
-      return { color: COLORS.info, icon: 'info', textColor: COLORS.info };
-    case 'neutral':
-      return { color: COLORS.textMuted, icon: 'dot', textColor: COLORS.textMuted };
-  }
+  // `Status` is a strict subset of `HealthState` (same five literals),
+  // so the call type-checks without conversion. The renaming
+  // (`fill → color`, `text → textColor`) preserves the pre-existing
+  // public API.
+  const v = resolveHealthVisual(status);
+  return { color: v.fill, icon: v.icon, textColor: v.text };
 }

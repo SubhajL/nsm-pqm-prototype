@@ -1,4 +1,5 @@
 import { COLORS } from '@/theme/antd-theme';
+import { resolveHealthVisual } from '@/theme/health-visual';
 
 /**
  * Map a KPI `color` prop value (commonly a brand status color) to its
@@ -13,11 +14,15 @@ import { COLORS } from '@/theme/antd-theme';
  * Non-status colors (`primary`, `info` post-PR-A1 darkening, arbitrary
  * hexes) pass through unchanged because they already meet AA when used
  * for text on white.
+ *
+ * Tier 2 PR 1 — three of the four entries are now sourced from the
+ * canonical `resolveHealthVisual`. `accentTeal` remains a brand-identity
+ * carve-out (it is not a health state) and keeps its direct mapping.
  */
 const STATUS_TO_TEXT: Record<string, string> = {
-  [COLORS.warning]: COLORS.warningText,
-  [COLORS.error]: COLORS.errorText,
-  [COLORS.success]: COLORS.successText,
+  [COLORS.warning]: resolveHealthVisual('warning').text,
+  [COLORS.error]: resolveHealthVisual('error').text,
+  [COLORS.success]: resolveHealthVisual('success').text,
   [COLORS.accentTeal]: COLORS.accentTealText,
 };
 
