@@ -25,6 +25,43 @@ import { ACCESSIBLE_CHART_PALETTE, DECAL_PATTERNS } from './chart-palette';
  * etc. We return a fresh object on every call so a mutation in one
  * consumer can't leak into another.
  */
+/**
+ * Cross-chart cleanup sweep — shared line-chart layout factories.
+ *
+ * The SCurveChart, CPISPITrendChart, and ProgressComparisonChart all
+ * laid out a near-identical monthly grid + top-anchored legend +
+ * bilingual category xAxis. Pinning the shape here means a future
+ * spacing or font tweak is a one-file edit, and every line-chart
+ * consumer inherits the change.
+ */
+
+export const MONTHLY_LINE_GRID = Object.freeze({
+  top: 50,
+  right: 30,
+  bottom: 30,
+  left: 50,
+  containLabel: true,
+});
+
+export function monthlyCategoryAxis(months: readonly string[]) {
+  return {
+    type: 'category' as const,
+    data: [...months],
+    boundaryGap: false,
+    // Carry the AA-safe axis label color forward — `EChartsWrapper`'s
+    // shallow merge would otherwise drop the `getChartBaseOption()`
+    // default when the consumer supplies its own xAxis.
+    axisLabel: { fontSize: 12, color: COLORS.textMuted },
+  };
+}
+
+export function topLegend(names: readonly string[]) {
+  return {
+    top: 0,
+    data: [...names],
+  };
+}
+
 export function getChartBaseOption(): Partial<EChartsOption> {
   return {
     aria: {

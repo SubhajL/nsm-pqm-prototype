@@ -1,42 +1,44 @@
 'use client';
 
-import ReactECharts from 'echarts-for-react';
+import { useMemo } from 'react';
 import type { EChartsOption } from 'echarts';
 
 import { CHART_COLORS, COLORS } from '@/theme/antd-theme';
 import type { EVMDataPoint } from '@/types/evm';
 
-import { todayMarkLine } from './chart-helpers';
 import {
-  derivePlannedActualSeries,
-  type OverallVariance,
-} from './progress-comparison-helpers';
+  MONTHLY_LINE_GRID,
+  monthlyCategoryAxis,
+  topLegend,
+} from './chart-defaults';
+import { axisTooltipFormatter, formatPercent } from './chart-formatters';
+import { latestMarkLine } from './chart-helpers';
+import { EChartsWrapper } from './EChartsWrapper';
+import { derivePlannedActualSeries } from './progress-comparison-helpers';
 
 interface ProgressComparisonChartProps {
   data: readonly EVMDataPoint[];
   bac: number;
   height?: number;
   /**
-   * Toggle the variance band between the planned and actual lines.
-   * Defaults to `true`. When disabled the chart renders the two lines
-   * cleanly without the tinted fill — useful for dense pages where the
+   * Toggle the per-segment variance band between the planned and
+   * actual lines. Defaults to `true`. When disabled the chart renders
+   * just the two visible lines — useful for dense pages where the
    * area would compete with neighbouring charts.
    */
   showVarianceBand?: boolean;
 }
 
-// Color tokens for the variance band. The brand status hexes are intentionally
-// used as low-alpha overlays (visual identity, not text) so the band reads as
-// "behind" vs "ahead" without competing with the line strokes themselves.
-const VARIANCE_FILL: Record<OverallVariance, string> = {
-  behind: COLORS.error,
-  ahead: COLORS.success,
-  // No tint when the two lines coincide; rendered transparent.
-  on_track: 'transparent',
-};
-
 const PLANNED_NAME = 'แผน (Planned)';
 const ACTUAL_NAME = 'จริง (Actual)';
+const VARIANCE_LOWER_NAME = 'variance-lower';
+const VARIANCE_BEHIND_NAME = 'variance-behind';
+const VARIANCE_AHEAD_NAME = 'variance-ahead';
+const HELPER_SERIES_NAMES = new Set<string>([
+  VARIANCE_LOWER_NAME,
+  VARIANCE_BEHIND_NAME,
+  VARIANCE_AHEAD_NAME,
+]);
 
 export function ProgressComparisonChart({
   data,
@@ -44,132 +46,96 @@ export function ProgressComparisonChart({
   height = 320,
   showVarianceBand = true,
 }: ProgressComparisonChartProps) {
-  const { months, plannedPct, actualPct, lastIndex, overallVariance } =
-    derivePlannedActualSeries(data, bac);
+  const option: EChartsOption = useMemo(() => {
+    const series = derivePlannedActualSeries(data, bac);
+    const { months, plannedPct, actualPct, lowerBound, behindFill, aheadFill, lastIndex } = series;
 
-  // The variance band is rendered as two stacked invisible-line series:
-  //   - lower bound at min(planned, actual) per point
-  //   - delta at |planned - actual| per point, stacked on the lower bound
-  // The `delta` series carries the areaStyle; together they paint a band
-  // bounded by the two visible lines without leaking down to the x-axis.
-  const lowerBound = plannedPct.map((p, i) => Math.min(p, actualPct[i] ?? 0));
-  const delta = plannedPct.map((p, i) => Math.abs(p - (actualPct[i] ?? 0)));
-
-  const option: EChartsOption = {
-    color: [CHART_COLORS.pv, CHART_COLORS.ev],
-    tooltip: {
-      trigger: 'axis',
-      formatter(params: unknown) {
-        const items = (params as Array<{
-          seriesName: string;
-          value: number;
-          marker: string;
-          axisValueLabel?: string;
-        }>).filter((item) =>
-          item.seriesName === PLANNED_NAME || item.seriesName === ACTUAL_NAME,
-        );
-        const header = items[0]?.axisValueLabel
-          ? `<strong>${items[0].axisValueLabel}</strong><br/>`
-          : '';
-        const lines = items
-          .map((item) => `${item.marker} ${item.seriesName}: ${item.value.toFixed(1)}%`)
-          .join('<br/>');
-        return header + lines;
+    return {
+      color: [CHART_COLORS.pv, CHART_COLORS.ev],
+      tooltip: {
+        trigger: 'axis',
+        formatter: axisTooltipFormatter({
+          valueFormat: (v) => formatPercent(v),
+          filter: (row) => !HELPER_SERIES_NAMES.has(row.seriesName),
+        }),
       },
-    },
-    legend: {
-      top: 0,
-      data: [PLANNED_NAME, ACTUAL_NAME],
-    },
-    grid: {
-      top: 50,
-      right: 30,
-      bottom: 30,
-      left: 50,
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'category',
-      data: months,
-      boundaryGap: false,
-      axisLabel: { fontSize: 12 },
-    },
-    yAxis: {
-      type: 'value',
-      min: 0,
-      max: 100,
-      axisLabel: { formatter: (v: number) => `${v}%` },
-    },
-    series: [
-      // Lower bound — invisible, anchors the stacked variance band.
-      // Filtered out of the tooltip in `tooltip.formatter` so the
-      // helper series never surface to readers.
-      {
-        name: 'variance-lower',
-        type: 'line',
-        data: lowerBound,
-        stack: 'variance',
-        symbol: 'none',
-        lineStyle: { opacity: 0 },
-        z: 0,
-      },
-      // Delta — invisible line, carries the band fill via areaStyle.
-      {
-        name: 'variance-delta',
-        type: 'line',
-        data: showVarianceBand ? delta : [],
-        stack: 'variance',
-        symbol: 'none',
-        lineStyle: { opacity: 0 },
-        areaStyle: {
-          color: VARIANCE_FILL[overallVariance],
-          opacity: 0.16,
+      legend: topLegend([PLANNED_NAME, ACTUAL_NAME]),
+      grid: MONTHLY_LINE_GRID,
+      xAxis: monthlyCategoryAxis(months),
+      yAxis: {
+        type: 'value',
+        min: 0,
+        max: 100,
+        axisLabel: {
+          formatter: (v: number) => `${v}%`,
+          color: COLORS.textMuted,
         },
-        z: 0,
       },
-      {
-        name: PLANNED_NAME,
-        type: 'line',
-        data: plannedPct,
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { type: 'dashed', width: 2 },
-        z: 2,
-      },
-      {
-        name: ACTUAL_NAME,
-        type: 'line',
-        data: actualPct,
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: 2 },
-        z: 2,
-        // Latest marker via the shared helper so the bilingual label,
-        // dash style, color and width flow from one source.
-        markLine:
-          lastIndex >= 0
-            ? {
-                ...todayMarkLine({
-                  label: 'ข้อมูลงวดล่าสุด (Latest)',
-                  color: COLORS.textMuted,
-                  lineWidth: 1,
-                }),
-                silent: true,
-                data: [{ xAxis: lastIndex }],
-              }
-            : undefined,
-      },
-    ],
-  };
+      series: [
+        // Per-segment variance band — three stacked helper series.
+        // When `showVarianceBand` is false every helper series ships
+        // empty data so ECharts allocates no area geometry.
+        // The three band helper series opt out of `aria.decal`
+        // (forced on by EChartsWrapper for WCAG 1.4.1) — decal
+        // textures over a 16%-alpha behind/ahead fill would muddy
+        // the very red-vs-green signal the band encodes. Decals
+        // still apply to the visible Planned/Actual lines below.
+        {
+          name: VARIANCE_LOWER_NAME,
+          type: 'line',
+          data: showVarianceBand ? lowerBound : [],
+          stack: 'variance',
+          symbol: 'none',
+          lineStyle: { opacity: 0 },
+          itemStyle: { decal: { symbol: 'none' } },
+          z: 0,
+        },
+        {
+          name: VARIANCE_BEHIND_NAME,
+          type: 'line',
+          data: showVarianceBand ? behindFill : [],
+          stack: 'variance',
+          symbol: 'none',
+          lineStyle: { opacity: 0 },
+          areaStyle: { color: COLORS.error, opacity: 0.16 },
+          itemStyle: { decal: { symbol: 'none' } },
+          z: 0,
+        },
+        {
+          name: VARIANCE_AHEAD_NAME,
+          type: 'line',
+          data: showVarianceBand ? aheadFill : [],
+          stack: 'variance',
+          symbol: 'none',
+          lineStyle: { opacity: 0 },
+          areaStyle: { color: COLORS.success, opacity: 0.16 },
+          itemStyle: { decal: { symbol: 'none' } },
+          z: 0,
+        },
+        {
+          name: PLANNED_NAME,
+          type: 'line',
+          data: plannedPct,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { type: 'dashed', width: 2 },
+          z: 2,
+        },
+        {
+          name: ACTUAL_NAME,
+          type: 'line',
+          data: actualPct,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2 },
+          z: 2,
+          markLine: latestMarkLine(lastIndex),
+        },
+      ],
+    };
+  }, [data, bac, showVarianceBand]);
 
-  return (
-    <ReactECharts
-      option={option}
-      style={{ height }}
-      notMerge={true}
-      lazyUpdate={true}
-    />
-  );
+  return <EChartsWrapper option={option} height={height} />;
 }

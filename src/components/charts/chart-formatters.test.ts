@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  axisTooltipFormatter,
   formatBaht,
+  formatBahtFull,
   formatPercent,
   formatThaiCompact,
   makeAxisLabelFormatter,
@@ -44,6 +46,24 @@ describe('formatBaht', () => {
   it('returns "-" for NaN / non-finite inputs', () => {
     expect(formatBaht(Number.NaN)).toBe('-');
     expect(formatBaht(Number.POSITIVE_INFINITY)).toBe('-');
+  });
+});
+
+describe('formatBahtFull', () => {
+  it('renders the full Thai-locale currency form with no suffix collapsing', () => {
+    expect(formatBahtFull(12_500_000)).toBe('฿12,500,000');
+    expect(formatBahtFull(8_148_237)).toBe('฿8,148,237');
+    expect(formatBahtFull(500)).toBe('฿500');
+  });
+
+  it('preserves the negative sign before the currency symbol', () => {
+    // Intl.NumberFormat th-TH renders negatives as "-฿12,500,000".
+    expect(formatBahtFull(-12_500_000)).toMatch(/^-?฿?-?12,500,000$/);
+  });
+
+  it('returns "-" for non-finite inputs', () => {
+    expect(formatBahtFull(Number.NaN)).toBe('-');
+    expect(formatBahtFull(Number.POSITIVE_INFINITY)).toBe('-');
   });
 });
 
@@ -121,6 +141,66 @@ describe('makeAxisLabelFormatter', () => {
     expect(makeAxisLabelFormatter('baht')(0)).toBe('฿0');
     expect(makeAxisLabelFormatter('percent')(1)).toBe('100%');
     expect(makeAxisLabelFormatter('count')(999)).toBe('999');
+  });
+});
+
+describe('axisTooltipFormatter', () => {
+  type ParamRow = {
+    seriesName: string;
+    value: number;
+    marker: string;
+    axisValueLabel?: string;
+  };
+
+  it('renders one `<strong>header</strong>` followed by `marker seriesName: formatted-value` per row', () => {
+    const fmt = axisTooltipFormatter({ valueFormat: (v) => `${v.toFixed(0)}฿` });
+    const html = fmt([
+      { seriesName: 'PV', value: 1000, marker: '●', axisValueLabel: 'พ.ค.' },
+      { seriesName: 'EV', value: 850, marker: '◆', axisValueLabel: 'พ.ค.' },
+    ] as ParamRow[]);
+    expect(html).toBe(
+      '<strong>พ.ค.</strong><br/>● PV: 1000฿<br/>◆ EV: 850฿',
+    );
+  });
+
+  it('applies the optional `filter` to drop hidden helper series before formatting', () => {
+    const fmt = axisTooltipFormatter({
+      valueFormat: (v) => `${v}%`,
+      filter: (row) => row.seriesName !== 'variance-helper',
+    });
+    const html = fmt([
+      { seriesName: 'Planned', value: 50, marker: '●', axisValueLabel: 'เม.ย.' },
+      { seriesName: 'variance-helper', value: 5, marker: '○', axisValueLabel: 'เม.ย.' },
+      { seriesName: 'Actual', value: 45, marker: '◆', axisValueLabel: 'เม.ย.' },
+    ] as ParamRow[]);
+    expect(html).toBe(
+      '<strong>เม.ย.</strong><br/>● Planned: 50%<br/>◆ Actual: 45%',
+    );
+  });
+
+  it('omits the header when the (filtered) row set has no axisValueLabel', () => {
+    const fmt = axisTooltipFormatter({ valueFormat: (v) => `${v}` });
+    const html = fmt([
+      { seriesName: 'X', value: 1, marker: '●' },
+    ] as ParamRow[]);
+    expect(html).toBe('● X: 1');
+  });
+
+  it('returns the empty string when the filter drops every row (avoids a blank tooltip box)', () => {
+    const fmt = axisTooltipFormatter({
+      valueFormat: (v) => `${v}`,
+      filter: () => false,
+    });
+    const html = fmt([
+      { seriesName: 'X', value: 1, marker: '●', axisValueLabel: 'พ.ค.' },
+    ] as ParamRow[]);
+    expect(html).toBe('');
+  });
+
+  it('returns the empty string when given non-array params (ECharts edge case)', () => {
+    const fmt = axisTooltipFormatter({ valueFormat: (v) => `${v}` });
+    expect(fmt(undefined)).toBe('');
+    expect(fmt({} as unknown)).toBe('');
   });
 });
 

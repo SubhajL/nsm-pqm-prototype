@@ -1,9 +1,18 @@
 'use client';
 
-import ReactECharts from 'echarts-for-react';
+import { useMemo } from 'react';
 import type { EChartsOption } from 'echarts';
+
 import { COLORS } from '@/theme/antd-theme';
-import { todayMarkLine } from './chart-helpers';
+
+import {
+  MONTHLY_LINE_GRID,
+  monthlyCategoryAxis,
+  topLegend,
+} from './chart-defaults';
+import { axisTooltipFormatter } from './chart-formatters';
+import { latestMarkLine } from './chart-helpers';
+import { EChartsWrapper } from './EChartsWrapper';
 
 export interface TrendSeriesPoint {
   monthThai: string;
@@ -49,147 +58,110 @@ export function CPISPITrendChart({
   secondaryLabelPosition = 'bottom',
   markLatestPoint = false,
 }: CPISPITrendChartProps) {
-  const months = data.map((d) => d.monthThai);
-  const primaryData = data.map((d) => d.primary);
-  const secondaryData = data.map((d) => d.secondary);
+  const option: EChartsOption = useMemo(() => {
+    const months = data.map((d) => d.monthThai);
+    const primaryData = data.map((d) => d.primary);
+    const secondaryData = data.map((d) => d.secondary);
+    const lastIndex = markLatestPoint && data.length > 0 ? data.length - 1 : -1;
 
-  const option: EChartsOption = {
-    color: [primaryColor, secondaryColor],
-    tooltip: {
-      trigger: 'axis',
-      formatter(params: unknown) {
-        const items = params as Array<{
-          seriesName: string;
-          value: number;
-          marker: string;
-        }>;
-        const header = items[0]
-          ? `<strong>${(items[0] as unknown as { axisValueLabel: string }).axisValueLabel}</strong><br/>`
-          : '';
-        const lines = items
-          .map((item) => `${item.marker} ${item.seriesName}: ${valueFormatter(item.value)}`)
-          .join('<br/>');
-        return header + lines;
+    return {
+      color: [primaryColor, secondaryColor],
+      tooltip: {
+        trigger: 'axis',
+        formatter: axisTooltipFormatter({ valueFormat: valueFormatter }),
       },
-    },
-    legend: {
-      top: 0,
-      data: [primaryLabel, secondaryLabel],
-    },
-    grid: {
-      top: 50,
-      right: 30,
-      bottom: 30,
-      left: 50,
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'category',
-      data: months,
-      boundaryGap: false,
-      axisLabel: {
-        fontSize: 12,
-      },
-    },
-    yAxis: {
-      type: 'value',
-      min: yMin,
-      max: yMax,
-      axisLabel: {
-        formatter(value: number) {
-          return valueFormatter(value);
+      legend: topLegend([primaryLabel, secondaryLabel]),
+      xAxis: monthlyCategoryAxis(months),
+      grid: MONTHLY_LINE_GRID,
+      yAxis: {
+        type: 'value',
+        min: yMin,
+        max: yMax,
+        axisLabel: {
+          formatter: (value: number) => valueFormatter(value),
+          color: COLORS.textMuted,
         },
       },
-    },
-    series: [
-      {
-        name: primaryLabel,
-        type: 'line',
-        data: primaryData,
-        symbol: 'circle',
-        symbolSize: 8,
-        label: {
-          show: true,
-          formatter(params: unknown) {
-            const p = params as { value: number };
-            return valueFormatter(p.value);
-          },
-          position: primaryLabelPosition,
-          fontSize: 11,
-          color: primaryColor,
-        },
-        // G22 follow-up: keep this horizontal reference markLine on the
-        // same muted-gray palette as the series[1] vertical "Latest"
-        // markLine below so the two read as a coherent set, not two
-        // unrelated overlays. `todayMarkLine` is xAxis-oriented and
-        // doesn't fit a yAxis reference; until a sibling
-        // `referenceMarkLine` helper exists, we hand-roll using the
-        // same tokens (textMuted for line + label, dashed, width 1).
-        markLine: referenceLine === null
-          ? undefined
-          : {
-              silent: true,
-              symbol: 'none',
-              label: {
-                formatter: valueFormatter(referenceLine),
-                position: 'insideEndTop',
-                color: COLORS.textMuted,
-                fontSize: 11,
-              },
-              lineStyle: {
-                type: 'dashed',
-                color: COLORS.textMuted,
-                width: 1,
-              },
-              data: [{ yAxis: referenceLine }],
+      series: [
+        {
+          name: primaryLabel,
+          type: 'line',
+          data: primaryData,
+          symbol: 'circle',
+          symbolSize: 8,
+          label: {
+            show: true,
+            formatter: (params: unknown) => {
+              const p = params as { value: number };
+              return valueFormatter(p.value);
             },
-      },
-      {
-        name: secondaryLabel,
-        type: 'line',
-        data: secondaryData,
-        symbol: 'circle',
-        symbolSize: 8,
-        label: {
-          show: true,
-          formatter(params: unknown) {
-            const p = params as { value: number };
-            return valueFormatter(p.value);
+            position: primaryLabelPosition,
+            fontSize: 11,
+            color: primaryColor,
           },
-          position: secondaryLabelPosition,
-          fontSize: 11,
-          color: secondaryColor,
+          // G22 follow-up: keep this horizontal reference markLine on the
+          // same muted-gray palette as the series[1] vertical "Latest"
+          // markLine below so the two read as a coherent set, not two
+          // unrelated overlays. `todayMarkLine` is xAxis-oriented and
+          // doesn't fit a yAxis reference; until a sibling
+          // `referenceMarkLine` helper exists, we hand-roll using the
+          // same tokens (textMuted for line + label, dashed, width 1).
+          markLine:
+            referenceLine === null
+              ? undefined
+              : {
+                  silent: true,
+                  symbol: 'none',
+                  label: {
+                    formatter: valueFormatter(referenceLine),
+                    position: 'insideEndTop',
+                    color: COLORS.textMuted,
+                    fontSize: 11,
+                  },
+                  lineStyle: {
+                    type: 'dashed',
+                    color: COLORS.textMuted,
+                    width: 1,
+                  },
+                  data: [{ yAxis: referenceLine }],
+                },
         },
-        // PR-C3 follow-up + G22: adopt `todayMarkLine` so the bilingual
-        // marker label, dashed stroke, and `lineWidth: 1` (subtler than
-        // the S-curve marker's default 2) flow from one source. Both
-        // line and label now share `COLORS.textMuted` — slightly
-        // darker than the previous `textDisabled` line, matching the
-        // SCurveChart pattern where the "Latest" marker uses one
-        // colour uniformly. Override only `silent` (no tooltip) and
-        // `data` (anchor to the last point).
-        markLine:
-          markLatestPoint && data.length > 0
-            ? {
-                ...todayMarkLine({
-                  label: 'ข้อมูลงวดล่าสุด (Latest)',
-                  color: COLORS.textMuted,
-                  lineWidth: 1,
-                }),
-                silent: true,
-                data: [{ xAxis: data.length - 1 }],
-              }
-            : undefined,
-      },
-    ],
-  };
+        {
+          name: secondaryLabel,
+          type: 'line',
+          data: secondaryData,
+          symbol: 'circle',
+          symbolSize: 8,
+          label: {
+            show: true,
+            formatter: (params: unknown) => {
+              const p = params as { value: number };
+              return valueFormatter(p.value);
+            },
+            position: secondaryLabelPosition,
+            fontSize: 11,
+            color: secondaryColor,
+          },
+          // "Latest" guide via the shared sugar — same label, color,
+          // lineWidth, and silent override that the helper bakes in.
+          markLine: latestMarkLine(lastIndex),
+        },
+      ],
+    };
+  }, [
+    data,
+    primaryLabel,
+    secondaryLabel,
+    primaryColor,
+    secondaryColor,
+    referenceLine,
+    yMin,
+    yMax,
+    valueFormatter,
+    primaryLabelPosition,
+    secondaryLabelPosition,
+    markLatestPoint,
+  ]);
 
-  return (
-    <ReactECharts
-      option={option}
-      style={{ height }}
-      notMerge={true}
-      lazyUpdate={true}
-    />
-  );
+  return <EChartsWrapper option={option} height={height} />;
 }

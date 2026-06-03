@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { baselineLegend, todayMarkLine } from './chart-helpers';
+import {
+  LATEST_MARKER_LABEL,
+  baselineLegend,
+  latestMarkLine,
+  todayMarkLine,
+} from './chart-helpers';
 
 /**
  * PR-A4 — chart helpers.
@@ -120,6 +125,34 @@ describe('todayMarkLine', () => {
     expect(fragment.lineStyle?.color).toBe('#595959');
     expect(fragment.lineStyle?.width).toBe(1);
     expect(fragment.label?.color).toBe('#595959');
+  });
+});
+
+describe('LATEST_MARKER_LABEL', () => {
+  it('is the canonical bilingual "Latest" label used by the EVM trend / progress comparison markers', () => {
+    expect(LATEST_MARKER_LABEL).toBe('ข้อมูลงวดล่าสุด (Latest)');
+  });
+});
+
+describe('latestMarkLine', () => {
+  it('returns a fully-wired markLine fragment anchored to the given xAxis index', () => {
+    const fragment = latestMarkLine(5) as {
+      symbol?: string;
+      silent?: boolean;
+      label?: { formatter?: string };
+      lineStyle?: { type?: string; color?: string; width?: number };
+      data?: Array<{ xAxis?: number }>;
+    };
+    expect(fragment.label?.formatter).toBe(LATEST_MARKER_LABEL);
+    expect(fragment.silent).toBe(true);
+    expect(fragment.symbol).toBe('none');
+    expect(fragment.lineStyle?.type).toBe('dashed');
+    expect(fragment.lineStyle?.width).toBe(1);
+    expect(fragment.data?.[0]?.xAxis).toBe(5);
+  });
+
+  it('returns `undefined` when `lastIndex` is negative (empty series, no anchor)', () => {
+    expect(latestMarkLine(-1)).toBeUndefined();
   });
 });
 

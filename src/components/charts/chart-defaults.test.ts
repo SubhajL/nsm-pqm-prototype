@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { COLORS } from '@/theme/antd-theme';
 
 import { ACCESSIBLE_CHART_PALETTE, DECAL_PATTERNS } from './chart-palette';
-import { getChartBaseOption } from './chart-defaults';
+import {
+  MONTHLY_LINE_GRID,
+  getChartBaseOption,
+  monthlyCategoryAxis,
+  topLegend,
+} from './chart-defaults';
 
 /**
  * PR-A4 — chart base option lock-in.
@@ -62,5 +67,73 @@ describe('getChartBaseOption', () => {
     const yAxis = base.yAxis as { axisLabel?: { color?: string } } | undefined;
     expect(xAxis?.axisLabel?.color).toBe(COLORS.textMuted);
     expect(yAxis?.axisLabel?.color).toBe(COLORS.textMuted);
+  });
+});
+
+/**
+ * Cross-chart cleanup sweep — line-chart layout factories shared across
+ * SCurveChart / CPISPITrendChart / ProgressComparisonChart. Pinning the
+ * shape stops the three consumers from drifting on the next palette /
+ * spacing tweak.
+ */
+
+describe('MONTHLY_LINE_GRID', () => {
+  it('uses contain-label spacing tuned for monthly Thai labels with room for left-side axis values', () => {
+    expect(MONTHLY_LINE_GRID).toEqual({
+      top: 50,
+      right: 30,
+      bottom: 30,
+      left: 50,
+      containLabel: true,
+    });
+  });
+
+  it('is a frozen literal — consumers must not mutate it across renders', () => {
+    expect(Object.isFrozen(MONTHLY_LINE_GRID)).toBe(true);
+  });
+});
+
+describe('monthlyCategoryAxis', () => {
+  it('returns the canonical category xAxis shape used by the EVM-line charts', () => {
+    const axis = monthlyCategoryAxis(['เม.ย. 69', 'พ.ค. 69']) as {
+      type?: string;
+      data?: string[];
+      boundaryGap?: boolean;
+      axisLabel?: { fontSize?: number; color?: string };
+    };
+    expect(axis.type).toBe('category');
+    expect(axis.data).toEqual(['เม.ย. 69', 'พ.ค. 69']);
+    expect(axis.boundaryGap).toBe(false);
+    expect(axis.axisLabel?.fontSize).toBe(12);
+  });
+
+  it('carries the AA-safe `COLORS.textMuted` axisLabel.color forward (EChartsWrapper shallow merge)', () => {
+    const axis = monthlyCategoryAxis(['เม.ย. 69']) as {
+      axisLabel?: { color?: string };
+    };
+    expect(axis.axisLabel?.color).toBe(COLORS.textMuted);
+  });
+
+  it('does not retain a reference to the input array (defensive copy)', () => {
+    const months = ['เม.ย. 69'];
+    const axis = monthlyCategoryAxis(months) as { data?: string[] };
+    expect(axis.data).not.toBe(months);
+  });
+});
+
+describe('topLegend', () => {
+  it('returns the canonical top-anchored legend shape with the given names', () => {
+    const legend = topLegend(['CPI', 'SPI']) as {
+      top?: number;
+      data?: string[];
+    };
+    expect(legend.top).toBe(0);
+    expect(legend.data).toEqual(['CPI', 'SPI']);
+  });
+
+  it('does not retain a reference to the input array', () => {
+    const names = ['Planned'];
+    const legend = topLegend(names) as { data?: string[] };
+    expect(legend.data).not.toBe(names);
   });
 });

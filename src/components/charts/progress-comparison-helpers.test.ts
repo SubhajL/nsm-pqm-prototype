@@ -158,6 +158,58 @@ describe('derivePlannedActualSeries — lastIndex + overallVariance', () => {
   });
 });
 
+describe('derivePlannedActualSeries — per-segment variance arrays', () => {
+  it('produces aligned lowerBound / behindFill / aheadFill arrays', () => {
+    const data = [
+      // m1: planned 20, actual 16 → behind (delta 4)
+      snapshot('2026-04', 'เม.ย. 69', 2_000_000, 1_600_000),
+      // m2: planned 30, actual 40 → ahead (delta 10)
+      snapshot('2026-05', 'พ.ค. 69', 3_000_000, 4_000_000),
+      // m3: planned 50, actual 50 → on track (both zero)
+      snapshot('2026-06', 'มิ.ย. 69', 5_000_000, 5_000_000),
+    ];
+    const result = derivePlannedActualSeries(data, 10_000_000);
+    expect(result.lowerBound).toEqual([16, 30, 50]);
+    expect(result.behindFill).toEqual([4, 0, 0]);
+    expect(result.aheadFill).toEqual([0, 10, 0]);
+  });
+
+  it('lowerBound + behindFill + aheadFill == max(planned, actual) at every tick (stack-top invariant)', () => {
+    const data = [
+      snapshot('2026-04', 'เม.ย. 69', 2_000_000, 1_600_000),
+      snapshot('2026-05', 'พ.ค. 69', 3_000_000, 4_000_000),
+      snapshot('2026-06', 'มิ.ย. 69', 5_000_000, 5_000_000),
+    ];
+    const r = derivePlannedActualSeries(data, 10_000_000);
+    r.lowerBound.forEach((min, i) => {
+      const top = min + r.behindFill[i] + r.aheadFill[i];
+      const expected = Math.max(r.plannedPct[i], r.actualPct[i]);
+      expect(top).toBe(expected);
+    });
+  });
+
+  it('returns empty band arrays when input is empty', () => {
+    const result = derivePlannedActualSeries([], 10_000_000);
+    expect(result.lowerBound).toEqual([]);
+    expect(result.behindFill).toEqual([]);
+    expect(result.aheadFill).toEqual([]);
+  });
+
+  it('paints a crossover history: m1 behind, m3 ahead — both fills are non-zero across the series', () => {
+    const data = [
+      // m1: behind
+      snapshot('2026-04', 'เม.ย. 69', 4_000_000, 2_000_000),
+      // m2: still behind, smaller gap
+      snapshot('2026-05', 'พ.ค. 69', 5_000_000, 4_500_000),
+      // m3: ahead
+      snapshot('2026-06', 'มิ.ย. 69', 6_000_000, 7_000_000),
+    ];
+    const r = derivePlannedActualSeries(data, 10_000_000);
+    expect(r.behindFill.some((v) => v > 0)).toBe(true);
+    expect(r.aheadFill.some((v) => v > 0)).toBe(true);
+  });
+});
+
 describe('ProgressComparisonSeries — shape contract', () => {
   it('returns an object whose fields are aligned arrays of equal length', () => {
     const data = [
