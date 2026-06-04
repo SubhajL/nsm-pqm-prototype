@@ -31,7 +31,7 @@ export function OrgTreeCard({
     <Card title="ผังองค์กร (Organization Chart)" style={{ height: '100%' }}>
       <Tree
         treeData={treeData}
-        defaultExpandedKeys={['dept-root', 'dept-001', 'dept-002', 'dept-004']}
+        defaultExpandedKeys={['dept-root', 'dept-om', 'dept-admin', 'dept-academic', 'dept-construction']}
         selectedKeys={[selectedDeptId]}
         onSelect={(keys) => {
           if (keys.length > 0) {

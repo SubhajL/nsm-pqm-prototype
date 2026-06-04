@@ -2,6 +2,7 @@
 
 import type { EChartsOption } from 'echarts';
 import { CHART_COLORS } from '@/theme/antd-theme';
+import { departmentShortLabel } from './department-label';
 import { EChartsWrapper } from './EChartsWrapper';
 
 interface DepartmentStatus {
@@ -19,12 +20,31 @@ interface PortfolioBarChartProps {
 }
 
 export function PortfolioBarChart({ data, height = 350 }: PortfolioBarChartProps) {
-  const departments = data.map((d) => d.department);
+  const axisLabels = data.map((d) => departmentShortLabel(d.department));
 
   const option: EChartsOption = {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
+      formatter: (params: unknown) => {
+        const rows = params as Array<{
+          dataIndex: number;
+          seriesName: string;
+          value: number;
+          marker: string;
+        }>;
+        if (!rows.length) return '';
+        // The y-axis category is an abbreviation; show the full official
+        // RID unit name (looked up by index) as the tooltip header.
+        const fullName = data[rows[0].dataIndex]?.department ?? '';
+        const body = rows
+          .filter((row) => row.value > 0)
+          .map((row) => `${row.marker} ${row.seriesName}: <b>${row.value}</b>`)
+          .join('<br/>');
+        return `<div style="font-weight:600;margin-bottom:4px">${fullName}</div>${
+          body || 'ไม่มีโครงการ'
+        }`;
+      },
     },
     legend: {
       bottom: 0,
@@ -37,7 +57,7 @@ export function PortfolioBarChart({ data, height = 350 }: PortfolioBarChartProps
       ],
     },
     grid: {
-      left: 160,
+      left: 96,
       right: 24,
       top: 12,
       bottom: 48,
@@ -49,9 +69,9 @@ export function PortfolioBarChart({ data, height = 350 }: PortfolioBarChartProps
     },
     yAxis: {
       type: 'category',
-      data: departments,
+      data: axisLabels,
       axisLabel: {
-        width: 140,
+        width: 80,
         overflow: 'truncate',
       },
     },

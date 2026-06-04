@@ -1,12 +1,53 @@
 [
   { "id": "dept-root", "kind": "department", "name": "กรมชลประทาน", "nameEn": "Royal Irrigation Department", "parentId": null, "costCenter": null },
-  { "id": "dept-001", "kind": "bureau", "name": "สำนักผู้อำนวยการ", "nameEn": "Director Office", "parentId": "dept-root", "costCenter": null },
-  { "id": "dept-001-1", "kind": "bureau", "name": "กองบริหาร", "nameEn": "Administration", "parentId": "dept-001", "costCenter": null },
-  { "id": "dept-001-2", "kind": "bureau", "name": "กองทรัพยากรบุคคล", "nameEn": "HR", "parentId": "dept-001", "costCenter": null },
-  { "id": "dept-002", "kind": "bureau", "name": "สำนักพัฒนาธุรกิจ", "nameEn": "Business Development", "parentId": "dept-root", "costCenter": null },
-  { "id": "dept-002-1", "kind": "bureau", "name": "กองพัฒนาโครงการ", "nameEn": "Project Development", "parentId": "dept-002", "costCenter": null },
-  { "id": "dept-003", "kind": "bureau", "name": "กองเทคโนโลยีสารสนเทศ", "nameEn": "IT", "parentId": "dept-002", "costCenter": null },
-  { "id": "dept-004", "kind": "bureau", "name": "สำนักวิชาการ", "nameEn": "Academic Affairs", "parentId": "dept-root", "costCenter": null },
-  { "id": "dept-004-1", "kind": "bureau", "name": "กองวิทยาศาสตร์", "nameEn": "Science", "parentId": "dept-004", "costCenter": null },
-  { "id": "dept-004-2", "kind": "bureau", "name": "กองธรรมชาติวิทยา", "nameEn": "Natural History", "parentId": "dept-004", "costCenter": null }
+
+  { "id": "dept-om", "kind": "bureau", "name": "รองอธิบดีฝ่ายบำรุงรักษา", "nameEn": "Deputy Director-General (Operation & Maintenance)", "parentId": "dept-root", "costCenter": null },
+  { "id": "dept-admin", "kind": "bureau", "name": "รองอธิบดีฝ่ายบริหาร", "nameEn": "Deputy Director-General (Administration)", "parentId": "dept-root", "costCenter": null },
+  { "id": "dept-academic", "kind": "bureau", "name": "รองอธิบดีฝ่ายวิชาการ", "nameEn": "Deputy Director-General (Academic Affairs)", "parentId": "dept-root", "costCenter": null },
+  { "id": "dept-construction", "kind": "bureau", "name": "รองอธิบดีฝ่ายก่อสร้าง", "nameEn": "Deputy Director-General (Construction)", "parentId": "dept-root", "costCenter": null },
+
+  { "id": "dept-001", "kind": "bureau", "name": "สำนักบริหารจัดการน้ำและอุทกวิทยา", "nameEn": "Office of Water Management and Hydrology", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-1", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 1", "nameEn": "Regional Irrigation Office 1", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-2", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 2", "nameEn": "Regional Irrigation Office 2", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-3", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 3", "nameEn": "Regional Irrigation Office 3", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-4", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 4", "nameEn": "Regional Irrigation Office 4", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-5", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 5", "nameEn": "Regional Irrigation Office 5", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-6", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 6", "nameEn": "Regional Irrigation Office 6", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-7", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 7", "nameEn": "Regional Irrigation Office 7", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-8", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 8", "nameEn": "Regional Irrigation Office 8", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-9", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 9", "nameEn": "Regional Irrigation Office 9", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-10", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 10", "nameEn": "Regional Irrigation Office 10", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-11", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 11", "nameEn": "Regional Irrigation Office 11", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-12", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 12", "nameEn": "Regional Irrigation Office 12", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-13", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 13", "nameEn": "Regional Irrigation Office 13", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-14", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 14", "nameEn": "Regional Irrigation Office 14", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-15", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 15", "nameEn": "Regional Irrigation Office 15", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-16", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 16", "nameEn": "Regional Irrigation Office 16", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-rio-17", "kind": "regional_office", "name": "สำนักงานชลประทานที่ 17", "nameEn": "Regional Irrigation Office 17", "parentId": "dept-om", "costCenter": null },
+  { "id": "dept-om-internal", "kind": "bureau", "name": "กองพัฒนาการบริหารจัดการน้ำและการมีส่วนร่วม", "nameEn": "Water Management & Public Participation Development Division", "parentId": "dept-om", "costCenter": null },
+
+  { "id": "dept-sec", "kind": "bureau", "name": "สำนักงานเลขานุการกรม", "nameEn": "Office of the Secretary", "parentId": "dept-admin", "costCenter": null },
+  { "id": "dept-finance", "kind": "bureau", "name": "กองการเงินและบัญชี", "nameEn": "Finance and Accounting Division", "parentId": "dept-admin", "costCenter": null },
+  { "id": "dept-procurement", "kind": "bureau", "name": "กองพัสดุ", "nameEn": "Procurement Division", "parentId": "dept-admin", "costCenter": null },
+  { "id": "dept-003", "kind": "bureau", "name": "ศูนย์เทคโนโลยีสารสนเทศและการสื่อสาร", "nameEn": "Information and Communication Technology Center", "parentId": "dept-admin", "costCenter": null },
+  { "id": "dept-legal", "kind": "bureau", "name": "สำนักกฎหมายและที่ดิน", "nameEn": "Office of Law and Land", "parentId": "dept-admin", "costCenter": null },
+  { "id": "dept-001-2", "kind": "bureau", "name": "สำนักบริหารทรัพยากรบุคคล", "nameEn": "Office of Human Resource Management", "parentId": "dept-admin", "costCenter": null },
+
+  { "id": "dept-002-1", "kind": "bureau", "name": "สำนักบริหารโครงการ", "nameEn": "Office of Project Management", "parentId": "dept-academic", "costCenter": null },
+  { "id": "dept-004", "kind": "bureau", "name": "สำนักวิจัยและพัฒนา", "nameEn": "Office of Research and Development", "parentId": "dept-academic", "costCenter": null },
+  { "id": "dept-survey", "kind": "bureau", "name": "สำนักสำรวจด้านวิศวกรรมและธรณีวิทยา", "nameEn": "Office of Engineering Survey and Geology", "parentId": "dept-academic", "costCenter": null },
+  { "id": "dept-design", "kind": "bureau", "name": "สำนักออกแบบวิศวกรรมและสถาปัตยกรรม", "nameEn": "Office of Engineering Design and Architecture", "parentId": "dept-academic", "costCenter": null },
+  { "id": "dept-004-1", "kind": "bureau", "name": "สถาบันพัฒนาการชลประทาน", "nameEn": "Irrigation Development Institute", "parentId": "dept-academic", "costCenter": null },
+
+  { "id": "dept-001-1", "kind": "bureau", "name": "กองพัฒนาแหล่งน้ำขนาดกลาง", "nameEn": "Medium-Scale Water Source Development Division", "parentId": "dept-construction", "costCenter": null },
+  { "id": "dept-002", "kind": "bureau", "name": "สำนักพัฒนาแหล่งน้ำขนาดใหญ่", "nameEn": "Office of Large-Scale Water Source Development", "parentId": "dept-construction", "costCenter": null },
+  { "id": "dept-landconsolidation", "kind": "bureau", "name": "สำนักงานจัดรูปที่ดินกลาง", "nameEn": "Central Land Consolidation Office", "parentId": "dept-construction", "costCenter": null },
+  { "id": "dept-machinery", "kind": "bureau", "name": "สำนักเครื่องจักรกล", "nameEn": "Office of Machinery", "parentId": "dept-construction", "costCenter": null },
+
+  { "id": "dept-audit", "kind": "bureau", "name": "กลุ่มตรวจสอบภายใน", "nameEn": "Internal Audit Group", "parentId": "dept-root", "costCenter": null },
+  { "id": "dept-004-2", "kind": "bureau", "name": "กลุ่มพัฒนาระบบบริหาร", "nameEn": "Public Sector Development Group", "parentId": "dept-root", "costCenter": null },
+  { "id": "dept-planning", "kind": "bureau", "name": "กองแผนงาน", "nameEn": "Planning Division", "parentId": "dept-root", "costCenter": null },
+  { "id": "dept-royal", "kind": "bureau", "name": "กองประสานงานโครงการอันเนื่องมาจากพระราชดำริ", "nameEn": "Royal Development Projects Coordination Division", "parentId": "dept-root", "costCenter": null },
+
+  { "id": "dept-ext", "kind": "bureau", "name": "หน่วยงานภายนอก (ที่ปรึกษา)", "nameEn": "External (Consultant)", "parentId": "dept-root", "costCenter": null }
 ]
