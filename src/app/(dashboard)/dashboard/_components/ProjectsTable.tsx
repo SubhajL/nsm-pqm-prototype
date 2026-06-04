@@ -121,6 +121,13 @@ export function ProjectsTable({
       render: (budget: number) => `${formatBaht(budget)} บาท`,
     },
     {
+      title: 'หน่วยงานเจ้าของ (Owner Dept)',
+      dataIndex: 'departmentName',
+      key: 'departmentName',
+      width: 240,
+      render: (departmentName: string) => departmentName || '—',
+    },
+    {
       title: 'ผจก.โครงการ (PM)',
       dataIndex: 'managerName',
       key: 'managerName',
@@ -175,7 +182,7 @@ export function ProjectsTable({
         columns={columns}
         dataSource={filteredProjects}
         rowKey="id"
-        scroll={{ x: 1280 }}
+        scroll={{ x: 1520 }}
         pagination={{
           pageSize: 10,
           showSizeChanger: false,
