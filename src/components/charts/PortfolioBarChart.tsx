@@ -1,7 +1,7 @@
 'use client';
 
 import type { EChartsOption } from 'echarts';
-import { CHART_COLORS } from '@/theme/antd-theme';
+import { CHART_COLORS, COLORS } from '@/theme/antd-theme';
 import { departmentShortLabel } from './department-label';
 import { EChartsWrapper } from './EChartsWrapper';
 
@@ -57,11 +57,15 @@ export function PortfolioBarChart({ data, height = 350 }: PortfolioBarChartProps
       ],
     },
     grid: {
-      left: 96,
+      // containLabel lets ECharts reserve exactly enough room for the
+      // (short) y-axis labels. We deliberately avoid axisLabel.width +
+      // overflow:'truncate' here — ECharts mis-measures the Thai glyph run
+      // and collapses each label to a single character.
+      left: 8,
       right: 24,
       top: 12,
       bottom: 48,
-      containLabel: false,
+      containLabel: true,
     },
     xAxis: {
       type: 'value',
@@ -71,8 +75,7 @@ export function PortfolioBarChart({ data, height = 350 }: PortfolioBarChartProps
       type: 'category',
       data: axisLabels,
       axisLabel: {
-        width: 80,
-        overflow: 'truncate',
+        color: COLORS.textMuted,
       },
     },
     series: [
