@@ -60,9 +60,9 @@ test.describe('งวดงาน payment flow (proj-001, outsourced)', () => {
     await modal.getByLabel('ชื่องวดงาน (Title)').fill(WP_TITLE);
 
     const range = modal.locator('.ant-picker-range input');
-    await range.nth(0).fill('2026-07-01');
+    await range.nth(0).fill('01/07/2569');
     await range.nth(0).press('Enter');
-    await range.nth(1).fill('2026-07-31');
+    await range.nth(1).fill('31/07/2569');
     await range.nth(1).press('Enter');
 
     await modal.getByLabel('มูลค่างวดงาน (Amount, บาท)').fill('1000000');

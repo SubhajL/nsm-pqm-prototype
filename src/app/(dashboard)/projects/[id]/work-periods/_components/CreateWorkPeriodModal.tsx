@@ -1,6 +1,7 @@
 'use client';
 
 import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from 'antd';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import type { Dayjs } from 'dayjs';
 
 import { announce } from '@/components/a11y';
@@ -101,7 +102,7 @@ export function CreateWorkPeriodModal({
           label="ช่วงเวลาตามแผน (Planned Period)"
           rules={[{ required: true, message: 'กรุณาระบุช่วงเวลา' }]}
         >
-          <DatePicker.RangePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+          <DatePicker.RangePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
         </Form.Item>
         <Form.Item
           name="amount"

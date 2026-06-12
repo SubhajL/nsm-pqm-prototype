@@ -32,7 +32,7 @@ async function createProjectWithDeliveryMethod(
   await page.getByPlaceholder('ระบุชื่อโครงการ').fill(projectName);
   await selectOptionByFormLabel(
     page,
-    'ประเภทโครงการ (Project Type)',
+    'ประเภทโครงการ (Project Class)',
     'พัฒนาระบบ IT',
   );
   await selectOptionByFormLabel(
@@ -42,8 +42,8 @@ async function createProjectWithDeliveryMethod(
   );
   await page.getByPlaceholder('ระบุวัตถุประสงค์ของโครงการ').fill('Bootstrap validation objective');
   await page.getByPlaceholder('ระบุรายละเอียดเพิ่มเติม (ถ้ามี)').fill('Bootstrap test');
-  await page.getByPlaceholder('เลือกวันที่เริ่มต้น').fill('01/06/2026');
-  await page.getByPlaceholder('เลือกวันที่สิ้นสุด').fill('31/12/2026');
+  await page.getByPlaceholder('เลือกวันที่เริ่มต้น').fill('01/06/2569');
+  await page.getByPlaceholder('เลือกวันที่สิ้นสุด').fill('31/12/2569');
   await selectOptionByFormLabel(
     page,
     'วิธีคำนวณ Progress (Progress Calculation Method)',

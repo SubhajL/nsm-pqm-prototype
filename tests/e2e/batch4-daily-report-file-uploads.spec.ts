@@ -29,7 +29,7 @@ test.describe('batch 4 daily report real file uploads', () => {
     await page.getByRole('button', { name: /สร้างรายงานใหม่/i }).click();
     const reportDialog = page.getByRole('dialog', { name: 'สร้างรายงานประจำวัน' });
 
-    await reportDialog.getByRole('textbox', { name: 'วันที่' }).fill('19/03/2026');
+    await reportDialog.getByRole('textbox', { name: 'วันที่' }).fill('19/03/2569');
     await reportDialog.getByRole('textbox', { name: 'สภาพอากาศ' }).fill('แดดจัด (Sunny)');
     await reportDialog.getByRole('spinbutton', { name: 'อุณหภูมิ' }).fill('31');
     await reportDialog.getByRole('button', { name: 'เพิ่มบุคลากร' }).click();

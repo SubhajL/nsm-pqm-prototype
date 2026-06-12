@@ -1,6 +1,7 @@
 'use client';
 
 import { DatePicker, Form, Input, InputNumber, Modal, Select, Typography, message } from 'antd';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import type { Dayjs } from 'dayjs';
 
 import { announce } from '@/components/a11y';
@@ -165,10 +166,10 @@ export function CreateContractModal({
           />
         </Form.Item>
         <Form.Item name="signedAt" label="วันที่ลงนาม (Signed At)">
-          <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+          <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
         </Form.Item>
         <Form.Item name="expirationDate" label="วันสิ้นสุดสัญญา (Expiration)">
-          <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+          <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
         </Form.Item>
         <Form.Item name="warrantyMonths" label="ระยะประกัน (Warranty, เดือน)">
           <InputNumber min={0} style={{ width: '100%' }} />

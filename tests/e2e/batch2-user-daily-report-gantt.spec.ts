@@ -86,7 +86,7 @@ test.describe('batch 2 consistency: users, daily reports, and gantt dependencies
     await page.getByRole('button', { name: /สร้างรายงานใหม่/i }).click();
     const reportDialog = page.getByRole('dialog', { name: 'สร้างรายงานประจำวัน' });
 
-    await reportDialog.getByRole('textbox', { name: 'วันที่' }).fill('18/03/2026');
+    await reportDialog.getByRole('textbox', { name: 'วันที่' }).fill('18/03/2569');
     await reportDialog.getByRole('textbox', { name: 'สภาพอากาศ' }).fill('ครึ้มเล็กน้อย (Cloudy)');
     await reportDialog.getByRole('spinbutton', { name: 'อุณหภูมิ' }).fill('31');
 

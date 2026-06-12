@@ -1,6 +1,7 @@
 'use client';
 
 import { DatePicker, Form, InputNumber, Modal } from 'antd';
+import { THAI_MONTH_FORMAT } from '@/lib/antd-thai-locale';
 import type { FormInstance } from 'antd';
 
 export function EvmSnapshotModal({
@@ -36,7 +37,7 @@ export function EvmSnapshotModal({
         >
           <DatePicker
             picker="month"
-            format="MM/YYYY"
+            format={THAI_MONTH_FORMAT}
             placeholder="เลือกเดือน"
             style={{ width: '100%' }}
           />

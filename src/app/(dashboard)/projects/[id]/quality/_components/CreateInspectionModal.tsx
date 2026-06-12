@@ -1,6 +1,7 @@
 'use client';
 
 import { DatePicker, Form, Input, Modal, Select } from 'antd';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import type { FormInstance } from 'antd';
 
 import type { ITPItem } from '@/types/quality';
@@ -40,7 +41,7 @@ export function CreateInspectionModal({
           />
         </Form.Item>
         <Form.Item label="วันที่ตรวจ" name="date" rules={[{ required: true, message: 'กรุณาเลือกวันที่ตรวจ' }]}>
-          <DatePicker format="DD/MM/YYYY" placeholder="เลือกวันที่ตรวจ" style={{ width: '100%' }} />
+          <DatePicker format={THAI_DATE_FORMAT} placeholder="เลือกวันที่ตรวจ" style={{ width: '100%' }} />
         </Form.Item>
         <Form.Item label="เวลา" name="time" rules={[{ required: true, message: 'กรุณาระบุเวลา' }]}>
           <Input placeholder="HH:mm" />

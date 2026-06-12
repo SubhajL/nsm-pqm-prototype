@@ -1,6 +1,8 @@
 'use client';
 
 import { ConfigProvider, theme as antdAlgorithm } from 'antd';
+import '@/lib/dayjs-buddhist';
+import { thaiBuddhistLocale } from '@/lib/antd-thai-locale';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { AuthBootstrap } from '@/components/auth/AuthBootstrap';
@@ -63,7 +65,11 @@ function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
     };
   }, [resolved]);
 
-  return <ConfigProvider theme={themeConfig}>{children}</ConfigProvider>;
+  return (
+    <ConfigProvider locale={thaiBuddhistLocale} theme={themeConfig}>
+      {children}
+    </ConfigProvider>
+  );
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {

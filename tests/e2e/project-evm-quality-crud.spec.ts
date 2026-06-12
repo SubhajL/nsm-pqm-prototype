@@ -28,7 +28,7 @@ test.describe('project EVM and quality write flows', () => {
     await page.getByPlaceholder('ระบุชื่อโครงการ').fill(projectName);
     await selectOptionByFormLabel(
       page,
-      'ประเภทโครงการ (Project Type)',
+      'ประเภทโครงการ (Project Class)',
       'พัฒนาระบบ IT',
     );
     await selectOptionByFormLabel(
@@ -38,8 +38,8 @@ test.describe('project EVM and quality write flows', () => {
     );
     await page.getByPlaceholder('ระบุวัตถุประสงค์ของโครงการ').fill('EVM CRUD validation');
     await page.getByPlaceholder('ระบุรายละเอียดเพิ่มเติม (ถ้ามี)').fill('Created by Playwright');
-    await page.getByPlaceholder('เลือกวันที่เริ่มต้น').fill('01/06/2026');
-    await page.getByPlaceholder('เลือกวันที่สิ้นสุด').fill('31/12/2026');
+    await page.getByPlaceholder('เลือกวันที่เริ่มต้น').fill('01/06/2569');
+    await page.getByPlaceholder('เลือกวันที่สิ้นสุด').fill('31/12/2569');
     await selectOptionByFormLabel(
       page,
       'วิธีคำนวณ Progress (Progress Calculation Method)',
@@ -55,7 +55,7 @@ test.describe('project EVM and quality write flows', () => {
     await page.getByRole('button', { name: /บันทึกงวด EVM ใหม่/i }).click();
 
     const evmDialog = page.getByRole('dialog', { name: 'บันทึกงวด EVM ใหม่' });
-    await evmDialog.getByPlaceholder('เลือกเดือน').fill('08/2026');
+    await evmDialog.getByPlaceholder('เลือกเดือน').fill('08/2569');
     await evmDialog.getByRole('spinbutton', { name: /PV/i }).fill('9500000');
     await evmDialog.getByRole('spinbutton', { name: /EV/i }).fill('9000000');
     await evmDialog.getByRole('spinbutton', { name: /AC/i }).fill('8700000');
@@ -74,7 +74,7 @@ test.describe('project EVM and quality write flows', () => {
     await inspectionDialog.getByRole('textbox', { name: /หัวข้อการตรวจ/i }).fill('ITP E2E Inspection');
     await inspectionDialog.getByRole('combobox', { name: /รายการ ITP/i }).click();
     await page.locator('.ant-select-dropdown').getByText('ทดสอบกำลังอัด (7/28 วัน)', { exact: false }).click();
-    await inspectionDialog.getByPlaceholder('เลือกวันที่ตรวจ').fill('16/03/2026');
+    await inspectionDialog.getByPlaceholder('เลือกวันที่ตรวจ').fill('16/03/2569');
     await inspectionDialog.getByPlaceholder('HH:mm').fill('10:30');
     await inspectionDialog.getByRole('textbox', { name: /ผู้ตรวจสอบ/i }).fill('น.ส.วิภา ขจรศักดิ์, นายประสิทธิ์ มั่นคง');
     await inspectionDialog.getByRole('textbox', { name: /WBS อ้างอิง/i }).fill('WBS 2.4 ทดสอบคอนกรีต');
