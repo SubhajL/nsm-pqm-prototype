@@ -10,12 +10,15 @@ import { signSignedUrlPayload } from '@/lib/mock-upload-storage';
 // `/api/documents/[projectId]/[fileId]/download` 302.
 // ---------------------------------------------------------------------------
 
-vi.mock('next/headers', () => ({
-  cookies: () => ({
-    get: (name: string) =>
-      name === 'pqm_user_id' ? { value: 'user-001' } : undefined,
-  }),
-}));
+vi.mock('next/headers', async () => {
+  const { sealAuthCookieValueSync } = await import('@/lib/auth-cookie-node');
+  return {
+    cookies: () => ({
+      get: (name: string) =>
+        name === 'pqm_user_id' ? { value: sealAuthCookieValueSync('pqm_user_id', 'user-001') } : undefined,
+    }),
+  };
+});
 
 // `@vercel/blob`'s `get()` hits a real network endpoint; stub it for tests
 // so the route's stream-from-blob behaviour is observable without env wiring.

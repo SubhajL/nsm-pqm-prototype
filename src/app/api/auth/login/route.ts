@@ -8,6 +8,7 @@ import {
   requiresProjectDuty,
 } from '@/lib/auth';
 import { recordAuditEvent } from '@/lib/audit-helpers';
+import { sealAuthCookieValue } from '@/lib/auth-cookie';
 import { getAssignedProjectCountForUser } from '@/lib/project-access';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
@@ -53,15 +54,17 @@ export async function POST(request: Request) {
     data: { user: selectedUser },
   });
 
-  response.cookies.set(AUTH_COOKIE_USER_ID, selectedUser.id, {
+  response.cookies.set(AUTH_COOKIE_USER_ID, await sealAuthCookieValue(AUTH_COOKIE_USER_ID, selectedUser.id), {
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE,
   });
-  response.cookies.set(AUTH_COOKIE_ROLE, selectedUser.role, {
+  response.cookies.set(AUTH_COOKIE_ROLE, await sealAuthCookieValue(AUTH_COOKIE_ROLE, selectedUser.role), {
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE,
   });

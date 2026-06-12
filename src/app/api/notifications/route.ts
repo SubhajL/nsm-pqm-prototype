@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import { cookies } from 'next/headers';
-import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
-import { filterNotificationsForUser, getActiveUser } from '@/lib/project-access';
+import { getCurrentApiUser } from '@/lib/project-api-access';
+import { filterNotificationsForUser } from '@/lib/project-access';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import type { Notification } from '@/types/notification';
@@ -10,7 +9,7 @@ import { markNotificationsReadRequestSchema } from '@/types/notification.schema'
 
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getCurrentApiUser();
 
   const { searchParams } = new URL(request.url);
   const isReadParam = searchParams.get('isRead');

@@ -19,12 +19,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 //      also rolled back.
 // ---------------------------------------------------------------------------
 
-vi.mock('next/headers', () => ({
-  cookies: () => ({
-    get: (name: string) =>
-      name === 'pqm_user_id' ? { value: 'user-001' } : undefined,
-  }),
-}));
+vi.mock('next/headers', async () => {
+  const { sealAuthCookieValueSync } = await import('@/lib/auth-cookie-node');
+  return {
+    cookies: () => ({
+      get: (name: string) =>
+        name === 'pqm_user_id' ? { value: sealAuthCookieValueSync('pqm_user_id', 'user-001') } : undefined,
+    }),
+  };
+});
 
 interface GlobalState {
   __nsmAuditEventStore: unknown;

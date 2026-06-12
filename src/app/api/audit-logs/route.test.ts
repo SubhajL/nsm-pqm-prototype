@@ -10,12 +10,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockUserId: string | undefined = 'user-001';
 
-vi.mock('next/headers', () => ({
-  cookies: () => ({
-    get: (name: string) =>
-      name === 'pqm_user_id' && mockUserId ? { value: mockUserId } : undefined,
-  }),
-}));
+vi.mock('next/headers', async () => {
+  const { sealAuthCookieValueSync } = await import('@/lib/auth-cookie-node');
+  return {
+    cookies: () => ({
+      get: (name: string) =>
+        name === 'pqm_user_id' && mockUserId ? { value: sealAuthCookieValueSync('pqm_user_id', mockUserId) } : undefined,
+    }),
+  };
+});
 
 beforeEach(() => {
   mockUserId = 'user-001';

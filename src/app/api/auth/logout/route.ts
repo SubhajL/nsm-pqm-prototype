@@ -17,12 +17,14 @@ export async function POST(request: Request) {
   response.cookies.set(AUTH_COOKIE_USER_ID, '', {
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: 0,
   });
   response.cookies.set(AUTH_COOKIE_ROLE, '', {
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: 0,
   });

@@ -13,11 +13,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 //   3. Supports both the flat-list GET and the asTree GET (PR-17).
 // ---------------------------------------------------------------------------
 
-vi.mock('next/headers', () => ({
-  cookies: () => ({
-    get: (name: string) => (name === 'pqm_user_id' ? { value: 'user-001' } : undefined),
-  }),
-}));
+vi.mock('next/headers', async () => {
+  const { sealAuthCookieValueSync } = await import('@/lib/auth-cookie-node');
+  return {
+    cookies: () => ({
+      get: (name: string) => (name === 'pqm_user_id' ? { value: sealAuthCookieValueSync('pqm_user_id', 'user-001') } : undefined),
+    }),
+  };
+});
 
 interface GlobalState {
   __nsmUserStore: unknown;

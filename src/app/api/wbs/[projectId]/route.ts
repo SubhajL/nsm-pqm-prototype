@@ -1,14 +1,13 @@
 export const dynamic = 'force-dynamic';
 
-import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { recordAuditEvent } from '@/lib/audit-helpers';
 import {
   canPerformProjectAction,
   forbiddenResponse,
+  getCurrentApiUser,
   requireProjectAccess,
 } from '@/lib/project-api-access';
-import { getActiveUser } from '@/lib/project-access';
-import { cookies } from 'next/headers';
+
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import {
@@ -82,7 +81,7 @@ export async function POST(
   const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getCurrentApiUser();
 
   if (!(await canPerformProjectAction(currentUser, params.projectId, 'edit_wbs'))) {
     return forbiddenResponse('edit_wbs');
@@ -153,7 +152,7 @@ export async function PATCH(
   const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getCurrentApiUser();
   if (!(await canPerformProjectAction(currentUser, params.projectId, 'edit_wbs'))) {
     return forbiddenResponse('edit_wbs');
   }
@@ -212,7 +211,7 @@ export async function DELETE(
   const forbidden = await requireProjectAccess(params.projectId);
   if (forbidden) return forbidden;
 
-  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getCurrentApiUser();
   if (!(await canPerformProjectAction(currentUser, params.projectId, 'edit_wbs'))) {
     return forbiddenResponse('edit_wbs');
   }

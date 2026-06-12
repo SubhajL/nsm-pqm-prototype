@@ -1,10 +1,9 @@
 export const dynamic = 'force-dynamic';
 
-import { cookies } from 'next/headers';
-
-import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
-import { getActiveUser } from '@/lib/project-access';
-import { requireProjectAccess } from '@/lib/project-api-access';
+import {
+  getCurrentApiUser,
+  requireProjectAccess,
+} from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
 import { buildDelayReport } from '@/lib/rid/reporting/delay-report';
 import { buildMonthlyReport } from '@/lib/rid/reporting/monthly-report';
@@ -33,9 +32,7 @@ import {
  * is not visible.
  */
 export async function GET(request: Request) {
-  const currentUser = await getActiveUser(
-    cookies().get(AUTH_COOKIE_USER_ID)?.value,
-  );
+  const currentUser = await getCurrentApiUser();
   if (!currentUser) {
     return Response.json(
       {
