@@ -17,6 +17,7 @@ export type AppMenuKey =
   | 'daily-report'
   | 's-curve'
   | 'work-periods'
+  | 'procurement'
   | 'quality'
   | 'risk'
   | 'issues'
@@ -33,6 +34,7 @@ const MENU_LABELS: Record<AppMenuKey, string> = {
   'daily-report': 'รายงานประจำวัน',
   's-curve': 'งบประมาณ (EVM)',
   'work-periods': 'งวดงาน (Work Periods)',
+  procurement: 'จัดซื้อจัดจ้าง (Procurement)',
   quality: 'คุณภาพ',
   risk: 'ความเสี่ยง',
   issues: 'ปัญหา',
@@ -48,6 +50,7 @@ const PROJECT_SCOPED_MENU_KEYS: AppMenuKey[] = [
   'daily-report',
   's-curve',
   'work-periods',
+  'procurement',
   'quality',
   'risk',
   'issues',
@@ -64,6 +67,7 @@ const ROLE_MENU_ACCESS: Record<UserRole, AppMenuKey[]> = {
     'daily-report',
     's-curve',
     'work-periods',
+    'procurement',
     'quality',
     'risk',
     'issues',
@@ -80,6 +84,7 @@ const ROLE_MENU_ACCESS: Record<UserRole, AppMenuKey[]> = {
     'daily-report',
     's-curve',
     'work-periods',
+    'procurement',
     'quality',
     'risk',
     'issues',
@@ -93,6 +98,7 @@ const ROLE_MENU_ACCESS: Record<UserRole, AppMenuKey[]> = {
     'gantt',
     'daily-report',
     'work-periods',
+    'procurement',
     'quality',
     'risk',
     'issues',
