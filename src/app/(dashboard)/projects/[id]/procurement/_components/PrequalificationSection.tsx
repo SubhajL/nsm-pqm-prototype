@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import {
   Button,
   Card,
@@ -164,10 +165,10 @@ export function PrequalificationSection({
             label="วันที่คัดกรอง (Prequalified At)"
             rules={[{ required: true, message: 'กรุณาระบุวันที่' }]}
           >
-            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
           </Form.Item>
           <Form.Item name="validUntil" label="ใช้ได้ถึง (Valid Until)">
-            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
           </Form.Item>
           <Form.Item name="ahpScore" label="คะแนน AHP (AHP Score)">
             <InputNumber min={0} max={100} style={{ width: '100%' }} />

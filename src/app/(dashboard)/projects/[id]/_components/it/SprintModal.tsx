@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { DatePicker, Form, Input, InputNumber, Modal, message } from 'antd';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import dayjs, { type Dayjs } from 'dayjs';
 
 import { announce } from '@/components/a11y';
@@ -131,7 +132,7 @@ export function SprintModal({
         >
           <DatePicker.RangePicker
             style={{ width: '100%' }}
-            format="YYYY-MM-DD"
+            format={THAI_DATE_FORMAT}
             disabled={isEdit}
           />
         </Form.Item>

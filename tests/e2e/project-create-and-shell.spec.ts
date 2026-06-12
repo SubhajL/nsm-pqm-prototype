@@ -35,13 +35,13 @@ test.describe('project creation and project shell', () => {
     await page.getByPlaceholder('ระบุชื่อโครงการ').fill(projectName);
     await selectOptionByFormLabel(
       page,
-      'ประเภทโครงการ (Project Type)',
+      'ประเภทโครงการ (Project Class)',
       'พัฒนาระบบ IT',
     );
     await page.getByPlaceholder('ระบุวัตถุประสงค์ของโครงการ').fill('E2E validation objective');
     await page.getByPlaceholder('ระบุรายละเอียดเพิ่มเติม (ถ้ามี)').fill('Created by Playwright');
-    await page.getByPlaceholder('เลือกวันที่เริ่มต้น').fill('01/06/2026');
-    await page.getByPlaceholder('เลือกวันที่สิ้นสุด').fill('31/12/2026');
+    await page.getByPlaceholder('เลือกวันที่เริ่มต้น').fill('01/06/2569');
+    await page.getByPlaceholder('เลือกวันที่สิ้นสุด').fill('31/12/2569');
     await selectOptionByFormLabel(
       page,
       'วิธีคำนวณ Progress (Progress Calculation Method)',
@@ -107,7 +107,7 @@ test.describe('project creation and project shell', () => {
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/daily-report$`));
     await page.getByRole('button', { name: /สร้างรายงานใหม่/i }).click();
     const dailyDialog = page.getByRole('dialog', { name: 'สร้างรายงานประจำวัน' });
-    await dailyDialog.getByRole('textbox', { name: /วันที่/i }).fill('16/03/2026');
+    await dailyDialog.getByRole('textbox', { name: /วันที่/i }).fill('16/03/2569');
     await dailyDialog.getByRole('textbox', { name: /สภาพอากาศ/i }).fill('แดดจัด (Sunny)');
     await dailyDialog.getByRole('spinbutton', { name: /อุณหภูมิ/i }).fill('33');
     await dailyDialog.getByRole('button', { name: 'เพิ่มบุคลากร' }).click();

@@ -21,6 +21,7 @@ import {
   message,
 } from 'antd';
 import type { FormInstance } from 'antd';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import {
   DeleteOutlined,
   MinusCircleOutlined,
@@ -148,7 +149,7 @@ export function CreateReportModal({
       >
         <div data-wizard-step="site-info" style={stepStyleFor(0)}>
         <Form.Item label="วันที่" name="date" rules={[{ required: true, message: 'กรุณาเลือกวันที่' }]}>
-          <DatePicker aria-label="วันที่" style={{ width: '100%' }} format="DD/MM/YYYY" />
+          <DatePicker aria-label="วันที่" style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
         </Form.Item>
         <Form.Item label="สภาพอากาศ" name="weather" rules={[{ required: true, message: 'กรุณาเลือกสภาพอากาศ' }]}>
           <Input aria-label="สภาพอากาศ" placeholder="เช่น แดดจัด (Sunny)" />

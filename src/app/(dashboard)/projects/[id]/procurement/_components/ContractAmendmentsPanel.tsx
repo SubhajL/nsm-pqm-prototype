@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import {
   Button,
   DatePicker,
@@ -146,7 +147,7 @@ export function ContractAmendmentsPanel({
             label="วันที่ลงนามแก้ไข (Amended At)"
             rules={[{ required: true, message: 'กรุณาระบุวันที่' }]}
           >
-            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
           </Form.Item>
           <Form.Item
             name="amountDelta"

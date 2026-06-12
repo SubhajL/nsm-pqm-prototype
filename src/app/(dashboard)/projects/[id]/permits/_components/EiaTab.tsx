@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import {
   Button,
   DatePicker,
@@ -219,7 +220,7 @@ export function EiaTab({ projectId, canManage }: EiaTabProps) {
             />
           </Form.Item>
           <Form.Item name="approvedAt" label="วันที่อนุมัติ (Approved At)">
-            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
           </Form.Item>
           <Form.Item name="approvalReference" label="เลขที่อนุมัติ (Approval Reference)">
             <Input placeholder="เลขที่หนังสืออนุมัติ (ถ้ามี)" />

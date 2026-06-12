@@ -10,6 +10,7 @@ import {
   Select,
   Typography,
 } from 'antd';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 
 import { formatBahtLive, parseBahtLive } from '@/lib/baht-live-format';
 
@@ -43,7 +44,7 @@ export function TimelineBudgetSection({
           >
             <DatePicker
               style={{ width: '100%' }}
-              format="DD/MM/YYYY"
+              format={THAI_DATE_FORMAT}
               placeholder="เลือกวันที่เริ่มต้น"
             />
           </Form.Item>
@@ -56,7 +57,7 @@ export function TimelineBudgetSection({
           >
             <DatePicker
               style={{ width: '100%' }}
-              format="DD/MM/YYYY"
+              format={THAI_DATE_FORMAT}
               placeholder="เลือกวันที่สิ้นสุด"
             />
           </Form.Item>

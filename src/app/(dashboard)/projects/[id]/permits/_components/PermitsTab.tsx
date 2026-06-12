@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import {
   Button,
   DatePicker,
@@ -201,10 +202,10 @@ export function PermitsTab({ projectId, canManage }: PermitsTabProps) {
             />
           </Form.Item>
           <Form.Item name="issuedAt" label="วันที่ออก (Issued At)">
-            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
           </Form.Item>
           <Form.Item name="expiresAt" label="วันหมดอายุ (Expires At)">
-            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
           </Form.Item>
         </Form>
       </Modal>

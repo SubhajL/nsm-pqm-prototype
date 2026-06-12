@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { THAI_DATE_FORMAT } from '@/lib/antd-thai-locale';
 import {
   Button,
   DatePicker,
@@ -131,7 +132,7 @@ export function AssetSection({ packetId, assets, canManage }: AssetSectionProps)
             label="วันที่ติดตั้ง (Installed At)"
             rules={[{ required: true, message: 'กรุณาระบุวันที่ติดตั้ง' }]}
           >
-            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: '100%' }} format={THAI_DATE_FORMAT} />
           </Form.Item>
           <Form.Item
             name="installedLocation"
