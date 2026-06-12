@@ -19,6 +19,7 @@ export type AppMenuKey =
   | 'work-periods'
   | 'procurement'
   | 'handover'
+  | 'permits'
   | 'quality'
   | 'risk'
   | 'issues'
@@ -37,6 +38,7 @@ const MENU_LABELS: Record<AppMenuKey, string> = {
   'work-periods': 'งวดงาน (Work Periods)',
   procurement: 'จัดซื้อจัดจ้าง (Procurement)',
   handover: 'การส่งมอบงาน (Handover)',
+  permits: 'ใบอนุญาตและที่ดิน (Permits & Land)',
   quality: 'คุณภาพ',
   risk: 'ความเสี่ยง',
   issues: 'ปัญหา',
@@ -54,6 +56,7 @@ const PROJECT_SCOPED_MENU_KEYS: AppMenuKey[] = [
   'work-periods',
   'procurement',
   'handover',
+  'permits',
   'quality',
   'risk',
   'issues',
@@ -72,6 +75,7 @@ const ROLE_MENU_ACCESS: Record<UserRole, AppMenuKey[]> = {
     'work-periods',
     'procurement',
     'handover',
+    'permits',
     'quality',
     'risk',
     'issues',
@@ -90,6 +94,7 @@ const ROLE_MENU_ACCESS: Record<UserRole, AppMenuKey[]> = {
     'work-periods',
     'procurement',
     'handover',
+    'permits',
     'quality',
     'risk',
     'issues',
@@ -105,6 +110,7 @@ const ROLE_MENU_ACCESS: Record<UserRole, AppMenuKey[]> = {
     'work-periods',
     'procurement',
     'handover',
+    'permits',
     'quality',
     'risk',
     'issues',
