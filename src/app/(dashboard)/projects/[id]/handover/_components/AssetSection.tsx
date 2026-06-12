@@ -6,7 +6,6 @@ import {
   DatePicker,
   Form,
   Input,
-  InputNumber,
   List,
   Select,
   Space,
@@ -17,7 +16,7 @@ import {
 import type { Dayjs } from 'dayjs';
 
 import { announce } from '@/components/a11y';
-import { EmptyState } from '@/components/common';
+import { BahtInput, EmptyState } from '@/components/common';
 import { useCreateAssetRegistration } from '@/hooks/useHandover';
 import { formatBaht, formatThaiDateShort } from '@/lib/date-utils';
 import {
@@ -146,12 +145,7 @@ export function AssetSection({ packetId, assets, canManage }: AssetSectionProps)
             label="มูลค่าเริ่มต้น (Initial Value, บาท)"
             rules={[{ required: true, message: 'กรุณาระบุมูลค่า' }]}
           >
-            <InputNumber<number>
-              min={0}
-              style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => Number((value ?? '').replace(/,/g, ''))}
-            />
+            <BahtInput min={0} />
           </Form.Item>
           <Space>
             <Button

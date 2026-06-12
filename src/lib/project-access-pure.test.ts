@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { canAccessMenuItem, isProjectScopedMenuItem } from './project-access-pure';
+import {
+  canAccessMenuItem,
+  canEditProjectBasics,
+  isProjectScopedMenuItem,
+} from './project-access-pure';
 
 describe('work-periods menu access (PR work-periods)', () => {
   it('grants work-periods to the roles that can run the payment flow', () => {
@@ -91,5 +95,25 @@ describe('permits menu access (PR permits-land-eia-ui)', () => {
 
   it('marks permits as a project-scoped menu item', () => {
     expect(isProjectScopedMenuItem('permits')).toBe(true);
+  });
+});
+
+describe('canEditProjectBasics (PR-31 cleanup)', () => {
+  it('grants edit-basics to the two managing roles', () => {
+    expect(canEditProjectBasics('System Admin')).toBe(true);
+    expect(canEditProjectBasics('Project Manager')).toBe(true);
+  });
+
+  it('withholds edit-basics from every read-only role', () => {
+    expect(canEditProjectBasics('Engineer')).toBe(false);
+    expect(canEditProjectBasics('Coordinator')).toBe(false);
+    expect(canEditProjectBasics('Team Member')).toBe(false);
+    expect(canEditProjectBasics('Executive')).toBe(false);
+    expect(canEditProjectBasics('Consultant')).toBe(false);
+  });
+
+  it('returns false for null / undefined roles', () => {
+    expect(canEditProjectBasics(null)).toBe(false);
+    expect(canEditProjectBasics(undefined)).toBe(false);
   });
 });

@@ -53,11 +53,11 @@ export function useTransitionProcurementPackage(projectId: string | undefined) {
   return useMutation<
     ProcurementPackage,
     Error,
-    { packageId: string; to: ProcurementState }
+    { packageId: string; targetState: ProcurementState }
   >({
-    mutationFn: ({ packageId, to }) =>
+    mutationFn: ({ packageId, targetState }) =>
       apiPost<ProcurementPackage>(`/procurement-packages/${packageId}/transition`, {
-        to,
+        targetState,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({

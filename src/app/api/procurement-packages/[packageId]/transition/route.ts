@@ -15,7 +15,7 @@ import { transitionProcurementRequestSchema } from '@/types/procurement-package.
 /**
  * POST /api/procurement-packages/[packageId]/transition
  *
- * Body: `{ to: ProcurementState }`. Validates the move against
+ * Body: `{ targetState: ProcurementState }` (legacy `{ to }` accepted). Validates the move against
  * `canTransitionProcurement()` and rejects with 422 INVALID_TRANSITION on
  * illegal edges.
  *
@@ -53,7 +53,7 @@ export async function POST(
     return forbiddenResponse('edit_basic');
   }
 
-  const check = canTransitionProcurement(pkg.state, parsed.data.to);
+  const check = canTransitionProcurement(pkg.state, parsed.data.targetState);
   if (!check.ok) {
     return Response.json(
       {
@@ -73,7 +73,7 @@ export async function POST(
   const UPDATE_NULL = Symbol('PROC_PKG_UPDATE_RETURNED_NULL');
   const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
     const result = await txRepos.procurementPackages.update(pkg.id, {
-      state: parsed.data.to,
+      state: parsed.data.targetState,
     });
     if (!result) {
       throw UPDATE_NULL;

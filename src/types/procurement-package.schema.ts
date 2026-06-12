@@ -30,11 +30,32 @@ export type CreateProcurementPackageRequest = z.infer<
   typeof createProcurementPackageRequestSchema
 >;
 
-export const transitionProcurementRequestSchema = z
-  .object({
-    to: procurementStateSchema,
-  })
-  .strict();
+/**
+ * PR-31 cleanup — the canonical transition body is `{ targetState }`,
+ * matching work-periods / handover / vendor-SOWs. The legacy `{ to }`
+ * spelling (PR-24) is still accepted and normalized via preprocess;
+ * a body carrying BOTH spellings is rejected by `.strict()` because the
+ * leftover `to` key survives preprocessing as an unknown field.
+ */
+export const transitionProcurementRequestSchema = z.preprocess(
+  (raw) => {
+    if (
+      raw !== null &&
+      typeof raw === 'object' &&
+      'to' in raw &&
+      !('targetState' in raw)
+    ) {
+      const { to, ...rest } = raw as Record<string, unknown>;
+      return { ...rest, targetState: to };
+    }
+    return raw;
+  },
+  z
+    .object({
+      targetState: procurementStateSchema,
+    })
+    .strict(),
+);
 
 export type TransitionProcurementRequest = z.infer<
   typeof transitionProcurementRequestSchema

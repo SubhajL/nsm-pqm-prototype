@@ -54,7 +54,7 @@ export function PackageDetailDrawer({
   const runTransition = async (to: ProcurementState) => {
     if (!packageId) return;
     try {
-      await transition.mutateAsync({ packageId, to });
+      await transition.mutateAsync({ packageId, targetState: to });
       message.success(`อัปเดตชุดจัดซื้อเป็น "${PROCUREMENT_STATE_LABELS[to].th}" แล้ว`);
       announce(`อัปเดตสถานะชุดจัดซื้อเป็น ${PROCUREMENT_STATE_LABELS[to].th}`);
     } catch (error) {

@@ -14,6 +14,7 @@ import {
   canTransitionProcurement,
   isEstimateBasisCompatible,
 } from '@/lib/rid/procurement-helpers';
+import { canEditProjectBasics } from '@/lib/project-access-pure';
 import type { UserRole } from '@/types/admin';
 import type { AwardedContract } from '@/types/awarded-contract';
 import type { ContractAmendment } from '@/types/contract-amendment';
@@ -39,13 +40,13 @@ export function getLegalNextProcurementStates(
 
 /**
  * Whether the current user may create packages / file TORs / record
- * transitions on this surface. Mirrors the งวดงาน rule: System Admin and
- * Project Manager manage; everyone else reads. The server independently
- * enforces `edit_basic` per project.
+ * transitions on this surface. Thin alias over the central
+ * `canEditProjectBasics` rule (PR-31 cleanup); kept under the local name
+ * so the surface's call sites and tests read naturally.
  */
-export function canManageProcurement(role: UserRole | null | undefined): boolean {
-  return role === 'System Admin' || role === 'Project Manager';
-}
+export const canManageProcurement: (
+  role: UserRole | null | undefined,
+) => boolean = canEditProjectBasics;
 
 /** Effective contract view after folding amendments, plus how many applied. */
 export interface EffectiveContractView {

@@ -53,19 +53,44 @@ describe('createProcurementPackageRequestSchema', () => {
 });
 
 describe('transitionProcurementRequestSchema', () => {
-  it('accepts a valid target state', () => {
+  it('accepts the canonical { targetState } body', () => {
+    const result = transitionProcurementRequestSchema.safeParse({
+      targetState: 'tor_review',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.targetState).toBe('tor_review');
+    }
+  });
+
+  it('accepts the legacy { to } body and normalizes to targetState', () => {
     const result = transitionProcurementRequestSchema.safeParse({
       to: 'tor_review',
     });
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.targetState).toBe('tor_review');
+    }
   });
 
-  it('rejects an unknown target state', () => {
-    const result = transitionProcurementRequestSchema.safeParse({ to: 'foo' });
+  it('rejects an unknown target state under both spellings', () => {
+    expect(transitionProcurementRequestSchema.safeParse({ to: 'foo' }).success).toBe(
+      false,
+    );
+    expect(
+      transitionProcurementRequestSchema.safeParse({ targetState: 'foo' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a body carrying BOTH spellings (ambiguous)', () => {
+    const result = transitionProcurementRequestSchema.safeParse({
+      to: 'tor_review',
+      targetState: 'tor_review',
+    });
     expect(result.success).toBe(false);
   });
 
-  it('rejects missing `to`', () => {
+  it('rejects an empty body', () => {
     const result = transitionProcurementRequestSchema.safeParse({});
     expect(result.success).toBe(false);
   });

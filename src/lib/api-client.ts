@@ -1,5 +1,28 @@
 const BASE_URL = '/api';
 
+/**
+ * Server error envelopes carry route-specific fields beyond code/message
+ * (e.g. `missing[]` on INCOMPLETE_HANDOVER, `requiredEvidence` on
+ * EVIDENCE_REQUIRED, `reason` on state-machine rejections). The index
+ * signature keeps those reachable without per-route client types.
+ */
+export interface ApiErrorPayload {
+  code: string;
+  message: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Shape of every error thrown by `apiFetch`. `details` is the FULL
+ * `error` object from the server envelope, so UI error handlers can
+ * render structured data instead of re-deriving it client-side.
+ */
+export type ApiError = Error & {
+  status?: number;
+  code?: string;
+  details?: ApiErrorPayload;
+};
+
 interface ApiResponse<T> {
   status: 'success' | 'error';
   data: T;
@@ -9,10 +32,7 @@ interface ApiResponse<T> {
     totalItems: number;
     totalPages: number;
   };
-  error?: {
-    code: string;
-    message: string;
-  };
+  error?: ApiErrorPayload;
 }
 
 export async function apiFetch<T>(
@@ -33,10 +53,11 @@ export async function apiFetch<T>(
   if (!res.ok) {
     const error = new Error(
       payload?.error?.message ?? `API error: ${res.status} ${res.statusText}`,
-    ) as Error & { status?: number; code?: string };
+    ) as ApiError;
     error.name = 'ApiError';
     error.status = res.status;
     error.code = payload?.error?.code;
+    error.details = payload?.error;
     throw error;
   }
   return payload;

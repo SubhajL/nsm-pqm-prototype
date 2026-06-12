@@ -6,7 +6,7 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "DATABASE_URL=postgresql://localhost:5432/nsm_pqm_dev next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -17,7 +17,12 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate-db.ts",
-    "db:seed": "tsx scripts/backfill-db-from-fixtures.ts"
+    "db:seed": "tsx scripts/backfill-db-from-fixtures.ts",
+    "dev:local": "DATABASE_URL=postgresql://localhost:5432/nsm_pqm_dev next dev",
+    "db:migrate:local": "DATABASE_URL=postgresql://localhost:5432/nsm_pqm_dev tsx scripts/migrate-db.ts",
+    "db:seed:local": "DATABASE_URL=postgresql://localhost:5432/nsm_pqm_dev tsx scripts/backfill-db-from-fixtures.ts",
+    "db:promote:preview": "tsx scripts/promote-db.ts --target preview",
+    "db:promote:prod": "tsx scripts/promote-db.ts --target prod"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.2",
