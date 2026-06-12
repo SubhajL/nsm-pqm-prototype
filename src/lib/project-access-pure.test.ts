@@ -24,3 +24,26 @@ describe('work-periods menu access (PR work-periods)', () => {
     expect(isProjectScopedMenuItem('work-periods')).toBe(true);
   });
 });
+
+describe('procurement menu access (PR procurement-ui)', () => {
+  it('grants procurement to the roles that run solicitations', () => {
+    expect(canAccessMenuItem('System Admin', 'procurement')).toBe(true);
+    expect(canAccessMenuItem('Project Manager', 'procurement')).toBe(true);
+    expect(canAccessMenuItem('Engineer', 'procurement')).toBe(true);
+  });
+
+  it('withholds procurement from roles outside the procurement flow', () => {
+    expect(canAccessMenuItem('Coordinator', 'procurement')).toBe(false);
+    expect(canAccessMenuItem('Team Member', 'procurement')).toBe(false);
+    expect(canAccessMenuItem('Executive', 'procurement')).toBe(false);
+    expect(canAccessMenuItem('Consultant', 'procurement')).toBe(false);
+  });
+
+  it('returns false for procurement when role is null', () => {
+    expect(canAccessMenuItem(null, 'procurement')).toBe(false);
+  });
+
+  it('marks procurement as a project-scoped menu item', () => {
+    expect(isProjectScopedMenuItem('procurement')).toBe(true);
+  });
+});

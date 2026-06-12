@@ -1,7 +1,9 @@
 import { Tag } from 'antd';
 import { PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 import { resolveHealthVisual } from '@/theme/health-visual';
+import { CONTRACT_STATE_LABELS } from '@/types/awarded-contract';
 import { PAYMENT_VOUCHER_STATE_LABELS } from '@/types/payment-voucher';
+import { PROCUREMENT_STATE_LABELS } from '@/types/procurement-package';
 import { WORK_PERIOD_STATE_LABELS } from '@/types/work-period';
 
 type StatusEntry = { label: string; color: string };
@@ -82,6 +84,11 @@ const ISSUE_STATUS: Record<string, StatusEntry> = {
 const WORK_PERIOD_STATUS = fromStateLabels(WORK_PERIOD_STATE_LABELS);
 const PAYMENT_VOUCHER_STATUS = fromStateLabels(PAYMENT_VOUCHER_STATE_LABELS);
 
+// จัดซื้อจัดจ้าง (procurement) + สัญญา (awarded-contract) domain statuses.
+// Sourced from the `*_STATE_LABELS` SSOT in the type modules.
+const PROCUREMENT_STATUS = fromStateLabels(PROCUREMENT_STATE_LABELS);
+const CONTRACT_STATUS = fromStateLabels(CONTRACT_STATE_LABELS);
+
 const STATUS_MAPS: Record<string, Record<string, StatusEntry>> = {
   project: PROJECT_STATUS,
   milestone: MILESTONE_STATUS,
@@ -90,6 +97,8 @@ const STATUS_MAPS: Record<string, Record<string, StatusEntry>> = {
   issue: ISSUE_STATUS,
   workPeriod: WORK_PERIOD_STATUS,
   paymentVoucher: PAYMENT_VOUCHER_STATUS,
+  procurement: PROCUREMENT_STATUS,
+  contract: CONTRACT_STATUS,
 };
 
 interface StatusBadgeProps {
@@ -101,7 +110,9 @@ interface StatusBadgeProps {
     | 'risk'
     | 'issue'
     | 'workPeriod'
-    | 'paymentVoucher';
+    | 'paymentVoucher'
+    | 'procurement'
+    | 'contract';
 }
 
 export function StatusBadge({ status, type = 'project' }: StatusBadgeProps) {
