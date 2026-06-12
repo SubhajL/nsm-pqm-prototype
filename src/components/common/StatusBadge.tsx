@@ -2,6 +2,7 @@ import { Tag } from 'antd';
 import { PROJECT_STATUS_COLORS } from '@/theme/antd-theme';
 import { resolveHealthVisual } from '@/theme/health-visual';
 import { CONTRACT_STATE_LABELS } from '@/types/awarded-contract';
+import { HANDOVER_STATE_LABELS } from '@/types/handover-packet';
 import { PAYMENT_VOUCHER_STATE_LABELS } from '@/types/payment-voucher';
 import { PROCUREMENT_STATE_LABELS } from '@/types/procurement-package';
 import { WORK_PERIOD_STATE_LABELS } from '@/types/work-period';
@@ -88,6 +89,8 @@ const PAYMENT_VOUCHER_STATUS = fromStateLabels(PAYMENT_VOUCHER_STATE_LABELS);
 // Sourced from the `*_STATE_LABELS` SSOT in the type modules.
 const PROCUREMENT_STATUS = fromStateLabels(PROCUREMENT_STATE_LABELS);
 const CONTRACT_STATUS = fromStateLabels(CONTRACT_STATE_LABELS);
+// การส่งมอบ-รับมอบ (handover packet) domain statuses.
+const HANDOVER_STATUS = fromStateLabels(HANDOVER_STATE_LABELS);
 
 const STATUS_MAPS: Record<string, Record<string, StatusEntry>> = {
   project: PROJECT_STATUS,
@@ -99,6 +102,7 @@ const STATUS_MAPS: Record<string, Record<string, StatusEntry>> = {
   paymentVoucher: PAYMENT_VOUCHER_STATUS,
   procurement: PROCUREMENT_STATUS,
   contract: CONTRACT_STATUS,
+  handover: HANDOVER_STATUS,
 };
 
 interface StatusBadgeProps {
@@ -112,7 +116,8 @@ interface StatusBadgeProps {
     | 'workPeriod'
     | 'paymentVoucher'
     | 'procurement'
-    | 'contract';
+    | 'contract'
+    | 'handover';
 }
 
 export function StatusBadge({ status, type = 'project' }: StatusBadgeProps) {

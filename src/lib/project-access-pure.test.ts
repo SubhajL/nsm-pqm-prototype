@@ -47,3 +47,26 @@ describe('procurement menu access (PR procurement-ui)', () => {
     expect(isProjectScopedMenuItem('procurement')).toBe(true);
   });
 });
+
+describe('handover menu access (PR handover-ui)', () => {
+  it('grants handover to the roles that run SOP 8.1 handovers', () => {
+    expect(canAccessMenuItem('System Admin', 'handover')).toBe(true);
+    expect(canAccessMenuItem('Project Manager', 'handover')).toBe(true);
+    expect(canAccessMenuItem('Engineer', 'handover')).toBe(true);
+  });
+
+  it('withholds handover from roles outside the handover flow', () => {
+    expect(canAccessMenuItem('Coordinator', 'handover')).toBe(false);
+    expect(canAccessMenuItem('Team Member', 'handover')).toBe(false);
+    expect(canAccessMenuItem('Executive', 'handover')).toBe(false);
+    expect(canAccessMenuItem('Consultant', 'handover')).toBe(false);
+  });
+
+  it('returns false for handover when role is null', () => {
+    expect(canAccessMenuItem(null, 'handover')).toBe(false);
+  });
+
+  it('marks handover as a project-scoped menu item', () => {
+    expect(isProjectScopedMenuItem('handover')).toBe(true);
+  });
+});
