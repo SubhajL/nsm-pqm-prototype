@@ -5,6 +5,7 @@ import { CONTRACT_STATE_LABELS } from '@/types/awarded-contract';
 import { HANDOVER_STATE_LABELS } from '@/types/handover-packet';
 import { PAYMENT_VOUCHER_STATE_LABELS } from '@/types/payment-voucher';
 import { PROCUREMENT_STATE_LABELS } from '@/types/procurement-package';
+import { SOW_STATE_LABELS } from '@/types/vendor-sow';
 import { WORK_PERIOD_STATE_LABELS } from '@/types/work-period';
 
 type StatusEntry = { label: string; color: string };
@@ -91,6 +92,8 @@ const PROCUREMENT_STATUS = fromStateLabels(PROCUREMENT_STATE_LABELS);
 const CONTRACT_STATUS = fromStateLabels(CONTRACT_STATE_LABELS);
 // การส่งมอบ-รับมอบ (handover packet) domain statuses.
 const HANDOVER_STATUS = fromStateLabels(HANDOVER_STATE_LABELS);
+// สัญญาผู้ขาย (vendor SOW, IT-class DT6) domain statuses.
+const VENDOR_SOW_STATUS = fromStateLabels(SOW_STATE_LABELS);
 
 const STATUS_MAPS: Record<string, Record<string, StatusEntry>> = {
   project: PROJECT_STATUS,
@@ -103,6 +106,7 @@ const STATUS_MAPS: Record<string, Record<string, StatusEntry>> = {
   procurement: PROCUREMENT_STATUS,
   contract: CONTRACT_STATUS,
   handover: HANDOVER_STATUS,
+  vendorSow: VENDOR_SOW_STATUS,
 };
 
 interface StatusBadgeProps {
@@ -117,7 +121,8 @@ interface StatusBadgeProps {
     | 'paymentVoucher'
     | 'procurement'
     | 'contract'
-    | 'handover';
+    | 'handover'
+    | 'vendorSow';
 }
 
 export function StatusBadge({ status, type = 'project' }: StatusBadgeProps) {
