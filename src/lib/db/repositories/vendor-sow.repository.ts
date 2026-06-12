@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { vendorSows } from '@/lib/db/schema';
@@ -46,6 +46,30 @@ export class DatabaseVendorSowRepository implements VendorSowRepository {
       .update(vendorSows)
       .set(sowToRow(merged))
       .where(eq(vendorSows.id, id))
+      .returning();
+    return row ? rowToSow(row) : null;
+  }
+
+
+  /**
+   * PR-34 — compare-and-swap update: applies `patch` only while the
+   * row's state still equals `expected`. The UPDATE itself carries
+   * `WHERE id = ? AND state = ?`, so a transition raced by another
+   * writer matches zero rows and returns null instead of clobbering.
+   * Callers map null to 409 STATE_CONFLICT.
+   */
+  async updateIfState(
+    id: string,
+    expected: VendorSow['state'],
+    patch: Partial<VendorSow>,
+  ): Promise<VendorSow | null> {
+    const existing = await this.findById(id);
+    if (!existing || existing.state !== expected) return null;
+    const merged: VendorSow = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(vendorSows)
+      .set(sowToRow(merged))
+      .where(and(eq(vendorSows.id, id), eq(vendorSows.state, expected)))
       .returning();
     return row ? rowToSow(row) : null;
   }

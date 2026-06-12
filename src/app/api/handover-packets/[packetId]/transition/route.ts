@@ -14,6 +14,7 @@ import {
   isHandoverComplete,
 } from '@/lib/rid/handover-helpers';
 import { parseRequestBody } from '@/lib/validation';
+import { STATE_CONFLICT, stateConflictResponse } from '@/lib/state-conflict';
 import type {
   HandoverPacket,
   HandoverState,
@@ -188,7 +189,9 @@ export async function POST(
   // between the two can't leave the gov't audit trail out of sync
   // with the persisted state.
   const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
-    const result = await txRepos.handoverPackets.update(packet.id, patch);
+    // PR-34 — compare-and-swap: only while still in the pre-checked state.
+    const result = await txRepos.handoverPackets.updateIfState(packet.id, packet.state, patch);
+    if (!result) throw STATE_CONFLICT;
     await appendAudit({
       action: 'transition_handover_packet',
       resourceType: 'handover_packet',
@@ -207,7 +210,14 @@ export async function POST(
       actor: currentUser,
     });
     return result;
+  }).catch((err: unknown) => {
+    if (err === STATE_CONFLICT) return null;
+    throw err;
   });
 
-  return Response.json({ status: 'success', data: updated ?? packet });
+  if (!updated) {
+    return stateConflictResponse('ชุดส่งมอบ (Handover packet)');
+  }
+
+  return Response.json({ status: 'success', data: updated });
 }

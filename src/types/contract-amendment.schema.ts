@@ -4,12 +4,13 @@
 
 import { z } from 'zod';
 
+/**
+ * PR-34 — `amendmentNumber` is SERVER-ASSIGNED (latest + 1 per
+ * contract); clients no longer send it. `.strict()` rejects any body
+ * still carrying one.
+ */
 export const createContractAmendmentRequestSchema = z
   .object({
-    amendmentNumber: z
-      .number()
-      .int()
-      .min(1, 'amendmentNumber must be >= 1'),
     amendedAt: z.string().min(1, 'amendedAt is required'),
     amountDelta: z.number(),
     scheduleDeltaDays: z.number().int(),

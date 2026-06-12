@@ -10,6 +10,7 @@ import {
 import { getRepositories } from '@/lib/repositories';
 import { canTransitionChangeRequest } from '@/lib/rid/change-request-routing';
 import { parseRequestBody } from '@/lib/validation';
+import { STATE_CONFLICT, stateConflictResponse } from '@/lib/state-conflict';
 import { transitionChangeRequestSchema } from '@/types/change-request.schema';
 import type { ChangeRequest } from '@/types/document';
 
@@ -113,7 +114,10 @@ export async function POST(
   // Phase 2-A — wrap the update + audit append in a single transaction.
   // A crash between the two would otherwise lose the gov't-audit entry.
   const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
-    const result = await txRepos.changeRequests.update(cr.id, patch);
+    // PR-34 — compare-and-swap: only while the CR still holds the
+    // pre-checked status.
+    const result = await txRepos.changeRequests.updateIfState(cr.id, cr.status, patch);
+    if (!result) throw STATE_CONFLICT;
     await appendAudit({
       action: 'transition_change_request',
       resourceType: 'change_request',
@@ -126,7 +130,14 @@ export async function POST(
       actor,
     });
     return result;
+  }).catch((err: unknown) => {
+    if (err === STATE_CONFLICT) return null;
+    throw err;
   });
+
+  if (!updated) {
+    return stateConflictResponse('คำขอเปลี่ยนแปลง (Change request)');
+  }
 
   return Response.json({ status: 'success', data: updated, terminal: isTerminal });
 }

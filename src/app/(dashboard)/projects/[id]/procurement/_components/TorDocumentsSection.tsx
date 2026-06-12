@@ -30,21 +30,23 @@ export function TorDocumentsSection({ packageId, canManage }: TorDocumentsSectio
   const createTor = useCreateTorDocument(packageId);
 
   const list = [...(tors ?? [])].sort((a, b) => b.version - a.version);
-  const nextVersion = list.length === 0 ? 1 : list[0].version + 1;
+  // Display-only hint for the CTA label; the authoritative version is
+  // assigned server-side (PR-34) and read off the response.
+  const nextVersionHint = list.length === 0 ? 1 : list[0].version + 1;
 
   const handleSubmit = async () => {
     const values = await form.validateFields().catch(() => null);
     if (!values) return;
     try {
-      await createTor.mutateAsync({
-        version: nextVersion,
+      // PR-34 — `version` is assigned server-side (latest + 1).
+      const created = await createTor.mutateAsync({
         scopeSummary: values.scopeSummary.trim(),
         technicalRequirements: values.technicalRequirements.trim(),
         deliverySchedule: values.deliverySchedule.trim(),
         evaluationCriteria: values.evaluationCriteria.trim(),
       });
-      message.success(`บันทึก TOR ฉบับที่ ${nextVersion} แล้ว`);
-      announce(`บันทึกเอกสาร TOR ฉบับที่ ${nextVersion} เรียบร้อยแล้ว`);
+      message.success(`บันทึก TOR ฉบับที่ ${created.version} แล้ว`);
+      announce(`บันทึกเอกสาร TOR ฉบับที่ ${created.version} เรียบร้อยแล้ว`);
       form.resetFields();
       setFormOpen(false);
     } catch (error) {
@@ -83,7 +85,7 @@ export function TorDocumentsSection({ packageId, canManage }: TorDocumentsSectio
 
       {canManage && !formOpen && (
         <Button onClick={() => setFormOpen(true)} style={{ marginTop: 8 }}>
-          {`ยื่น TOR ฉบับที่ ${nextVersion} (File TOR v${nextVersion})`}
+          {`ยื่น TOR ฉบับที่ ${nextVersionHint} (File TOR v${nextVersionHint})`}
         </Button>
       )}
 

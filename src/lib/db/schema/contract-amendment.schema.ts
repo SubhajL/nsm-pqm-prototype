@@ -1,4 +1,4 @@
-import { integer, numeric, pgTable, text } from 'drizzle-orm/pg-core';
+import { integer, numeric, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const contractAmendments = pgTable('contract_amendments', {
   id: text('id').primaryKey(),
@@ -10,7 +10,13 @@ export const contractAmendments = pgTable('contract_amendments', {
   reason: text('reason').notNull(),
   approvedBy: text('approved_by').notNull(),
   documentFileId: text('document_file_id'),
-});
+}, (table) => ({
+  // PR-34 — amendment numbers are server-assigned per contract.
+  contractNumberUq: uniqueIndex('contract_amendments_contract_number_uq').on(
+    table.contractId,
+    table.amendmentNumber,
+  ),
+}));
 
 export type ContractAmendmentRow = typeof contractAmendments.$inferSelect;
 export type ContractAmendmentInsert = typeof contractAmendments.$inferInsert;

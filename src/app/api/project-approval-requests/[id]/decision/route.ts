@@ -13,6 +13,7 @@ import {
   nextApproverRoleForState,
 } from '@/lib/rid/change-request-routing';
 import { parseRequestBody } from '@/lib/validation';
+import { STATE_CONFLICT, stateConflictResponse } from '@/lib/state-conflict';
 import type {
   ApprovalDecision,
   ApprovalRequestState,
@@ -155,7 +156,17 @@ export async function POST(
 
   // Phase 2-A — transaction-wrap the state-machine advance + audit.
   const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
-    const result = await txRepos.projectApprovalRequests.update(par.id, patch);
+    // PR-34 — compare-and-swap on state AND history length: a
+    // `request_changes` decision keeps the state, so the history-length
+    // predicate is what makes a raced decision lose instead of dropping
+    // the other reviewer's append-only history entry.
+    const result = await txRepos.projectApprovalRequests.updateIfStateAndHistoryLength(
+      par.id,
+      par.state,
+      par.decisionHistory.length,
+      patch,
+    );
+    if (!result) throw STATE_CONFLICT;
     await appendAudit({
       action: 'decide_project_approval_request',
       resourceType: 'project_approval_request',
@@ -168,7 +179,14 @@ export async function POST(
       actor,
     });
     return result;
+  }).catch((err: unknown) => {
+    if (err === STATE_CONFLICT) return null;
+    throw err;
   });
+
+  if (!updated) {
+    return stateConflictResponse('คำขออนุมัติโครงการ (Approval request)');
+  }
 
   return Response.json({ status: 'success', data: updated });
 }

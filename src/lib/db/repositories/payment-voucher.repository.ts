@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { paymentVouchers } from '@/lib/db/schema';
@@ -71,6 +71,30 @@ export class DatabasePaymentVoucherRepository
       .update(paymentVouchers)
       .set(voucherToRow(merged))
       .where(eq(paymentVouchers.id, id))
+      .returning();
+    return row ? rowToVoucher(row) : null;
+  }
+
+
+  /**
+   * PR-34 — compare-and-swap update: applies `patch` only while the
+   * row's state still equals `expected`. The UPDATE itself carries
+   * `WHERE id = ? AND state = ?`, so a transition raced by another
+   * writer matches zero rows and returns null instead of clobbering.
+   * Callers map null to 409 STATE_CONFLICT.
+   */
+  async updateIfState(
+    id: string,
+    expected: PaymentVoucher['state'],
+    patch: Partial<PaymentVoucher>,
+  ): Promise<PaymentVoucher | null> {
+    const existing = await this.findById(id);
+    if (!existing || existing.state !== expected) return null;
+    const merged: PaymentVoucher = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(paymentVouchers)
+      .set(voucherToRow(merged))
+      .where(and(eq(paymentVouchers.id, id), eq(paymentVouchers.state, expected)))
       .returning();
     return row ? rowToVoucher(row) : null;
   }

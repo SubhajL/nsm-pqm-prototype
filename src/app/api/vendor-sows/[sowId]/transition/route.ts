@@ -11,6 +11,7 @@ import { getRepositories } from '@/lib/repositories';
 import { canTransitionSow } from '@/lib/rid/it-class-helpers';
 import { requireItProject } from '@/lib/rid/it-project-guard';
 import { parseRequestBody } from '@/lib/validation';
+import { STATE_CONFLICT, stateConflictResponse } from '@/lib/state-conflict';
 import { transitionVendorSowRequestSchema } from '@/types/vendor-sow.schema';
 
 /**
@@ -96,7 +97,9 @@ export async function POST(
   }
 
   const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
-    const result = await txRepos.vendorSows.update(sow.id, patch);
+    // PR-34 — compare-and-swap: only while still in the pre-checked state.
+    const result = await txRepos.vendorSows.updateIfState(sow.id, sow.state, patch);
+    if (!result) throw STATE_CONFLICT;
     await appendAudit({
       action: 'transition_vendor_sow',
       resourceType: 'vendor_sow',
@@ -113,7 +116,14 @@ export async function POST(
       actor: currentUser,
     });
     return result;
+  }).catch((err: unknown) => {
+    if (err === STATE_CONFLICT) return null;
+    throw err;
   });
 
-  return Response.json({ status: 'success', data: updated ?? sow });
+  if (!updated) {
+    return stateConflictResponse('SOW (Vendor SOW)');
+  }
+
+  return Response.json({ status: 'success', data: updated });
 }

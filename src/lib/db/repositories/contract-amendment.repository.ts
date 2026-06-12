@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { contractAmendments } from '@/lib/db/schema';
@@ -53,6 +53,21 @@ export class DatabaseContractAmendmentRepository
       .where(eq(contractAmendments.id, id))
       .returning();
     return row ? rowToAmendment(row) : null;
+  }
+
+
+  /**
+   * PR-34 — highest amendment number for a contract; backs server-side
+   * amendment numbering (next = latest + 1).
+   */
+  async findLatestByContract(contractId: string): Promise<ContractAmendment | null> {
+    const rows = await this.db
+      .select()
+      .from(contractAmendments)
+      .where(eq(contractAmendments.contractId, contractId))
+      .orderBy(desc(contractAmendments.amendmentNumber))
+      .limit(1);
+    return rows[0] ? rowToAmendment(rows[0]) : null;
   }
 
   async delete(id: string): Promise<ContractAmendment | null> {

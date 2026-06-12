@@ -9,6 +9,7 @@ import {
 } from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
 import { requireItProject } from '@/lib/rid/it-project-guard';
+import { isUniqueViolation } from '@/lib/state-conflict';
 import { parseRequestBody } from '@/lib/validation';
 import { DT6_AREAS, type Dt6Area, type KnowledgeAreaNote } from '@/types/knowledge-area-note';
 import { createKnowledgeAreaNoteRequestSchema } from '@/types/knowledge-area-note.schema';
@@ -87,24 +88,43 @@ export async function POST(
   if (!guard.ok) return guard.response;
 
   const repos = getRepositories();
-  const latest = await repos.knowledgeAreaNotes.findLatestByProjectArea(
-    params.projectId,
-    parsed.data.area,
-  );
-  const nextVersion = (latest?.version ?? 0) + 1;
 
-  const now = new Date().toISOString();
-  const newNote: KnowledgeAreaNote = {
-    id: `kn-${crypto.randomUUID()}`,
-    projectId: params.projectId,
-    area: parsed.data.area,
-    version: nextVersion,
-    content: parsed.data.content,
-    authoredBy: currentUser?.id ?? 'unknown',
-    authoredAt: now,
-  };
-
-  const created = await repos.knowledgeAreaNotes.create(newNote);
+  // PR-34 — version stays server-assigned; a 23505 race against the new
+  // unique index recomputes once, mirroring TOR / amendments.
+  let created: KnowledgeAreaNote | null = null;
+  for (let attempt = 0; attempt < 2 && created === null; attempt += 1) {
+    const latest = await repos.knowledgeAreaNotes.findLatestByProjectArea(
+      params.projectId,
+      parsed.data.area,
+    );
+    const newNote: KnowledgeAreaNote = {
+      id: `kn-${crypto.randomUUID()}`,
+      projectId: params.projectId,
+      area: parsed.data.area,
+      version: (latest?.version ?? 0) + 1,
+      content: parsed.data.content,
+      authoredBy: currentUser?.id ?? 'unknown',
+      authoredAt: new Date().toISOString(),
+    };
+    try {
+      created = await repos.knowledgeAreaNotes.create(newNote);
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+    }
+  }
+  if (created === null) {
+    return Response.json(
+      {
+        status: 'error',
+        error: {
+          code: 'SEQUENCE_CONFLICT',
+          message:
+            'มีการบันทึกโน้ตพร้อมกันโดยผู้ใช้อื่น (concurrent note version) — โปรดลองอีกครั้ง (retry)',
+        },
+      },
+      { status: 409 },
+    );
+  }
   await recordAuditEvent(request, {
     action: 'create_knowledge_area_note',
     resourceType: 'knowledge_area_note',

@@ -18,6 +18,7 @@ import {
   type WorkPeriodEvidenceKind,
 } from '@/lib/rid/work-period-state-machine';
 import { parseRequestBody } from '@/lib/validation';
+import { STATE_CONFLICT, stateConflictResponse } from '@/lib/state-conflict';
 import { getProjectDeliveryMethod } from '@/types/project';
 import { transitionWorkPeriodRequestSchema } from '@/types/work-period.schema';
 
@@ -166,10 +167,12 @@ export async function POST(
 
   // Phase 2-A — atomic state-machine advance + audit.
   const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
-    const result = await txRepos.workPeriods.update(workPeriod.id, {
+    // PR-34 — compare-and-swap: only while still in the pre-checked state.
+    const result = await txRepos.workPeriods.updateIfState(workPeriod.id, before.state, {
       state: parsed.data.targetState,
       updatedAt: new Date().toISOString(),
     });
+    if (!result) throw STATE_CONFLICT;
     await appendAudit({
       action: 'transition_work_period',
       resourceType: 'work_period',
@@ -182,7 +185,14 @@ export async function POST(
       actor: currentUser,
     });
     return result;
+  }).catch((err: unknown) => {
+    if (err === STATE_CONFLICT) return null;
+    throw err;
   });
 
-  return Response.json({ status: 'success', data: updated ?? workPeriod });
+  if (!updated) {
+    return stateConflictResponse('งวดงาน (Work period)');
+  }
+
+  return Response.json({ status: 'success', data: updated });
 }

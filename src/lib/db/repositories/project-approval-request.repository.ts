@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { projectApprovalRequests } from '@/lib/db/schema';
@@ -55,6 +55,65 @@ export class DatabaseProjectApprovalRequestRepository
       .update(projectApprovalRequests)
       .set(entityToRow(merged))
       .where(eq(projectApprovalRequests.id, id))
+      .returning();
+    return row ? rowToEntity(row) : null;
+  }
+
+
+  /**
+   * PR-34 — compare-and-swap update: applies `patch` only while the
+   * row's state still equals `expected`. The UPDATE itself carries
+   * `WHERE id = ? AND state = ?`, so a transition raced by another
+   * writer matches zero rows and returns null instead of clobbering.
+   * Callers map null to 409 STATE_CONFLICT.
+   */
+  async updateIfState(
+    id: string,
+    expected: ProjectApprovalRequest['state'],
+    patch: Partial<ProjectApprovalRequest>,
+  ): Promise<ProjectApprovalRequest | null> {
+    const existing = await this.findById(id);
+    if (!existing || existing.state !== expected) return null;
+    const merged: ProjectApprovalRequest = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(projectApprovalRequests)
+      .set(entityToRow(merged))
+      .where(and(eq(projectApprovalRequests.id, id), eq(projectApprovalRequests.state, expected)))
+      .returning();
+    return row ? rowToEntity(row) : null;
+  }
+
+
+  /**
+   * PR-34 — CAS on state + jsonb_array_length(decision_history). See
+   * the interface doc: protects the append-only history from the
+   * same-state `request_changes` race that a state-only CAS misses.
+   */
+  async updateIfStateAndHistoryLength(
+    id: string,
+    expectedState: ProjectApprovalRequest['state'],
+    expectedHistoryLength: number,
+    patch: Partial<ProjectApprovalRequest>,
+  ): Promise<ProjectApprovalRequest | null> {
+    const existing = await this.findById(id);
+    if (
+      !existing ||
+      existing.state !== expectedState ||
+      existing.decisionHistory.length !== expectedHistoryLength
+    ) {
+      return null;
+    }
+    const merged: ProjectApprovalRequest = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(projectApprovalRequests)
+      .set(entityToRow(merged))
+      .where(
+        and(
+          eq(projectApprovalRequests.id, id),
+          eq(projectApprovalRequests.state, expectedState),
+          sql`jsonb_array_length(${projectApprovalRequests.decisionHistory}) = ${expectedHistoryLength}`,
+        ),
+      )
       .returning();
     return row ? rowToEntity(row) : null;
   }
