@@ -70,3 +70,26 @@ describe('handover menu access (PR handover-ui)', () => {
     expect(isProjectScopedMenuItem('handover')).toBe(true);
   });
 });
+
+describe('permits menu access (PR permits-land-eia-ui)', () => {
+  it('grants permits to the roles that maintain readiness registers', () => {
+    expect(canAccessMenuItem('System Admin', 'permits')).toBe(true);
+    expect(canAccessMenuItem('Project Manager', 'permits')).toBe(true);
+    expect(canAccessMenuItem('Engineer', 'permits')).toBe(true);
+  });
+
+  it('withholds permits from roles outside the readiness flow', () => {
+    expect(canAccessMenuItem('Coordinator', 'permits')).toBe(false);
+    expect(canAccessMenuItem('Team Member', 'permits')).toBe(false);
+    expect(canAccessMenuItem('Executive', 'permits')).toBe(false);
+    expect(canAccessMenuItem('Consultant', 'permits')).toBe(false);
+  });
+
+  it('returns false for permits when role is null', () => {
+    expect(canAccessMenuItem(null, 'permits')).toBe(false);
+  });
+
+  it('marks permits as a project-scoped menu item', () => {
+    expect(isProjectScopedMenuItem('permits')).toBe(true);
+  });
+});
