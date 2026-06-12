@@ -14,6 +14,7 @@ import {
   isHandoverComplete,
   type HandoverCompletenessResult,
 } from '@/lib/rid/handover-helpers';
+import { canEditProjectBasics } from '@/lib/project-access-pure';
 import type { UserRole } from '@/types/admin';
 import type { AsBuiltDrawing } from '@/types/as-built-drawing';
 import type { AssetRegistration } from '@/types/asset-registration';
@@ -37,13 +38,12 @@ export function getLegalNextHandoverStates(from: HandoverState): HandoverState[]
 
 /**
  * Whether the current user may create packets / file artifacts / record
- * transitions. Mirrors the procurement rule: System Admin and Project
- * Manager manage; everyone else reads. The server independently enforces
- * `edit_basic` per project.
+ * transitions. Thin alias over the central `canEditProjectBasics` rule
+ * (PR-31 cleanup).
  */
-export function canManageHandover(role: UserRole | null | undefined): boolean {
-  return role === 'System Admin' || role === 'Project Manager';
-}
+export const canManageHandover: (
+  role: UserRole | null | undefined,
+) => boolean = canEditProjectBasics;
 
 /**
  * Bridge the three artifact-register record lists into the shape

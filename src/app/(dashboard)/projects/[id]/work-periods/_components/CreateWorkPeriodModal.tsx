@@ -4,6 +4,7 @@ import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from 'an
 import type { Dayjs } from 'dayjs';
 
 import { announce } from '@/components/a11y';
+import { BahtInput } from '@/components/common';
 import { useCreateWorkPeriod } from '@/hooks/useWorkPeriods';
 
 interface CreateWorkPeriodModalProps {
@@ -107,12 +108,7 @@ export function CreateWorkPeriodModal({
           label="มูลค่างวดงาน (Amount, บาท)"
           rules={[{ required: true, message: 'กรุณาระบุมูลค่า' }]}
         >
-          <InputNumber<number>
-            min={0}
-            style={{ width: '100%' }}
-            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-            parser={(value) => Number((value ?? '').replace(/,/g, ''))}
-          />
+          <BahtInput min={0} />
         </Form.Item>
         <Form.Item
           name="percentage"

@@ -4,6 +4,8 @@
  * `StatusBadge` are domain-aware and untouched by PR-A3.
  */
 
+export { BahtInput, type BahtInputProps } from './BahtInput';
+export { formatBahtInputValue, parseBahtInputValue } from './baht-input-format';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { FilterBar, type FilterBarProps } from './FilterBar';
 export {

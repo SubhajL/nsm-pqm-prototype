@@ -6,16 +6,16 @@
  * count chips each tab renders above its table.
  */
 
+import { canEditProjectBasics } from '@/lib/project-access-pure';
 import type { UserRole } from '@/types/admin';
 
 /**
- * Whether the current user may add register entries. Mirrors the other
- * RID surfaces: System Admin and Project Manager manage; everyone else
- * reads. The server independently enforces `edit_basic` per project.
+ * Whether the current user may add register entries. Thin alias over the
+ * central `canEditProjectBasics` rule (PR-31 cleanup).
  */
-export function canManageCompliance(role: UserRole | null | undefined): boolean {
-  return role === 'System Admin' || role === 'Project Manager';
-}
+export const canManageCompliance: (
+  role: UserRole | null | undefined,
+) => boolean = canEditProjectBasics;
 
 export interface StatusCountEntry {
   key: string;

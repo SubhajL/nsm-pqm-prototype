@@ -1,6 +1,7 @@
 'use client';
 
 import { Alert, Button, Divider, Input, InputNumber, Table, Typography } from 'antd';
+import { BahtInput } from '@/components/common';
 import { PlusOutlined } from '@ant-design/icons';
 
 import { COLORS } from '@/theme/antd-theme';
@@ -39,12 +40,9 @@ export function MilestonesSection({
       key: 'amount',
       width: 200,
       render: (val: number, record: MilestoneRow) => (
-        <InputNumber
+        <BahtInput
           value={val}
           min={0}
-          style={{ width: '100%' }}
-          formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(v) => Number(v?.replace(/,/g, '') || 0) as unknown as 0}
           onChange={(v) => onMilestoneChange(record.key, 'amount', v)}
         />
       ),

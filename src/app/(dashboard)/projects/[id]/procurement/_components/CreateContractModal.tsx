@@ -4,6 +4,7 @@ import { DatePicker, Form, Input, InputNumber, Modal, Select, Typography, messag
 import type { Dayjs } from 'dayjs';
 
 import { announce } from '@/components/a11y';
+import { BahtInput } from '@/components/common';
 import {
   useCreateAwardedContract,
   useEngineeringEstimates,
@@ -139,12 +140,7 @@ export function CreateContractModal({
           label="มูลค่าสัญญา (Award Amount, บาท)"
           rules={[{ required: true, message: 'กรุณาระบุมูลค่าสัญญา' }]}
         >
-          <InputNumber<number>
-            min={0}
-            style={{ width: '100%' }}
-            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-            parser={(value) => Number((value ?? '').replace(/,/g, ''))}
-          />
+          <BahtInput min={0} />
         </Form.Item>
         <Form.Item
           name="contractingModel"

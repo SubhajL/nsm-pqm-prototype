@@ -169,3 +169,15 @@ export function getRoleMenuLabels(role: UserRole | null) {
 
   return ROLE_MENU_ACCESS[role].map((key) => MENU_LABELS[key]);
 }
+
+/**
+ * PR-31 cleanup — single source of truth for the "who may write on a
+ * project-scoped RID surface" rule that procurement / handover / IT-class /
+ * permits each used to copy locally. Mirrors the server's `edit_basic`
+ * authz-matrix entry: System Admin and Project Manager manage; everyone
+ * else reads. The server independently re-enforces `edit_basic` per
+ * project — this gate only decides what the UI renders.
+ */
+export function canEditProjectBasics(role: UserRole | null | undefined): boolean {
+  return role === 'System Admin' || role === 'Project Manager';
+}

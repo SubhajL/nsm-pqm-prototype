@@ -18,7 +18,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
 import { announce } from '@/components/a11y';
-import { EmptyState } from '@/components/common';
+import { BahtInput, EmptyState } from '@/components/common';
 import { useCreateLandAcquisition, useLandAcquisition } from '@/hooks/useCompliance';
 import { formatBaht } from '@/lib/date-utils';
 import {
@@ -194,23 +194,10 @@ export function LandTab({ projectId, canManage }: LandTabProps) {
             />
           </Form.Item>
           <Form.Item name="compensationAmount" label="ค่าชดเชย (Compensation, บาท)">
-            <InputNumber<number>
-              min={0}
-              style={{ width: '100%' }}
-              formatter={(value) =>
-                value === undefined || value === null
-                  ? ''
-                  : `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-              }
-              // Empty input must stay "no figure yet" (null), NOT ฿0 — the
-              // register treats null as "compensation not negotiated".
-              parser={(value) => {
-                const cleaned = (value ?? '').replace(/,/g, '').trim();
-                return cleaned === ''
-                  ? (null as unknown as number)
-                  : Number(cleaned);
-              }}
-            />
+            {/* Empty input must stay "no figure yet" (null), NOT ฿0 — the
+                register treats null as "compensation not negotiated".
+                BahtInput's parser guarantees that. */}
+            <BahtInput min={0} />
           </Form.Item>
         </Form>
       </Modal>

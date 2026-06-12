@@ -16,7 +16,7 @@ import {
 import type { Dayjs } from 'dayjs';
 
 import { announce } from '@/components/a11y';
-import { EmptyState } from '@/components/common';
+import { BahtInput, EmptyState } from '@/components/common';
 import {
   useContractAmendments,
   useCreateContractAmendment,
@@ -153,11 +153,7 @@ export function ContractAmendmentsPanel({
             label="มูลค่าเปลี่ยนแปลง (Amount Delta, บาท — ติดลบได้)"
             rules={[{ required: true, message: 'กรุณาระบุมูลค่าเปลี่ยนแปลง' }]}
           >
-            <InputNumber<number>
-              style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => Number((value ?? '').replace(/,/g, ''))}
-            />
+<BahtInput />
           </Form.Item>
           <Form.Item
             name="scheduleDeltaDays"

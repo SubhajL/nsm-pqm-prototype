@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button, Form, InputNumber, List, Select, Space, Typography, message } from 'antd';
 
 import { announce } from '@/components/a11y';
-import { EmptyState } from '@/components/common';
+import { BahtInput, EmptyState } from '@/components/common';
 import {
   useCreateEngineeringEstimate,
   useEngineeringEstimates,
@@ -121,12 +121,7 @@ export function EngineeringEstimatesSection({
             label="ราคากลางรวม (Estimated Total, บาท)"
             rules={[{ required: true, message: 'กรุณาระบุราคากลาง' }]}
           >
-            <InputNumber<number>
-              min={0}
-              style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => Number((value ?? '').replace(/,/g, ''))}
-            />
+            <BahtInput min={0} />
           </Form.Item>
           <Form.Item
             name="contingencyPercent"

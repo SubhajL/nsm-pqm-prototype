@@ -13,6 +13,7 @@
 
 import type { computeSprintHealth } from '@/lib/rid/it-class-helpers';
 import { canTransitionSow } from '@/lib/rid/it-class-helpers';
+import { canEditProjectBasics } from '@/lib/project-access-pure';
 import type { UserRole } from '@/types/admin';
 import type { KnowledgeAreaNote } from '@/types/knowledge-area-note';
 import { SOW_STATES, type SowState } from '@/types/vendor-sow';
@@ -28,13 +29,12 @@ export function getLegalNextSowStates(from: SowState): SowState[] {
 
 /**
  * Whether the current user may create SOWs/sprints/notes or record
- * transitions. Mirrors the procurement/handover rule: System Admin and
- * Project Manager manage; everyone else reads. The server independently
- * enforces `edit_basic` + the IT-only guard per project.
+ * transitions. Thin alias over the central `canEditProjectBasics` rule
+ * (PR-31 cleanup); the server additionally enforces the IT-only guard.
  */
-export function canManageItClass(role: UserRole | null | undefined): boolean {
-  return role === 'System Admin' || role === 'Project Manager';
-}
+export const canManageItClass: (
+  role: UserRole | null | undefined,
+) => boolean = canEditProjectBasics;
 
 /**
  * The active DT6 note: highest `version` in the list, or null when no

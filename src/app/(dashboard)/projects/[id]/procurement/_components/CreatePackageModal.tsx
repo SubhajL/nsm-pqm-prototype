@@ -1,8 +1,9 @@
 'use client';
 
-import { Form, Input, InputNumber, Modal, Select, message } from 'antd';
+import { Form, Input, Modal, Select, message } from 'antd';
 
 import { announce } from '@/components/a11y';
+import { BahtInput } from '@/components/common';
 import { useCreateProcurementPackage } from '@/hooks/useProcurement';
 import {
   PROCUREMENT_METHODS,
@@ -98,12 +99,7 @@ export function CreatePackageModal({
           label="วงเงิน (Budget Ceiling, บาท)"
           rules={[{ required: true, message: 'กรุณาระบุวงเงิน' }]}
         >
-          <InputNumber<number>
-            min={0}
-            style={{ width: '100%' }}
-            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-            parser={(value) => Number((value ?? '').replace(/,/g, ''))}
-          />
+          <BahtInput min={0} />
         </Form.Item>
         <Form.Item name="notes" label="หมายเหตุ (Notes)">
           <Input.TextArea rows={2} placeholder="รายละเอียดเพิ่มเติม" />
