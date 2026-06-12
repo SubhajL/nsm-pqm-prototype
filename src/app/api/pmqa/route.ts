@@ -1,9 +1,8 @@
 export const dynamic = 'force-dynamic';
 
-import { cookies } from 'next/headers';
-import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
+import { getCurrentApiUser } from '@/lib/project-api-access';
 import { rollupAllCategories } from '@/lib/pmqa/pmqa-rollup';
-import { getActiveUser, getVisibleProjectsForUser } from '@/lib/project-access';
+import { getVisibleProjectsForUser } from '@/lib/project-access';
 import { getRepositories } from '@/lib/repositories';
 
 /**
@@ -18,7 +17,7 @@ import { getRepositories } from '@/lib/repositories';
  */
 export async function GET(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 100));
-  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getCurrentApiUser();
 
   if (!currentUser) {
     return Response.json(

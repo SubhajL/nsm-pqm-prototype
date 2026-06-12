@@ -4,6 +4,7 @@ import {
   canAccessAdmin,
   canAccessExecutive,
 } from '@/lib/auth';
+import { unsealAuthCookieValue } from '@/lib/auth-cookie';
 import { AUTHZ_MATRIX, type Action } from '@/lib/authz-matrix';
 import { canUserAccessProject, getActiveUser, getVisibleProjectsForUser } from '@/lib/project-access';
 import { getRepositories } from '@/lib/repositories';
@@ -49,7 +50,11 @@ export function forbiddenResponse(action: Action) {
 }
 
 export async function getCurrentApiUser(): Promise<User | null> {
-  return getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const userId = await unsealAuthCookieValue(
+    AUTH_COOKIE_USER_ID,
+    cookies().get(AUTH_COOKIE_USER_ID)?.value,
+  );
+  return getActiveUser(userId ?? undefined);
 }
 
 function accountInactiveResponse() {
@@ -99,7 +104,10 @@ function roleForbiddenResponse(reason: string) {
  * the differentiated response makes audit-log triage faster.
  */
 async function getRawCookieUser(): Promise<User | null> {
-  const userId = cookies().get(AUTH_COOKIE_USER_ID)?.value;
+  const userId = await unsealAuthCookieValue(
+    AUTH_COOKIE_USER_ID,
+    cookies().get(AUTH_COOKIE_USER_ID)?.value,
+  );
   if (!userId) return null;
   return getRepositories().users.findById(userId);
 }

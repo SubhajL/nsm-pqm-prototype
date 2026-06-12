@@ -1,11 +1,13 @@
 export const dynamic = 'force-dynamic';
 
-import { cookies } from 'next/headers';
-import { AUTH_COOKIE_USER_ID } from '@/lib/auth';
 import { recordAuditEvent } from '@/lib/audit-helpers';
-import { canPerformProjectAction, forbiddenResponse } from '@/lib/project-api-access';
+import {
+  canPerformProjectAction,
+  forbiddenResponse,
+  getCurrentApiUser,
+} from '@/lib/project-api-access';
 import { syncProjectExecutionState } from '@/lib/project-execution-sync';
-import { canUserAccessProject, getActiveUser } from '@/lib/project-access';
+import { canUserAccessProject } from '@/lib/project-access';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { updateProjectStatusRequestSchema } from '@/types/project.schema';
@@ -17,7 +19,7 @@ export async function GET(
   await new Promise((resolve) => setTimeout(resolve, 150));
   const repos = getRepositories();
   const store = await repos.projects.list();
-  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getCurrentApiUser();
 
   if (!(await canUserAccessProject(currentUser, params.id, store))) {
     return Response.json(
@@ -56,7 +58,7 @@ export async function PATCH(
   if (!parsed.success) return parsed.response;
 
   const repos = getRepositories();
-  const currentUser = await getActiveUser(cookies().get(AUTH_COOKIE_USER_ID)?.value);
+  const currentUser = await getCurrentApiUser();
 
   if (!(await canPerformProjectAction(currentUser, params.id, 'edit_basic'))) {
     return forbiddenResponse('edit_basic');

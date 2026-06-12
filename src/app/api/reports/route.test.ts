@@ -5,14 +5,17 @@ interface CookieContext {
 }
 const cookieCtx: CookieContext = { userId: undefined };
 
-vi.mock('next/headers', () => ({
-  cookies: () => ({
-    get: (name: string) =>
-      name === 'pqm_user_id' && cookieCtx.userId
-        ? { value: cookieCtx.userId }
-        : undefined,
-  }),
-}));
+vi.mock('next/headers', async () => {
+  const { sealAuthCookieValueSync } = await import('@/lib/auth-cookie-node');
+  return {
+    cookies: () => ({
+      get: (name: string) =>
+        name === 'pqm_user_id' && cookieCtx.userId
+          ? { value: sealAuthCookieValueSync('pqm_user_id', cookieCtx.userId) }
+          : undefined,
+    }),
+  };
+});
 
 interface GlobalState {
   __nsmProjectStore: unknown;

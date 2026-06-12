@@ -7,6 +7,7 @@ import {
   canAccessExecutive,
   isProtectedPath,
 } from '@/lib/auth';
+import { unsealAuthCookieValue } from '@/lib/auth-cookie';
 
 /**
  * Header name used to propagate a per-request UUID end-to-end. Set on both
@@ -51,7 +52,7 @@ function withRequestId(response: NextResponse, requestId: string) {
  * backed helpers. API routes (`/api/*`) get cookie-presence only; the
  * handlers do the real check.
  */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Generate (or honor an upstream-supplied) request id once per request and
   // propagate it via the inbound headers — NextRequest.headers is mutable
   // inside middleware, so downstream API handlers can read it back even
@@ -60,9 +61,19 @@ export function middleware(request: NextRequest) {
   request.headers.set(REQUEST_ID_HEADER, requestId);
 
   const { pathname, search } = request.nextUrl;
-  const hasUserCookie = Boolean(request.cookies.get(AUTH_COOKIE_USER_ID)?.value);
+  // PR-33 — cookies are HMAC-sealed; a tampered/unsigned cookie unseals
+  // to null and is treated as logged out.
+  const hasUserCookie = Boolean(
+    await unsealAuthCookieValue(
+      AUTH_COOKIE_USER_ID,
+      request.cookies.get(AUTH_COOKIE_USER_ID)?.value,
+    ),
+  );
   // Role-hint cookie for HTML route routing only — NOT authoritative.
-  const roleCookie = request.cookies.get(AUTH_COOKIE_ROLE)?.value ?? null;
+  const roleCookie = await unsealAuthCookieValue(
+    AUTH_COOKIE_ROLE,
+    request.cookies.get(AUTH_COOKIE_ROLE)?.value,
+  );
 
   if (pathname.startsWith('/api/auth/')) {
     return withRequestId(
