@@ -10,4 +10,14 @@ export interface PaymentVoucherRepository extends Repository<PaymentVoucher> {
    * the contract has been re-issued after rejection).
    */
   findByWorkPeriod(workPeriodId: string): Promise<PaymentVoucher | null>;
+  /**
+   * PR-34 — compare-and-swap: update only while `state` still equals
+   * `expected`; null when missing or already transitioned (callers map
+   * to 409 STATE_CONFLICT).
+   */
+  updateIfState(
+    id: string,
+    expected: PaymentVoucher['state'],
+    patch: Partial<PaymentVoucher>,
+  ): Promise<PaymentVoucher | null>;
 }

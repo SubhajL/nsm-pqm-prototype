@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { qualityGates } from '@/lib/db/schema';
@@ -36,6 +36,30 @@ export class DatabaseQualityGateRepository implements QualityGateRepository {
       .update(qualityGates)
       .set(gateToRow(merged))
       .where(eq(qualityGates.id, id))
+      .returning();
+    return row ? rowToGate(row) : null;
+  }
+
+
+  /**
+   * PR-34 — compare-and-swap update: applies `patch` only while the
+   * row's status still equals `expected`. The UPDATE itself carries
+   * `WHERE id = ? AND status = ?`, so a transition raced by another
+   * writer matches zero rows and returns null instead of clobbering.
+   * Callers map null to 409 STATE_CONFLICT.
+   */
+  async updateIfState(
+    id: string,
+    expected: QualityGate['status'],
+    patch: Partial<QualityGate>,
+  ): Promise<QualityGate | null> {
+    const existing = await this.findById(id);
+    if (!existing || existing.status !== expected) return null;
+    const merged: QualityGate = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(qualityGates)
+      .set(gateToRow(merged))
+      .where(and(eq(qualityGates.id, id), eq(qualityGates.status, expected)))
       .returning();
     return row ? rowToGate(row) : null;
   }

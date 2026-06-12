@@ -14,6 +14,7 @@ import {
 import { getRepositories } from '@/lib/repositories';
 import { canTransitionPaymentVoucher } from '@/lib/rid/work-period-state-machine';
 import { parseRequestBody } from '@/lib/validation';
+import { STATE_CONFLICT, stateConflictResponse } from '@/lib/state-conflict';
 import type { PaymentVoucher } from '@/types/payment-voucher';
 import {
   createPaymentVoucherRequestSchema,
@@ -208,7 +209,10 @@ export async function PATCH(
 
   // Phase 2-A — atomic state-transition + audit.
   const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
-    const result = await txRepos.paymentVouchers.update(existing.id, patch);
+    // PR-34 — compare-and-swap: only while the voucher still holds the
+    // pre-checked state.
+    const result = await txRepos.paymentVouchers.updateIfState(existing.id, existing.state, patch);
+    if (!result) throw STATE_CONFLICT;
     await appendAudit({
       action: 'update_payment_voucher',
       resourceType: 'payment_voucher',
@@ -221,7 +225,14 @@ export async function PATCH(
       actor: currentUser,
     });
     return result;
+  }).catch((err: unknown) => {
+    if (err === STATE_CONFLICT) return null;
+    throw err;
   });
 
-  return Response.json({ status: 'success', data: updated ?? existing });
+  if (!updated) {
+    return stateConflictResponse('ฎีกาเบิกจ่าย (Payment voucher)');
+  }
+
+  return Response.json({ status: 'success', data: updated });
 }

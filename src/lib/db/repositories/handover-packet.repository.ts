@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { handoverPackets } from '@/lib/db/schema';
@@ -51,6 +51,30 @@ export class DatabaseHandoverPacketRepository
       .update(handoverPackets)
       .set(packetToRow(merged))
       .where(eq(handoverPackets.id, id))
+      .returning();
+    return row ? rowToPacket(row) : null;
+  }
+
+
+  /**
+   * PR-34 — compare-and-swap update: applies `patch` only while the
+   * row's state still equals `expected`. The UPDATE itself carries
+   * `WHERE id = ? AND state = ?`, so a transition raced by another
+   * writer matches zero rows and returns null instead of clobbering.
+   * Callers map null to 409 STATE_CONFLICT.
+   */
+  async updateIfState(
+    id: string,
+    expected: HandoverPacket['state'],
+    patch: Partial<HandoverPacket>,
+  ): Promise<HandoverPacket | null> {
+    const existing = await this.findById(id);
+    if (!existing || existing.state !== expected) return null;
+    const merged: HandoverPacket = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(handoverPackets)
+      .set(packetToRow(merged))
+      .where(and(eq(handoverPackets.id, id), eq(handoverPackets.state, expected)))
       .returning();
     return row ? rowToPacket(row) : null;
   }

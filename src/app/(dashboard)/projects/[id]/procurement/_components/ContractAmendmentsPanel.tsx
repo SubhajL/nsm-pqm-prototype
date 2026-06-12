@@ -61,22 +61,24 @@ export function ContractAmendmentsPanel({
     (a, b) => a.amendmentNumber - b.amendmentNumber,
   );
   const effective = foldContractAmendments(contract, list);
-  const nextNumber = list.length === 0 ? 1 : list[list.length - 1].amendmentNumber + 1;
+  // Display-only hint for the CTA label; the authoritative number is
+  // assigned server-side (PR-34) and read off the response.
+  const nextNumberHint = list.length === 0 ? 1 : list[list.length - 1].amendmentNumber + 1;
 
   const handleSubmit = async () => {
     const values = await form.validateFields().catch(() => null);
     if (!values) return;
     try {
-      await createAmendment.mutateAsync({
-        amendmentNumber: nextNumber,
+      // PR-34 — `amendmentNumber` is assigned server-side (latest + 1).
+      const created = await createAmendment.mutateAsync({
         amendedAt: values.amendedAt.format('YYYY-MM-DD'),
         amountDelta: values.amountDelta,
         scheduleDeltaDays: values.scheduleDeltaDays,
         reason: values.reason.trim(),
         approvedBy: currentUser?.id ?? 'unknown',
       });
-      message.success(`บันทึกสัญญาแก้ไขเพิ่มเติม ครั้งที่ ${nextNumber} แล้ว`);
-      announce(`บันทึกสัญญาแก้ไขเพิ่มเติม ครั้งที่ ${nextNumber} เรียบร้อยแล้ว`);
+      message.success(`บันทึกสัญญาแก้ไขเพิ่มเติม ครั้งที่ ${created.amendmentNumber} แล้ว`);
+      announce(`บันทึกสัญญาแก้ไขเพิ่มเติม ครั้งที่ ${created.amendmentNumber} เรียบร้อยแล้ว`);
       form.resetFields();
       setFormOpen(false);
     } catch (error) {
@@ -136,7 +138,7 @@ export function ContractAmendmentsPanel({
 
       {canManage && !formOpen && (
         <Button onClick={() => setFormOpen(true)}>
-          {`บันทึกแก้ไขครั้งที่ ${nextNumber} (Record Amendment #${nextNumber})`}
+          {`บันทึกแก้ไขครั้งที่ ${nextNumberHint} (Record Amendment #${nextNumberHint})`}
         </Button>
       )}
 

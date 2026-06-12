@@ -7,7 +7,7 @@
  * computes the next version.
  */
 
-import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { dt6AreaEnum } from './enums';
 
@@ -19,7 +19,14 @@ export const knowledgeAreaNotes = pgTable('knowledge_area_notes', {
   content: text('content').notNull(),
   authoredBy: text('authored_by').notNull(),
   authoredAt: text('authored_at').notNull(),
-});
+}, (table) => ({
+  // PR-34 — note versions are server-assigned per (project, area).
+  projectAreaVersionUq: uniqueIndex('knowledge_area_notes_project_area_version_uq').on(
+    table.projectId,
+    table.area,
+    table.version,
+  ),
+}));
 
 export type KnowledgeAreaNoteRow = typeof knowledgeAreaNotes.$inferSelect;
 export type KnowledgeAreaNoteInsert = typeof knowledgeAreaNotes.$inferInsert;

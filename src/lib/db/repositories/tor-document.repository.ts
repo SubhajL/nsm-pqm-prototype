@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { torDocuments } from '@/lib/db/schema';
@@ -53,6 +53,23 @@ export class DatabaseTorDocumentRepository implements TorDocumentRepository {
       .where(eq(torDocuments.id, id))
       .returning();
     return row ? rowToTor(row) : null;
+  }
+
+
+  /**
+   * PR-34 — highest-version TOR for a package; backs server-side
+   * version assignment (next = latest + 1).
+   */
+  async findLatestByProcurementPackage(
+    procurementPackageId: string,
+  ): Promise<TorDocument | null> {
+    const rows = await this.db
+      .select()
+      .from(torDocuments)
+      .where(eq(torDocuments.procurementPackageId, procurementPackageId))
+      .orderBy(desc(torDocuments.version))
+      .limit(1);
+    return rows[0] ? rowToTor(rows[0]) : null;
   }
 
   async delete(id: string): Promise<TorDocument | null> {

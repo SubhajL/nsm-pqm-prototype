@@ -5,7 +5,6 @@ import { createContractAmendmentRequestSchema } from './contract-amendment.schem
 describe('createContractAmendmentRequestSchema', () => {
   it('accepts a valid amendment body', () => {
     const result = createContractAmendmentRequestSchema.safeParse({
-      amendmentNumber: 1,
       amendedAt: '2026-06-15',
       amountDelta: 250_000,
       scheduleDeltaDays: 14,
@@ -17,7 +16,6 @@ describe('createContractAmendmentRequestSchema', () => {
 
   it('accepts negative deltas (deductive + early termination)', () => {
     const result = createContractAmendmentRequestSchema.safeParse({
-      amendmentNumber: 2,
       amendedAt: '2026-07-01',
       amountDelta: -100_000,
       scheduleDeltaDays: -7,
@@ -27,9 +25,9 @@ describe('createContractAmendmentRequestSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects amendmentNumber < 1', () => {
+  it('rejects a client-supplied amendmentNumber (PR-34: server-assigned)', () => {
     const result = createContractAmendmentRequestSchema.safeParse({
-      amendmentNumber: 0,
+      amendmentNumber: 1,
       amendedAt: '2026-06-15',
       amountDelta: 0,
       scheduleDeltaDays: 0,
@@ -41,7 +39,6 @@ describe('createContractAmendmentRequestSchema', () => {
 
   it('rejects non-integer scheduleDeltaDays', () => {
     const result = createContractAmendmentRequestSchema.safeParse({
-      amendmentNumber: 1,
       amendedAt: '2026-06-15',
       amountDelta: 0,
       scheduleDeltaDays: 1.5,
@@ -53,7 +50,6 @@ describe('createContractAmendmentRequestSchema', () => {
 
   it('rejects missing reason', () => {
     const result = createContractAmendmentRequestSchema.safeParse({
-      amendmentNumber: 1,
       amendedAt: '2026-06-15',
       amountDelta: 0,
       scheduleDeltaDays: 0,

@@ -10,6 +10,7 @@ import {
 import { canTransitionGate } from '@/lib/rid/quality-gate-state-machine';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
+import { stateConflictResponse } from '@/lib/state-conflict';
 import { transitionQualityGateRequestSchema } from '@/types/quality.schema';
 
 /**
@@ -81,20 +82,13 @@ export async function POST(
   }
 
   const before = gate;
-  const updated = await repos.qualityGates.update(gate.id, {
+  // PR-34 — compare-and-swap: only while the gate still holds the
+  // pre-checked status.
+  const updated = await repos.qualityGates.updateIfState(gate.id, gate.status, {
     status: parsed.data.toState,
   });
   if (!updated) {
-    return Response.json(
-      {
-        status: 'error',
-        error: {
-          code: 'INTERNAL',
-          message: 'Update failed unexpectedly',
-        },
-      },
-      { status: 500 },
-    );
+    return stateConflictResponse('ประตูคุณภาพ (Quality gate)');
   }
 
   await recordAuditEvent(request, {

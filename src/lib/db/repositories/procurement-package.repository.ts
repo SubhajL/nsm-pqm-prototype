@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { procurementPackages } from '@/lib/db/schema';
@@ -55,6 +55,30 @@ export class DatabaseProcurementPackageRepository
       .update(procurementPackages)
       .set(packageToRow(merged))
       .where(eq(procurementPackages.id, id))
+      .returning();
+    return row ? rowToPackage(row) : null;
+  }
+
+
+  /**
+   * PR-34 — compare-and-swap update: applies `patch` only while the
+   * row's state still equals `expected`. The UPDATE itself carries
+   * `WHERE id = ? AND state = ?`, so a transition raced by another
+   * writer matches zero rows and returns null instead of clobbering.
+   * Callers map null to 409 STATE_CONFLICT.
+   */
+  async updateIfState(
+    id: string,
+    expected: ProcurementPackage['state'],
+    patch: Partial<ProcurementPackage>,
+  ): Promise<ProcurementPackage | null> {
+    const existing = await this.findById(id);
+    if (!existing || existing.state !== expected) return null;
+    const merged: ProcurementPackage = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(procurementPackages)
+      .set(packageToRow(merged))
+      .where(and(eq(procurementPackages.id, id), eq(procurementPackages.state, expected)))
       .returning();
     return row ? rowToPackage(row) : null;
   }

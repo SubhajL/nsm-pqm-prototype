@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { Db } from '@/lib/db/client';
 import { changeRequests } from '@/lib/db/schema';
@@ -36,6 +36,30 @@ export class DatabaseChangeRequestRepository implements ChangeRequestRepository 
       .update(changeRequests)
       .set(crToRow(merged))
       .where(eq(changeRequests.id, id))
+      .returning();
+    return row ? rowToCr(row) : null;
+  }
+
+
+  /**
+   * PR-34 — compare-and-swap update: applies `patch` only while the
+   * row's status still equals `expected`. The UPDATE itself carries
+   * `WHERE id = ? AND status = ?`, so a transition raced by another
+   * writer matches zero rows and returns null instead of clobbering.
+   * Callers map null to 409 STATE_CONFLICT.
+   */
+  async updateIfState(
+    id: string,
+    expected: ChangeRequest['status'],
+    patch: Partial<ChangeRequest>,
+  ): Promise<ChangeRequest | null> {
+    const existing = await this.findById(id);
+    if (!existing || existing.status !== expected) return null;
+    const merged: ChangeRequest = { ...existing, ...patch };
+    const [row] = await this.db
+      .update(changeRequests)
+      .set(crToRow(merged))
+      .where(and(eq(changeRequests.id, id), eq(changeRequests.status, expected)))
       .returning();
     return row ? rowToCr(row) : null;
   }

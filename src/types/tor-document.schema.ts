@@ -4,9 +4,12 @@
 
 import { z } from 'zod';
 
+/**
+ * PR-34 — `version` is SERVER-ASSIGNED (latest + 1 per package); clients
+ * no longer send it. `.strict()` rejects any body still carrying one.
+ */
 export const createTorDocumentRequestSchema = z
   .object({
-    version: z.number().int().min(1, 'version must be >= 1'),
     scopeSummary: z.string().min(1, 'scopeSummary is required'),
     technicalRequirements: z.string().min(1, 'technicalRequirements is required'),
     deliverySchedule: z.string().min(1, 'deliverySchedule is required'),

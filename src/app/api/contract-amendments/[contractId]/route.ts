@@ -8,6 +8,7 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { getRepositories } from '@/lib/repositories';
+import { isUniqueViolation } from '@/lib/state-conflict';
 import { parseRequestBody } from '@/lib/validation';
 import type { ContractAmendment } from '@/types/contract-amendment';
 import { createContractAmendmentRequestSchema } from '@/types/contract-amendment.schema';
@@ -71,19 +72,45 @@ export async function POST(
   }
 
   const body = parsed.data;
-  const newAmendment: ContractAmendment = {
-    id: `am-${crypto.randomUUID()}`,
-    contractId: params.contractId,
-    amendmentNumber: body.amendmentNumber,
-    amendedAt: body.amendedAt,
-    amountDelta: body.amountDelta,
-    scheduleDeltaDays: body.scheduleDeltaDays,
-    reason: body.reason.trim(),
-    approvedBy: body.approvedBy.trim(),
-    documentFileId: body.documentFileId ?? null,
-  };
 
-  const created = await repos.contractAmendments.create(newAmendment);
+  // PR-34 — `amendmentNumber` is server-assigned: latest + 1 per
+  // contract. On a 23505 race the loser recomputes once (the intent is
+  // "append an amendment", so a retry preserves it).
+  let created: ContractAmendment | null = null;
+  for (let attempt = 0; attempt < 2 && created === null; attempt += 1) {
+    const latest = await repos.contractAmendments.findLatestByContract(
+      params.contractId,
+    );
+    const newAmendment: ContractAmendment = {
+      id: `am-${crypto.randomUUID()}`,
+      contractId: params.contractId,
+      amendmentNumber: (latest?.amendmentNumber ?? 0) + 1,
+      amendedAt: body.amendedAt,
+      amountDelta: body.amountDelta,
+      scheduleDeltaDays: body.scheduleDeltaDays,
+      reason: body.reason.trim(),
+      approvedBy: body.approvedBy.trim(),
+      documentFileId: body.documentFileId ?? null,
+    };
+    try {
+      created = await repos.contractAmendments.create(newAmendment);
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+    }
+  }
+  if (created === null) {
+    return Response.json(
+      {
+        status: 'error',
+        error: {
+          code: 'SEQUENCE_CONFLICT',
+          message:
+            'มีการบันทึกสัญญาแก้ไขพร้อมกันโดยผู้ใช้อื่น (concurrent amendment) — โปรดลองอีกครั้ง (retry)',
+        },
+      },
+      { status: 409 },
+    );
+  }
   await recordAuditEvent(request, {
     action: 'edit_contract_amendment',
     resourceType: 'contract_amendment',

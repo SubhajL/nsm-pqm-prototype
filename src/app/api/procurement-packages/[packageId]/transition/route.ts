@@ -8,6 +8,7 @@ import {
   requireProjectAccess,
 } from '@/lib/project-api-access';
 import { canTransitionProcurement } from '@/lib/rid/procurement-helpers';
+import { STATE_CONFLICT, stateConflictResponse } from '@/lib/state-conflict';
 import { getRepositories } from '@/lib/repositories';
 import { parseRequestBody } from '@/lib/validation';
 import { transitionProcurementRequestSchema } from '@/types/procurement-package.schema';
@@ -66,17 +67,16 @@ export async function POST(
 
   const before = pkg;
 
-  // Update + audit inside one transaction. If the update returns null
-  // (row vanished between findById and update — should not happen in
-  // practice, defensive only) we throw to roll back the would-be
-  // audit append; the catch maps it to 500.
-  const UPDATE_NULL = Symbol('PROC_PKG_UPDATE_RETURNED_NULL');
+  // PR-34 — compare-and-swap inside the transaction: the UPDATE only
+  // matches while the package is still in the pre-checked state. A
+  // concurrent transition makes it match zero rows; we throw to roll
+  // back the would-be audit append and answer 409 STATE_CONFLICT.
   const updated = await withTransactionalAudit(request, async (txRepos, appendAudit) => {
-    const result = await txRepos.procurementPackages.update(pkg.id, {
+    const result = await txRepos.procurementPackages.updateIfState(pkg.id, before.state, {
       state: parsed.data.targetState,
     });
     if (!result) {
-      throw UPDATE_NULL;
+      throw STATE_CONFLICT;
     }
     await appendAudit({
       action: 'transition_procurement_package',
@@ -91,18 +91,12 @@ export async function POST(
     });
     return result;
   }).catch((err: unknown) => {
-    if (err === UPDATE_NULL) return null;
+    if (err === STATE_CONFLICT) return null;
     throw err;
   });
 
   if (!updated) {
-    return Response.json(
-      {
-        status: 'error',
-        error: { code: 'INTERNAL', message: 'Update failed unexpectedly' },
-      },
-      { status: 500 },
-    );
+    return stateConflictResponse('ชุดจัดซื้อ (Procurement package)');
   }
 
   return Response.json({ status: 'success', data: updated });
