@@ -31,11 +31,14 @@ import {
  *      report assets ride on project visibility (no separate action).
  *
  * On success the route **streams** the blob bytes back. We previously
- * 302'd to `blob.url`, but Vercel's private-blob URLs need a server-side
- * token in the request, so a browser following a redirect to one of those
- * URLs cannot fetch it. `get(key, { access: 'private' })` performs the
- * authenticated fetch on the server and returns a ReadableStream the
- * route hands back unchanged.
+ * 302'd to `blob.url`, but routing every read through this server handler
+ * is what lets the HMAC + session + RBAC checks above gate access — even
+ * on a public store, where `blob.url` would otherwise be fetchable
+ * directly. `get(key, { access: 'private' })` performs the authenticated
+ * server-side fetch (it works against both private and public stores) and
+ * returns a ReadableStream the route hands back unchanged. (Uploads prefer
+ * a private store but fall back to public — see
+ * `mock-upload-storage.ts::putBlobStoreAware`.)
  *
  * Cache headers are forced to `private, no-store` so the response never
  * outlives the 5-minute HMAC window in a browser / shared cache. `Vary:

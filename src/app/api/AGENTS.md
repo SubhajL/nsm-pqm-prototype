@@ -70,13 +70,16 @@
   on DB-only state, do the check inside the route handler (Node runtime),
   not in middleware.
 - Document/daily-report uploads return BOTH `url` (raw blob URL) and
-  `signedUrl` (proxied `/api/documents/_blob/signed?…` URL with a 5-minute
-  TTL). The raw `url` won't work for `access: 'private'` blobs in the
-  browser. The safest pattern is: persist whatever the upload helper
-  returns, AND re-sign on read via `refreshSignedUrl()` in the GET handler
-  so older records stay renderable. The `key` query param embedded in the
-  signedUrl is the durable identifier; the `expires`/`sig` are
-  per-response.
+  `signedUrl` (proxied `/api/documents/blob/signed?…` URL with a 5-minute
+  TTL). Only the `signedUrl` is exposed to clients — it routes reads through
+  the HMAC + session + RBAC gate, so access control holds whether the blob
+  store is private or (as currently provisioned) public. Uploads prefer a
+  private store but fall back to public via
+  `mock-upload-storage.ts::putBlobStoreAware`. The safest pattern is: persist
+  whatever the upload helper returns, AND re-sign on read via
+  `refreshSignedUrl()` in the GET handler so older records stay renderable.
+  The `key` query param embedded in the signedUrl is the durable identifier;
+  the `expires`/`sig` are per-response.
 
 ## Pre-PR Checks
 `npm run typecheck && npm run lint && npm run build`
