@@ -34,6 +34,17 @@ export type Db = PgliteDb | PostgresJsDb;
 let cached: Db | null = null;
 
 /**
+ * `next dev` evaluates this module once per compiled route graph, so a
+ * module-scope cache leaks one postgres-js pool (up to 10 connections)
+ * per graph — a long e2e run walks enough routes to exhaust Postgres'
+ * max_connections and every subsequent API call 500s. Real-Postgres
+ * clients are therefore cached on `globalThis` (one pool per process).
+ * pglite stays module-scoped so vitest's `vi.resetModules()` keeps its
+ * fresh-instance-per-import isolation.
+ */
+const globalDbCache = globalThis as unknown as { __nsmPgDb?: PostgresJsDb };
+
+/**
  * Build a fresh Drizzle client. Most code should call `getDb()` instead —
  * this helper exists so tests can spin up isolated pglite instances.
  *
@@ -69,9 +80,15 @@ export function createDbClient(): Db {
  * Returns the singleton DB client, constructing on first call.
  */
 export function getDb(): Db {
-  if (!cached) {
-    cached = createDbClient();
+  if (cached) return cached;
+  if (process.env.DATABASE_URL) {
+    if (!globalDbCache.__nsmPgDb) {
+      globalDbCache.__nsmPgDb = createDbClient() as PostgresJsDb;
+    }
+    cached = globalDbCache.__nsmPgDb;
+    return cached;
   }
+  cached = createDbClient();
   return cached;
 }
 
@@ -84,6 +101,9 @@ export function getDb(): Db {
  */
 export function __setDbForTesting(db: Db | null): void {
   cached = db;
+  if (db === null) {
+    globalDbCache.__nsmPgDb = undefined;
+  }
   databaseReadyPromise = null;
 }
 

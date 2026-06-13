@@ -50,7 +50,9 @@ async function createProjectWithDeliveryMethod(
     'Weighting Method',
   );
 
-  await page.getByRole('button', { name: /สร้างโครงการ \(Create Project\)/i }).click();
+  // PR-D1c wizard footer: submit is the บันทึก button (rendered on every
+  // step so one-pass specs can fill all panes and submit immediately).
+  await page.getByRole('button', { name: 'บันทึก', exact: true }).click();
   await expect(page).toHaveURL(/\/projects\/[0-9a-f-]{36}$/);
   return page.url().split('/projects/')[1];
 }
@@ -101,12 +103,14 @@ test.describe('new-project bootstrap state', () => {
     await page.getByRole('link', { name: /แผนงาน \(Gantt\)/i }).click();
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/gantt$`));
     await expect(page.getByRole('button', { name: /เพิ่มงาน/i })).toBeVisible();
-    await expect(page.getByText('งวดที่ 1 (15%)')).toBeVisible();
+    // Bootstrap names gantt groups from the milestone deliverable prefix
+    // (ส่งมอบงานงวด N), with a ตรวจรับงวด N milestone under each.
+    await expect(page.getByText('ส่งมอบงานงวด 1').first()).toBeVisible();
     await expect(page.getByText('งานที่ 1 (15%)')).toHaveCount(0);
 
     await page.getByRole('link', { name: /รายงานประจำวัน/i }).click();
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/daily-report$`));
-    await expect(page.getByText('สร้างรายงานใหม่')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'สร้างรายงานใหม่' })).toBeVisible();
     await expect(page.getByText('รายงาน #')).toHaveCount(0);
 
     await page.getByRole('link', { name: /ความเสี่ยง \(Risk\)/i }).click();

@@ -151,7 +151,10 @@ describe('GET /api/org-structure (PR-17 asTree support)', () => {
       status: string;
       data: {
         unit: { id: string; kind: string; userCount: number };
-        children: Array<{ unit: { id: string }; children: unknown[] }>;
+        children: Array<{
+          unit: { id: string };
+          children: Array<{ unit: { id: string } }>;
+        }>;
       } | null;
     };
     expect(body.status).toBe('success');
@@ -160,9 +163,14 @@ describe('GET /api/org-structure (PR-17 asTree support)', () => {
     expect(body.data?.unit.kind).toBe('department');
     expect(Array.isArray(body.data?.children)).toBe(true);
     expect(body.data!.children.length).toBeGreaterThan(0);
-    const dept001 = body.data!.children.find((node) => node.unit.id === 'dept-001');
-    expect(dept001).toBeDefined();
-    expect(dept001!.children.length).toBeGreaterThan(0);
+    // RID hierarchy (post re-theme): dept-001 sits under the deputy-DG
+    // bureau dept-om, which is a direct child of the department root.
+    const deptOm = body.data!.children.find((node) => node.unit.id === 'dept-om');
+    expect(deptOm).toBeDefined();
+    expect(deptOm!.children.length).toBeGreaterThan(0);
+    expect(
+      deptOm!.children.some((node) => node.unit.id === 'dept-001'),
+    ).toBe(true);
   });
 });
 

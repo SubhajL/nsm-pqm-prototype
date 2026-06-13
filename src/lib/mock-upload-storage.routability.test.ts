@@ -68,6 +68,14 @@ describe('getSignedDocumentUrl() routability', () => {
     // that Next compiled and registered the handler. If the file doesn't
     // exist (no build run yet), we skip — the on-disk smoke above is
     // still load-bearing.
+    //
+    // Only a production build's manifest is complete. `next dev` also
+    // writes this file but fills it lazily with whatever routes were
+    // visited, so pinning against a dev manifest false-fails whenever
+    // vitest runs beside a dev server. BUILD_ID is only written by
+    // `next build` — use it to tell the two apart.
+    const buildIdPath = resolve(REPO_ROOT, '.next/BUILD_ID');
+    if (!existsSync(buildIdPath)) return;
     const manifestPath = resolve(REPO_ROOT, '.next/server/app-paths-manifest.json');
     if (!existsSync(manifestPath)) return;
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>;

@@ -1,7 +1,9 @@
 'use client';
 
-import { Col, Form, Input, Modal, Row, Select } from 'antd';
+import { Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd';
 import type { FormInstance } from 'antd';
+
+import { BahtInput } from '@/components/common';
 
 import type { ChangeRequestFormValues } from './types';
 
@@ -57,7 +59,9 @@ export function CreateChangeRequestModal({
               name="budgetImpact"
               rules={[{ required: true, message: 'กรุณาระบุผลกระทบงบประมาณ' }]}
             >
-              <Input aria-label="ผลกระทบงบประมาณ" type="number" />
+              {/* InputNumber (not Input type="number") so the form emits a
+                  real number — the API schema is a strict z.number(). */}
+              <BahtInput aria-label="ผลกระทบงบประมาณ" />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -66,7 +70,10 @@ export function CreateChangeRequestModal({
               name="scheduleImpact"
               rules={[{ required: true, message: 'กรุณาระบุผลกระทบเวลา' }]}
             >
-              <Input aria-label="ผลกระทบเวลา" type="number" />
+              <InputNumber
+                aria-label="ผลกระทบเวลา"
+                style={{ width: '100%' }}
+              />
             </Form.Item>
           </Col>
         </Row>
