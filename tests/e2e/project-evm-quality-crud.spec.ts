@@ -33,7 +33,7 @@ test.describe('project EVM and quality write flows', () => {
     );
     await selectOptionByFormLabel(
       page,
-      'รูปแบบการดำเนินโครงการ (Execution Model)',
+      'รูปแบบการดำเนินโครงการ (Delivery Method)',
       'ดำเนินการเอง',
     );
     await page.getByPlaceholder('ระบุวัตถุประสงค์ของโครงการ').fill('EVM CRUD validation');
@@ -45,7 +45,9 @@ test.describe('project EVM and quality write flows', () => {
       'วิธีคำนวณ Progress (Progress Calculation Method)',
       'Weighting Method',
     );
-    await page.getByRole('button', { name: /สร้างโครงการ \(Create Project\)/i }).click();
+    // PR-D1c wizard footer: submit is the บันทึก button (rendered on every
+    // step so one-pass specs can fill all panes and submit immediately).
+    await page.getByRole('button', { name: 'บันทึก', exact: true }).click();
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]{36}$/);
 
     const projectId = page.url().split('/projects/')[1];

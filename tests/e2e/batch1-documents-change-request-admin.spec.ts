@@ -22,7 +22,33 @@ async function selectAntOption(
     .click();
 }
 
+// The org-unit pickers are AntD TreeSelects (OrgUnitTreePicker), whose
+// dropdown renders tree nodes instead of plain option rows. The tree list
+// is virtualised — off-screen nodes are not in the DOM — so type into the
+// picker's search box to filter the target node into view before clicking.
+async function selectAntTreeOption(
+  page: import('@playwright/test').Page,
+  fieldLabel: string,
+  optionText: string,
+) {
+  const field = page.locator('.ant-form-item').filter({ hasText: fieldLabel }).first();
+  await field.locator('.ant-select-selector').click();
+  await field.locator('input.ant-select-selection-search-input').fill(optionText);
+  await page
+    .locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')
+    .last()
+    .locator('.ant-select-tree-title')
+    .filter({ hasText: optionText })
+    .first()
+    .click();
+}
+
 test.describe('batch 1 gaps: documents, change requests, and admin writes', () => {
+  // The project-context sidebar has outgrown 720px (งวดงาน/procurement/
+  // handover nav items) and the sider does not scroll, so the bottom
+  // ออกจากระบบ button is unreachable at the default viewport height.
+  test.use({ viewport: { width: 1280, height: 1600 } });
+
   test('PM can create a folder and upload a project document', async ({ page }) => {
     const folderName = `เอกสารทดสอบ ${Date.now()}`;
     const fileName = `แบบตรวจสอบ ${Date.now()}.pdf`;
@@ -63,7 +89,9 @@ test.describe('batch 1 gaps: documents, change requests, and admin writes', () =
     await createDialog.getByRole('button', { name: 'บันทึก', exact: true }).click();
 
     await page.getByRole('button', { name: /ออกจากระบบ/i }).click();
-    await page.waitForURL('**/login');
+    // Logout lands on /login?next=… (middleware return-path), so match
+    // the query string too.
+    await page.waitForURL('**/login**');
 
     await loginAs(page, 'user-001');
     await page.goto('/projects/proj-001/change-request');
@@ -85,19 +113,20 @@ test.describe('batch 1 gaps: documents, change requests, and admin writes', () =
 
     await page.getByRole('button', { name: /\+ เพิ่มหน่วยงาน/i }).click();
     const unitDialog = page.getByRole('dialog', { name: 'เพิ่มหน่วยงาน' });
+    await selectAntOption(page, 'ประเภทหน่วยงาน', 'สำนัก/กอง (Bureau)');
     await unitDialog.getByRole('textbox', { name: 'ชื่อหน่วยงาน' }).fill(unitName);
     await unitDialog.getByRole('textbox', { name: 'ชื่อภาษาอังกฤษ' }).fill('QA Unit');
-    await selectAntOption(page, 'หน่วยงานแม่', 'อพวช.');
+    await selectAntTreeOption(page, 'หน่วยงานแม่', 'กรมชลประทาน');
     await unitDialog.getByRole('button', { name: 'บันทึก', exact: true }).click();
 
-    await expect(page.getByRole('tree').getByText(unitName, { exact: true })).toBeVisible();
+    await expect(page.getByRole('tree').getByText(unitName)).toBeVisible();
 
     await page.getByRole('button', { name: /\+ เพิ่มผู้ใช้งาน/i }).click();
     const userDialog = page.getByRole('dialog', { name: 'เพิ่มผู้ใช้งาน' });
     await userDialog.getByRole('textbox', { name: 'ชื่อ-สกุล' }).fill(userName);
     await userDialog.getByRole('textbox', { name: 'ตำแหน่ง' }).fill('เจ้าหน้าที่ทดสอบ');
     await selectAntOption(page, 'บทบาทในระบบ', 'Coordinator');
-    await selectAntOption(page, 'สังกัดหน่วยงาน', unitName);
+    await selectAntTreeOption(page, 'สังกัดหน่วยงาน', unitName);
     await userDialog.getByRole('textbox', { name: 'อีเมล' }).fill(email);
     await userDialog.getByRole('textbox', { name: 'เบอร์โทร' }).fill('099-123-4567');
     await userDialog.getByRole('button', { name: 'บันทึก', exact: true }).click();

@@ -7,6 +7,9 @@ async function loginAs(page: import('@playwright/test').Page, userId: string) {
   await page.waitForURL('**/dashboard');
 }
 
+// Keep in sync with `handleDemoFill` in src/app/(dashboard)/projects/new/page.tsx.
+const DEMO_PROJECT_NAME = 'โครงการก่อสร้างประตูระบายน้ำคลองรังสิตประยูรศักดิ์ ตอน 2';
+
 test.describe('Scenario 1: create construction project via demo fill', () => {
   test('demo fill populates form correctly', async ({ page }) => {
     await loginAs(page, 'user-002');
@@ -14,11 +17,11 @@ test.describe('Scenario 1: create construction project via demo fill', () => {
     await expect(page.getByRole('heading', { name: /สร้างโครงการใหม่/i })).toBeVisible();
 
     // Click demo fill
-    await page.getByRole('button', { name: /Demo.*Scenario 1/i }).click();
-    await expect(page.getByText('เติมข้อมูลตัวอย่าง Scenario 1 แล้ว')).toBeVisible();
+    await page.getByRole('button', { name: 'เติมข้อมูลตัวอย่าง (Demo Fill)' }).click();
+    await expect(page.getByText('เติมข้อมูลตัวอย่างโครงการสาธิตแล้ว')).toBeVisible();
 
     // Verify key fields populated
-    await expect(page.locator('#name')).toHaveValue('โครงการปรับปรุงอาคารนิทรรศการ อาคาร C');
+    await expect(page.locator('#name')).toHaveValue(DEMO_PROJECT_NAME);
 
     // Verify 4 milestones in table
     await expect(page.locator('table tbody tr')).toHaveCount(4);
@@ -32,9 +35,9 @@ test.describe('Scenario 1: create construction project via demo fill', () => {
     await page.goto('/projects/new');
 
     // Fill and submit
-    await page.getByRole('button', { name: /Demo.*Scenario 1/i }).click();
-    // Click the create button (the teal primary button at the bottom)
-    const createBtn = page.getByRole('button', { name: /สร้างโครงการ/ });
+    await page.getByRole('button', { name: 'เติมข้อมูลตัวอย่าง (Demo Fill)' }).click();
+    // PR-D1c wizard footer: submit is the บันทึก button
+    const createBtn = page.getByRole('button', { name: 'บันทึก', exact: true });
     await createBtn.scrollIntoViewIfNeeded();
     await createBtn.click();
 
@@ -43,15 +46,15 @@ test.describe('Scenario 1: create construction project via demo fill', () => {
     expect(page.url()).not.toContain('/new');
 
     // Project name should appear somewhere on the overview
-    await expect(page.getByText('อาคาร C').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(DEMO_PROJECT_NAME).first()).toBeVisible({ timeout: 10000 });
   });
 
   test('new project appears in project list and all pages load', async ({ page }) => {
     // First create the project
     await loginAs(page, 'user-002');
     await page.goto('/projects/new');
-    await page.getByRole('button', { name: /Demo.*Scenario 1/i }).click();
-    const createBtn = page.getByRole('button', { name: /สร้างโครงการ/ });
+    await page.getByRole('button', { name: 'เติมข้อมูลตัวอย่าง (Demo Fill)' }).click();
+    const createBtn = page.getByRole('button', { name: 'บันทึก', exact: true });
     await createBtn.scrollIntoViewIfNeeded();
     await createBtn.click();
     await page.waitForURL(/\/projects\/(?!new)/, { timeout: 30000 });

@@ -53,8 +53,18 @@ export function useCreateProject() {
 
   return useMutation<Project, Error, Partial<Project>>({
     mutationFn: (newProject) => apiPost<Project>('/projects', newProject),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    onSuccess: (created) => {
+      // Seed every cached projects list before invalidating: the Sidebar
+      // resets currentProjectId whenever it is missing from the cached
+      // visible-projects list, so a create followed by setCurrentProject
+      // would be clobbered back to visibleProjects[0] during the refetch
+      // window (the "stay in the new project context" invariant).
+      queryClient.setQueriesData<Project[]>({ queryKey: ['projects'] }, (old) =>
+        old && !old.some((project) => project.id === created.id)
+          ? [...old, created]
+          : old,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }

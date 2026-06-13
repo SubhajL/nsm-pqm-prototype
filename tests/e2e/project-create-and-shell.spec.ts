@@ -48,7 +48,9 @@ test.describe('project creation and project shell', () => {
       'Weighting Method',
     );
 
-    await page.getByRole('button', { name: /สร้างโครงการ \(Create Project\)/i }).click();
+    // PR-D1c wizard footer: submit is the บันทึก button (rendered on every
+    // step so one-pass specs can fill all panes and submit immediately).
+    await page.getByRole('button', { name: 'บันทึก', exact: true }).click();
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]{36}$/);
 
     const projectUrl = page.url();
@@ -94,7 +96,9 @@ test.describe('project creation and project shell', () => {
     await expect(page.getByText('BOQ — 1.1 งานออกแบบรายละเอียด')).toBeVisible();
     await expect(page.getByText('ไม่พบข้อมูล WBS')).not.toBeVisible();
 
-    await page.getByRole('button', { name: /\+ เพิ่มรายการ BOQ/i }).click();
+    // Empty BOQ panels render the EmptyState action ("เพิ่มรายการ BOQ (Add
+    // BOQ item)") instead of the dashed "+ เพิ่มรายการ BOQ" button.
+    await page.getByRole('button', { name: /เพิ่มรายการ BOQ/i }).first().click();
     const boqDialog = page.getByRole('dialog', { name: 'เพิ่มรายการ BOQ' });
     await boqDialog.getByRole('textbox', { name: /รายการ/i }).fill(boqDescription);
     await boqDialog.getByRole('spinbutton', { name: /ปริมาณ/i }).fill('5');
@@ -199,9 +203,23 @@ test.describe('project creation and project shell', () => {
     await page.waitForURL('**/dashboard');
 
     await expect(page.getByText('โครงการทั้งหมด (Total Projects)')).toBeVisible();
-    await expect(page.getByText(/^5$/).first()).toBeVisible();
+    // The dev DB accumulates e2e-created projects, so derive the expected
+    // count from the API instead of hardcoding the seed count.
+    const projectCount = await page.evaluate(async () => {
+      const response = await fetch('/api/projects');
+      const payload = (await response.json()) as { data: unknown[] };
+      return payload.data.length;
+    });
+    expect(projectCount).toBeGreaterThanOrEqual(5);
     await expect(
-      page.getByRole('link', { name: 'โครงการปรับปรุงนิทรรศการดาราศาสตร์' }),
+      page.getByText(new RegExp(`^${projectCount}$`)).first(),
+    ).toBeVisible();
+    // Search keeps the seed project on page 1 regardless of accumulated rows.
+    await page
+      .getByPlaceholder('ค้นหาโครงการ... (Search projects)')
+      .fill('ฝายทดน้ำห้วยขุนแก้ว');
+    await expect(
+      page.getByRole('link', { name: /โครงการก่อสร้างฝายทดน้ำห้วยขุนแก้ว ตอน 1/ }),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: /สร้างโครงการใหม่/i }),
