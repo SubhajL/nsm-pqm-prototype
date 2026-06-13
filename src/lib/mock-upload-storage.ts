@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { BlobError, put } from '@vercel/blob';
 import { createHmac } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -28,9 +28,10 @@ export interface StoredMockUpload {
   filename: string;
   url: string;
   /**
-   * Short-lived URL the client should use to fetch the file. For
-   * private Vercel-Blob writes this is the proxied `/api/documents/...
-   * /download?token=...` URL; for local-FS dev writes it equals `url`.
+   * Short-lived URL the client should use to fetch the file. For Vercel-Blob
+   * writes this is the HMAC-signed `/api/documents/blob/signed` proxy URL
+   * (gated by session + project RBAC); for local-FS dev writes it equals
+   * `url`.
    */
   signedUrl: string;
   mimeType: string;
@@ -150,6 +151,79 @@ export function verifySignedUrlPayload(
   return mismatch === 0;
 }
 
+/**
+ * `put(..., { access: 'private' })` only works against a Blob store that was
+ * provisioned with private access. When the store is public it throws
+ * `BlobError: Vercel Blob: Cannot use private access on a public store`. This
+ * predicate matches that ONE case so we can fall back without masking
+ * unrelated failures (bad token, suspended store, file too large, …).
+ *
+ * `@vercel/blob@2.x` surfaces this as a generic `BlobError` with no stable
+ * machine-readable `code`, so the message substring is the only available
+ * discriminator — narrowed by the `instanceof BlobError` guard.
+ */
+export function isPublicStorePrivateAccessError(err: unknown): boolean {
+  return (
+    err instanceof BlobError &&
+    /private access on a public store/i.test(err.message)
+  );
+}
+
+// Discovered store-access mode, cached per process. `null` = not yet probed.
+// A fresh process always attempts private first, so provisioning a private
+// store + redeploying transparently restores true-private uploads; a process
+// that has observed a public store caches that to skip the doomed private
+// attempt on every subsequent upload.
+let cachedStoreIsPublic: boolean | null = null;
+let warnedPublicFallback = false;
+
+/** Test-only: reset the per-process store-access cache + warn latch. */
+export function __resetBlobStoreAccessCacheForTesting(): void {
+  cachedStoreIsPublic = null;
+  warnedPublicFallback = false;
+}
+
+/**
+ * Upload to Vercel Blob, preferring private access but tolerating a public
+ * store. The blob key (`relativePath`) is kept stable (`addRandomSuffix:
+ * false`) because the signed-URL proxy (`getSignedDocumentUrl` →
+ * `/api/documents/blob/signed`) derives the fetch key from it.
+ *
+ * Security note: on a public store the bytes are reachable by anyone who
+ * learns the raw blob URL. The app never hands `blob.url` to clients — only
+ * the HMAC + session + RBAC-gated signed proxy URL — but deterministic public
+ * paths are NOT an access-control boundary. Provision a private store
+ * (`vercel blob create-store --access private`) for true-private storage.
+ */
+export async function putBlobStoreAware(
+  relativePath: string,
+  file: File,
+  mimeType: string,
+): Promise<{ url: string; contentType?: string }> {
+  const baseOpts = { addRandomSuffix: false as const, contentType: mimeType };
+
+  if (cachedStoreIsPublic) {
+    return put(relativePath, file, { access: 'public', ...baseOpts });
+  }
+
+  try {
+    return await put(relativePath, file, { access: 'private', ...baseOpts });
+  } catch (err) {
+    if (!isPublicStorePrivateAccessError(err)) throw err;
+    cachedStoreIsPublic = true;
+    if (!warnedPublicFallback) {
+      warnedPublicFallback = true;
+      console.warn(
+        '[mock-upload-storage] Blob store is configured public; uploading with ' +
+          'access:"public". Reads remain gated by the signed-URL proxy ' +
+          '(HMAC + session + project RBAC). Provision a private store ' +
+          '(`vercel blob create-store --access private`) for true-private blobs.',
+      );
+    }
+    return put(relativePath, file, { access: 'public', ...baseOpts });
+  }
+}
+
 async function persistBlobUpload(
   file: File,
   relativePath: string,
@@ -158,11 +232,7 @@ async function persistBlobUpload(
   virusScanStatus: VirusScanStatus,
   virusScanCheckedAt: string,
 ): Promise<StoredMockUpload> {
-  const blob = await put(relativePath, file, {
-    access: 'private',
-    addRandomSuffix: false,
-    contentType: mimeType,
-  });
+  const blob = await putBlobStoreAware(relativePath, file, mimeType);
 
   return {
     filename: file.name,

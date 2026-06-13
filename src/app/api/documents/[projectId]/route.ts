@@ -107,9 +107,11 @@ export async function POST(
       actor: currentUser,
     });
 
-    // For files persisted to Vercel Blob with `access:'private'`, the
-    // raw URL would be inaccessible. The server-issued `signedUrl`
-    // grants the client a 5-min window through `/api/documents/blob/signed`.
+    // Clients only ever receive this server-issued `signedUrl` (a 5-min
+    // window through `/api/documents/blob/signed`), never the raw blob URL —
+    // so reads stay gated by HMAC + session + project RBAC whether the blob
+    // store is private or (as currently provisioned) public. See
+    // `mock-upload-storage.ts::putBlobStoreAware`.
     const signedUrl = body.sha256
       ? getSignedDocumentUrl(`documents/${params.projectId}/${file.id}`)
       : null;
