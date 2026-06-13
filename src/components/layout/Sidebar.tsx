@@ -177,10 +177,26 @@ export const Sidebar = memo(function Sidebar() {
   };
 
   const menuNode = (
-    <>
+    // Real flex-column container. AntD nests Sider children inside
+    // `.ant-layout-sider-children` (a non-flex block), so the flex styles
+    // on the outer <Sider> never reached the header/nav/footer — the nav's
+    // `flex`/`overflow` and the footer's `marginTop:auto` were inert and the
+    // logout button rendered below the fold on short viewports. This wrapper
+    // is the direct parent, so only the nav scrolls and the footer stays
+    // pinned. (The mobile Drawer body is already a flex column; nesting this
+    // height:100% wrapper inside it is harmless.)
+    <div
+      style={{
+        height: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <div
         style={{
           height: 60,
+          flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
@@ -203,7 +219,11 @@ export const Sidebar = memo(function Sidebar() {
         // surfaced first because screen readers running in a Thai
         // locale read it directly; the English suffix aids QA tooling.
         aria-label="เมนูหลัก (Main navigation)"
-        style={{ flex: 1, overflowY: 'auto' }}
+        // `minHeight: 0` lets this flex item shrink below its content height
+        // so `overflowY: auto` actually engages (the classic flexbox-overflow
+        // gotcha); without it the nav refuses to shrink and pushes the footer
+        // off-screen.
+        style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}
       >
         <Menu
           theme="dark"
@@ -247,7 +267,7 @@ export const Sidebar = memo(function Sidebar() {
       {currentUser && (
         <div
           style={{
-            marginTop: 'auto',
+            flexShrink: 0,
             padding: isMobile ? '12px 16px 24px' : collapsed ? '12px 8px 32px' : '12px 16px 32px',
             borderTop: '1px solid rgba(255,255,255,0.1)',
           }}
@@ -272,7 +292,7 @@ export const Sidebar = memo(function Sidebar() {
           </Button>
         </div>
       )}
-    </>
+    </div>
   );
 
   if (isMobile) {
@@ -309,14 +329,16 @@ export const Sidebar = memo(function Sidebar() {
       collapsed={collapsed}
       style={{
         background: sidebarBg,
-        minHeight: '100vh',
+        // Clip to the viewport so the inner flex-column wrapper resolves its
+        // `height:100%` against a definite height and the nav (not the whole
+        // Sider) is what scrolls.
+        height: '100vh',
+        overflow: 'hidden',
         position: 'fixed',
         left: 0,
         top: 0,
         bottom: 0,
         zIndex: 100,
-        display: 'flex',
-        flexDirection: 'column',
       }}
     >
       {menuNode}

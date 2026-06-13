@@ -23,6 +23,14 @@ export default defineConfig({
     command:
       `rm -f "${projectDemoStateFile}" && ` +
       `PROJECT_DEMO_STATE_FILE="${projectDemoStateFile}" ` +
+      // Clear BLOB_READ_WRITE_TOKEN (committed in .env.local) so uploads take
+      // the local-filesystem path (`persistFilesystemUpload`) instead of
+      // Vercel Blob. The dev/preview token points at a *public* store, but the
+      // uploader requests `access: 'private'`, so every photo/attachment
+      // upload throws `BlobError: Cannot use private access on a public store`
+      // and the daily-report create never persists — breaking batch2/batch4.
+      // `@next/env` won't re-populate an already-set (empty) process.env key.
+      `BLOB_READ_WRITE_TOKEN= ` +
       // งวดงาน payment flow (PR work-periods) is gated by these two env
       // vars; the e2e needs both ON to exercise the API + nav.
       `FEATURE_RID_PAYMENT_FLOW=true NEXT_PUBLIC_FEATURE_RID_PAYMENT_FLOW=true ` +

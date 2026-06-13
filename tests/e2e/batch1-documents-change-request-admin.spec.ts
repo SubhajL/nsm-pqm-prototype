@@ -44,10 +44,6 @@ async function selectAntTreeOption(
 }
 
 test.describe('batch 1 gaps: documents, change requests, and admin writes', () => {
-  // The project-context sidebar has outgrown 720px (งวดงาน/procurement/
-  // handover nav items) and the sider does not scroll, so the bottom
-  // ออกจากระบบ button is unreachable at the default viewport height.
-  test.use({ viewport: { width: 1280, height: 1600 } });
 
   test('PM can create a folder and upload a project document', async ({ page }) => {
     const folderName = `เอกสารทดสอบ ${Date.now()}`;
